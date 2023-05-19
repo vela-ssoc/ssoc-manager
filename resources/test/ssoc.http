@@ -1,0 +1,36 @@
+### es
+GET http://localhost:8089/api/v1/oplogs?current=1&size=3&filters={"col":"nickname","op":"like","val":"兆"}
+Authorization: 62492104347275264.32653363373139636565356638353565393163646362613436376266396532373331323338353662306137316638376538393131323137383864666533306430
+
+### es-create
+POST http://localhost:8089/api/v1/elastic
+Authorization: 62492104347275264.csf6w5965265.9a4ecc780a687f055d08be52f488fbcd92af7dba87401ceed67227ebfe11d8be
+Content-Type: application/json
+
+{
+  "host": "http://10.36.32.31:9092",
+  "enable": true
+}
+
+
+### effect
+POST http://localhost:8089/api/v1/effect
+Content-Type: application/json
+Authorization: 62492104347275264.cspwnalfawfq.60dcf6e7e92768cb34007a49640b79ba1a423b3f8b63905e06ae9f79ebe5fe32
+
+{
+  "name": "121-test",
+  "tags": [
+    "windows"
+  ],
+  "enable": true,
+  "substances": ["62840592096481280"],
+  "compounds": [],
+  "exclusion": ["172.31.66.22"]
+}
+
+### effects
+PATCH http://localhost:8089/api/v1/substance
+Accept: application/json
+Authorization: 62492104347275264.cso84ibirxse.3da679358dd154491baaea6375e80d28a66acff85cd5192cbffa999b18512521
+Content-Type: application/json

@@ -1,0 +1,38 @@
+env: prod                   # 多环境配置文件：manager-prod.yaml
+
+server:
+  addr: :8443               # http 服务监听地址，如果不填写则 http 为 80，https 为 443
+  cert: zone/tls/server.crt # 留空代表启动 http 服务，cert 和 pkey 都有效代表启动 https 服务
+  pkey: zone/tls/server.key # 留空代表启动 http 服务，cert 和 pkey 都有效代表启动 https 服务
+  sess: 12h                 # session 空闲有效期，如果一直活动则会以最后活动时间累加续期
+  dong: true                # 登录时是否开启咚咚验证码
+  vhosts: # vhosts 虚拟主机头，留空代表不校验虚拟主机头
+    - 127.0.0.1
+    - subdomain.example.com
+
+database:
+  dsn: username:password@tcp(example.com:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local&timeout=10s # DSN 数据源
+  max_open_conn: 100        # 最大连接数，默认不限制
+  max_idle_conn: 100        # 最大空间连接数，默认不限制
+  max_lift_time: 24h        # 最大连接时长，默认不限制
+  max_idle_time: 24h        # 最大空闲连接时长，默认不限制
+  user: username            # 用户名（当 dsn 为空时该参数有效）
+  passwd: password          # 密码（当 dsn 为空时该参数有效）
+  net: tcp                  # 连接网络类型，默认：tcp（当 dsn 为空时该参数有效）
+  addr: example.com:3306    # 数据库地址（当 dsn 为空时该参数有效）
+  dbname: soc               # 数据库名 （当 dsn 为空时该参数有效）
+  params: # 连接参数，key-value 类型，可自定义（当 dsn 为空时该参数有效）
+    charset: utf8mb4
+    parseTime: True
+    loc: Local
+    timeout: 10s
+
+logger:
+  level: DEBUG              # 日志级别，默认：WARN
+  console: false            # 是否输出到控制台，默认：false
+  directory: zone/log       # 日志输出目录，空代表不输出日志文件，注意是目录，无需设置日志文件名，文件名固定是 manager.log
+  maxsize: 100              # 日志文件分割大小，单位：兆字节，默认：100
+  maxage: 180               # 日志留存天数，超过该天数的日志文件会被删除，默认：0（不会删除）
+  backup: 0                 # 最大备份个数，超出个数的日志文件会被删除，默认：0 （不删除）
+  localtime: true           # 分割后的日志文件名格式化是否使用当地时区，默认：false
+  compress: true            # 分割后的日志是否开启压缩，用于节省磁盘空间，默认：false

@@ -1,0 +1,2 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[46],{oqJM:function(t,e,r){"use strict";r.r(e);var n={name:"index",data:function(){return{reportUrl:"https://vela-ssoc.eastmoney.com/help/"}}},s=r("KHd+"),o=Object(s.a)(n,(function(){var t=this.$createElement,e=this._self._c||t;return e("div",[e("iframe",{staticStyle:{border:"none",width:"100%",height:"900px"},attrs:{src:this.reportUrl}})])}),[],!1,null,"42242717",null);e.default=o.exports}}]);
+//# sourceMappingURL=46.9953a1350d3e93af85d0.js.map
