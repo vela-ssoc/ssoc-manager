@@ -56,8 +56,8 @@ var (
 	once sync.Once
 )
 
-// Print 打印 banner 到指定输出流
-func Print(w io.Writer) {
+// WriteTo 打印 banner 到指定输出流
+func WriteTo(w io.Writer) {
 	once.Do(parse)
 
 	compile := compileTime

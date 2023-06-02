@@ -3,6 +3,7 @@ package launch
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/vela-ssoc/vela-manager/infra/config"
 )
@@ -29,14 +30,16 @@ func (a *application) run() error {
 
 func (a *application) listen(ch chan<- error) {
 	scf := a.cfg.Server
-	cert := scf.Cert
-	pkey := scf.Pkey
 	srv := &http.Server{
-		Addr:    scf.Addr,
-		Handler: a.handler,
+		Addr:              scf.Addr,
+		Handler:           a.handler,
+		ReadHeaderTimeout: time.Minute,
+		ReadTimeout:       time.Hour,
+		WriteTimeout:      time.Hour,
 	}
 
 	var err error
+	cert, pkey := scf.Cert, scf.Pkey
 	if cert == "" || pkey == "" {
 		err = srv.ListenAndServe()
 	} else {

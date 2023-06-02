@@ -6,6 +6,12 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 )
 
+type MinionCreate struct {
+	Inet string `json:"inet" validate:"ipv4"`
+	Goos string `json:"goos" validate:"oneof=linux windows darwin"`
+	Arch string `json:"arch" validate:"oneof=amd64 386 arm64 arm"`
+}
+
 type MinionSummary struct {
 	ID        int64              `json:"id,string"`
 	Inet      string             `json:"inet"`
@@ -32,7 +38,7 @@ type MinionDetail struct {
 	Arch          string             `json:"arch"           gorm:"column:arch"`
 	Edition       string             `json:"edition"        gorm:"column:edition"`
 	Status        model.MinionStatus `json:"status"         gorm:"column:status"`
-	Uptime        time.Time          `json:"uptime"         gorm:"column:uptime"`
+	Uptime        time.Time          `json:"uptime"         gorm:"column:minion.uptime"`
 	BrokerID      string             `json:"broker_id"      gorm:"column:broker_id"`
 	BrokerName    string             `json:"broker_name"    gorm:"column:broker_name"`
 	OrgPath       string             `json:"org_path"       gorm:"column:org_path"`

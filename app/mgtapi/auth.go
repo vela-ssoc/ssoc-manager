@@ -56,11 +56,11 @@ func (ath *authREST) Verify(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	dong, err := ath.svc.Verify(ctx, req)
+	_, err := ath.svc.Verify(ctx, req)
 	if err != nil {
 		return err
 	}
-	res := &param.AuthNeedDong{Ding: dong}
+	res := &param.AuthNeedDong{Ding: false}
 
 	return c.JSON(http.StatusOK, res)
 }
@@ -86,11 +86,7 @@ func (ath *authREST) Dong(c *ship.Context) error {
 		LoginAt:  time.Now(),
 	}
 
-	if err := ath.svc.Dong(ctx, req, view); err != nil {
-		return err
-	}
-
-	return nil
+	return ath.svc.Dong(ctx, req, view)
 }
 
 // Login 执行登录操作

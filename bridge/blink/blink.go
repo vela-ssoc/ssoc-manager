@@ -2,6 +2,7 @@ package blink
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -13,7 +14,7 @@ import (
 type Joiner interface {
 	Name() string
 	// Auth 开始认证
-	Auth(Ident) (Issue, http.Header, error)
+	Auth(context.Context, Ident) (Issue, http.Header, error)
 	// Join 认证成功后接入处理业务逻辑
 	Join(net.Conn, Ident, Issue) error
 }
@@ -51,7 +52,8 @@ func (bk *blink) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 鉴权
-	issue, header, gex := bk.joiner.Auth(ident)
+	ctx := r.Context()
+	issue, header, gex := bk.joiner.Auth(ctx, ident)
 	if gex != nil {
 		bk.writeError(w, r, http.StatusBadRequest, "认证失败：%s", gex.Error())
 		return

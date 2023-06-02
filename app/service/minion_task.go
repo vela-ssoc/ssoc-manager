@@ -3,18 +3,22 @@ package service
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"gorm.io/gorm"
 )
 
 type MinionTaskService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionTask)
 	Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error)
 	Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error)
+	Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather)
+	Count(ctx context.Context) *param.TaskCount
 }
 
 func MinionTask() MinionTaskService {
@@ -51,6 +55,9 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 		Where(taskTbl.MinionID.Eq(mid)).
 		Where(taskTbl.SubstanceID.Eq(sid)).
 		First()
+	if mt == nil {
+		mt = new(model.MinionTask)
+	}
 
 	dialect := sub.MinionID == mid
 	dat := &param.MinionTaskDetail{
@@ -157,4 +164,84 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 	}
 
 	return res, nil
+}
+
+func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather) {
+	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	ctSQL := db.Model(&model.MinionTask{}).
+		Select("name", "COUNT(*) count").
+		Group("name")
+	if kw := page.Keyword(); kw != "" {
+		ctSQL.Where("name LIKE ?", kw)
+	}
+	var count int64
+	if ctSQL.Count(&count); count == 0 {
+		return 0, nil
+	}
+
+	var cts []*param.NameCount
+	ctSQL.Order("count DESC").Scopes(page.DBScope(count)).Scan(&cts)
+	if len(cts) == 0 {
+		return 0, nil
+	}
+
+	mutex := new(sync.Mutex)
+	wg := new(sync.WaitGroup)
+	ret := make([]*param.TaskGather, len(cts))
+	for i, ct := range cts {
+		wg.Add(1)
+		go biz.gather(wg, mutex, db, ct.Name, i, ret)
+	}
+	wg.Wait()
+
+	return count, ret
+}
+
+func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *gorm.DB, name string, n int, ret []*param.TaskGather) {
+	defer wg.Done()
+
+	rawSQL := "SELECT COUNT(IF(`dialect` = TRUE, TRUE, NULL)) AS `dialect`, " +
+		"COUNT(IF(`dialect` = FALSE, TRUE, NULL))    AS `public`, " +
+		"COUNT(IF(`status` = 'running', TRUE, NULL)) AS `running`," +
+		"COUNT(IF(`status` = 'doing', TRUE, NULL))   AS `doing`, " +
+		"COUNT(IF(`status` = 'fail', TRUE, NULL))    AS `fail`, " +
+		"COUNT(IF(`status` = 'panic', TRUE, NULL))   AS `panic`, " +
+		"COUNT(IF(`status` = 'reg', TRUE, NULL))     AS `reg`, " +
+		"COUNT(IF(`status` = 'update', TRUE, NULL))  AS `update` " +
+		"FROM minion_task WHERE name = ?"
+
+	var res param.TaskCount
+	db.Raw(rawSQL, name).Scan(&res)
+	tg := &param.TaskGather{
+		Name:    name,
+		Dialect: res.Dialect > 0,
+		Running: res.Running,
+		Doing:   res.Doing,
+		Fail:    res.Fail,
+		Panic:   res.Panic,
+		Reg:     res.Reg,
+		Update:  res.Update,
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+	ret[n] = tg
+}
+
+func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
+	rawSQL := "SELECT COUNT(IF(`dialect` = TRUE, TRUE, NULL)) AS `dialect`, " +
+		"COUNT(IF(`dialect` = FALSE, TRUE, NULL))    AS `public`, " +
+		"COUNT(IF(`status` = 'running', TRUE, NULL)) AS `running`," +
+		"COUNT(IF(`status` = 'doing', TRUE, NULL))   AS `doing`, " +
+		"COUNT(IF(`status` = 'fail', TRUE, NULL))    AS `fail`, " +
+		"COUNT(IF(`status` = 'panic', TRUE, NULL))   AS `panic`, " +
+		"COUNT(IF(`status` = 'reg', TRUE, NULL))     AS `reg`, " +
+		"COUNT(IF(`status` = 'update', TRUE, NULL))  AS `update` " +
+		"FROM minion_task"
+
+	res := new(param.TaskCount)
+	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	db.Raw(rawSQL).Scan(&res)
+
+	return res
 }

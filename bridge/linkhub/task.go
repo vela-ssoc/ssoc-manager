@@ -47,3 +47,22 @@ func (rt *resultTask) Run() {
 	defer rt.wg.Done()
 	rt.err = rt.huber.sendJSON(rt.id, rt.path, rt.req, rt.resp)
 }
+
+type onewayTask struct {
+	wg   *sync.WaitGroup
+	hub  *brokerHub
+	bid  int64
+	path string
+	req  any
+	err  error
+}
+
+func (rt *onewayTask) Run() {
+	defer rt.wg.Done()
+	rt.err = rt.hub.silentJSON(rt.bid, rt.path, rt.req)
+}
+
+func (rt *onewayTask) Wait() error {
+	rt.wg.Wait()
+	return rt.err
+}

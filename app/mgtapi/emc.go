@@ -1,0 +1,75 @@
+package mgtapi
+
+import (
+	"net/http"
+
+	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/app/route"
+	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/xgfone/ship/v5"
+)
+
+func Emc(svc service.EmcService) route.Router {
+	return &emcREST{
+		svc: svc,
+	}
+}
+
+type emcREST struct {
+	svc service.EmcService
+}
+
+func (rest *emcREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/emcs").GET(rest.Page)
+	bearer.Route("/emc").
+		POST(rest.Create).
+		PUT(rest.Update).
+		DELETE(rest.Delete)
+}
+
+func (rest *emcREST) Page(c *ship.Context) error {
+	var req param.PageSQL
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	page := req.Pager()
+	ctx := c.Request().Context()
+	count, dats := rest.svc.Page(ctx, page)
+	res := page.Result(count, dats)
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *emcREST) Create(c *ship.Context) error {
+	var req param.EmcCreate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Create(ctx, &req)
+}
+
+func (rest *emcREST) Update(c *ship.Context) error {
+	var req param.EmcUpdate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Update(ctx, &req)
+}
+
+func (rest *emcREST) Delete(c *ship.Context) error {
+	var req param.IntID
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Delete(ctx, req.ID)
+}

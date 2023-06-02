@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,18 +19,28 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/spdy"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
+	"github.com/vela-ssoc/vela-manager/infra/config"
+)
+
+var (
+	ErrBrokerNotFound = errors.New("broker 节点不存在")
+	ErrBrokerRepeat   = errors.New("broker 节点重复连接")
+	ErrBrokerInet     = errors.New("broker IP 不合法")
+	ErrBrokerOffline  = errors.New("代理节点未上线")
 )
 
 type Huber interface {
 	blink.Joiner
 
-	RestDB() error
+	ResetDB() error
+
+	Oneway(id int64, path string, req any) error
 
 	Unicast(id int64, path string, req, resp any) error
 
 	Multicast(bids []int64, path string, req any) <-chan *ErrorFuture
 
-	Broadcast(path, req any) <-chan *ErrorFuture
+	Broadcast(path string, req any) <-chan *ErrorFuture
 
 	// Stream 向 broker 节点建立 websocket 连接
 	Stream(ctx context.Context, bid int64, path string, header http.Header) (*websocket.Conn, *http.Response, error)
@@ -38,10 +49,11 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(handler http.Handler, pool taskpool.Executor) Huber {
+func New(handler http.Handler, pool taskpool.Executor, cfg config.Config) Huber {
 	hub := &brokerHub{
 		name:     "manager",
 		handler:  handler,
+		config:   cfg,
 		client:   netutil.HTTPClient{},
 		connects: make(map[string]*spdyServerConn, 16),
 		random:   rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -58,6 +70,7 @@ func New(handler http.Handler, pool taskpool.Executor) Huber {
 type brokerHub struct {
 	name     string
 	handler  http.Handler
+	config   config.Config
 	client   netutil.HTTPClient
 	forward  netutil.Forwarder
 	streamer netutil.Streamer
@@ -71,9 +84,38 @@ func (hub *brokerHub) Name() string {
 	return hub.name
 }
 
-func (hub *brokerHub) Auth(ident blink.Ident) (blink.Issue, http.Header, error) {
-	// TODO implement me
-	panic("implement me")
+func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue, http.Header, error) {
+	var issue blink.Issue
+	id, secret, inet := ident.ID, ident.Secret, ident.Inet
+	if len(inet) == 0 || inet.IsLoopback() {
+		return issue, nil, ErrBrokerInet
+	}
+
+	// 查询 broker
+	brkTbl := query.Broker
+	brk, err := brkTbl.WithContext(ctx).
+		Where(brkTbl.ID.Eq(id)).
+		Where(brkTbl.Secret.Eq(secret)).
+		First()
+	if err != nil {
+		return issue, nil, ErrBrokerNotFound
+	}
+
+	sid := strconv.FormatInt(id, 10)
+	if brk.Status || hub.getConn(sid) != nil {
+		return issue, nil, ErrBrokerRepeat
+	}
+
+	// 随机生成一个 32-64 位的加密密钥
+	psz := hub.random.Intn(33) + 32
+	passwd := make([]byte, psz)
+	_, _ = hub.random.Read(passwd)
+
+	issue.Name, issue.Passwd = brk.Name, passwd
+	issue.Listen = blink.Listen{Addr: ":8082"}
+	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
+
+	return issue, nil, nil
 }
 
 func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) error {
@@ -108,12 +150,28 @@ func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) 
 	return nil
 }
 
-func (hub *brokerHub) RestDB() error {
+func (hub *brokerHub) ResetDB() error {
 	brk := query.Broker
 	_, err := brk.WithContext(context.Background()).
 		Where(brk.Status.Is(true)).
 		UpdateColumn(brk.Status, false)
 	return err
+}
+
+func (hub *brokerHub) Oneway(id int64, path string, req any) error {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+
+	tsk := &onewayTask{
+		wg:   wg,
+		hub:  hub,
+		bid:  id,
+		path: path,
+		req:  req,
+	}
+	hub.pool.Submit(tsk) // 交给协程池去执行
+
+	return tsk.Wait()
 }
 
 func (hub *brokerHub) Unicast(id int64, path string, req, resp any) error {
@@ -147,14 +205,15 @@ func (hub *brokerHub) Multicast(bids []int64, path string, req any) <-chan *Erro
 	return ret
 }
 
-func (hub *brokerHub) Broadcast(path, req any) <-chan *ErrorFuture {
-	// TODO implement me
-	panic("implement me")
+func (hub *brokerHub) Broadcast(path string, req any) <-chan *ErrorFuture {
+	bids := hub.keys() // 获取在线的 broker
+	return hub.Multicast(bids, path, req)
 }
 
 func (hub *brokerHub) Forward(bid int64, w http.ResponseWriter, r *http.Request) {
 	host := strconv.FormatInt(bid, 10)
 	r.URL.Host = host
+	r.URL.Scheme = "http"
 	hub.forward.Forward(w, r)
 }
 
@@ -211,14 +270,20 @@ func (hub *brokerHub) newConn(tran net.Conn, ident blink.Ident, issue blink.Issu
 }
 
 func (hub *brokerHub) httpURL(id int64, path string) string {
-	sid := strconv.FormatInt(id, 10)
-	u := &url.URL{Scheme: "http", Host: sid, Path: path}
-	return u.String()
+	return hub.newURL(id, "http", path)
 }
 
 func (hub *brokerHub) wsURL(id int64, path string) string {
+	return hub.newURL(id, "ws", path)
+}
+
+func (*brokerHub) newURL(id int64, scheme, path string) string {
 	sid := strconv.FormatInt(id, 10)
-	u := &url.URL{Scheme: "ws", Host: sid, Path: path}
+	sn := strings.SplitN(path, "?", 2)
+	u := &url.URL{Scheme: scheme, Host: sid, Path: sn[0]}
+	if len(sn) == 2 {
+		u.RawQuery = sn[1]
+	}
 	return u.String()
 }
 
@@ -259,7 +324,7 @@ func (hub *brokerHub) dialContext(_ context.Context, _, addr string) (net.Conn, 
 		return conn.muxer.Dial()
 	}
 
-	return nil, errors.New("broker 节点离线")
+	return nil, ErrBrokerOffline
 }
 
 func (hub *brokerHub) errorFunc(w http.ResponseWriter, r *http.Request, err error) {
@@ -271,4 +336,15 @@ func (hub *brokerHub) errorFunc(w http.ResponseWriter, r *http.Request, err erro
 		Instance: r.RequestURI,
 	}
 	_ = pd.JSON(w)
+}
+
+func (hub *brokerHub) keys() []int64 {
+	hub.mutex.RLock()
+	ret := make([]int64, 0, len(hub.connects))
+	for _, conn := range hub.connects {
+		ret = append(ret, conn.id)
+	}
+	hub.mutex.RUnlock()
+
+	return ret
 }

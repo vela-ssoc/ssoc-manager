@@ -1,7 +1,6 @@
 package mgtapi
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -22,12 +21,15 @@ type substanceREST struct {
 }
 
 func (rest *substanceREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/minion/reload").PATCH(rest.Reload)
+	bearer.Route("/minion/command").PATCH(rest.Command)
 	bearer.Route("/substances").GET(rest.Page)
 	bearer.Route("/substance/indices").GET(rest.Indices)
 	bearer.Route("/substance").
 		GET(rest.Detail).
 		POST(rest.Create).
-		PATCH(rest.Update)
+		PUT(rest.Update).
+		DELETE(rest.Delete)
 }
 
 func (rest *substanceREST) Indices(c *ship.Context) error {
@@ -86,13 +88,52 @@ func (rest *substanceREST) Create(c *ship.Context) error {
 }
 
 func (rest *substanceREST) Update(c *ship.Context) error {
-	var req param.Page
+	var req param.SubstanceUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
-	// 62594160710045696
-	rest.svc.Update(context.Background(), &param.SubstanceUpdate{ID: 62594160710045696}, 62594160710045696)
+	cu := session.Cast(c.Any)
+	ctx := c.Request().Context()
 
-	return nil
+	return rest.svc.Update(ctx, &req, cu.ID)
+}
+
+func (rest *substanceREST) Delete(c *ship.Context) error {
+	var req param.IntID
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Delete(ctx, req.ID)
+}
+
+// Reload 重新加载指定节点上的指定配置
+func (rest *substanceREST) Reload(c *ship.Context) error {
+	var req param.SubstanceReload
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Reload(ctx, req.ID, req.SubstanceID)
+}
+
+// Command 重新加载指定节点上的指定配置
+func (rest *substanceREST) Command(c *ship.Context) error {
+	var req param.SubstanceCommand
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	mid := req.ID
+	ctx := c.Request().Context()
+
+	switch req.Cmd {
+	default: // resync
+		return rest.svc.Resync(ctx, mid)
+	}
 }

@@ -2,16 +2,18 @@ package service
 
 import (
 	"context"
-	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
+	"github.com/vela-ssoc/vela-manager/app/internal/transact"
+	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/datatypes"
+	"gorm.io/gen"
 )
 
 type SubstanceService interface {
@@ -20,18 +22,24 @@ type SubstanceService interface {
 	Detail(ctx context.Context, id int64) (*model.Substance, error)
 	Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error
 	Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) error
+	Delete(ctx context.Context, id int64) error
+	Reload(ctx context.Context, mid, sid int64) error
+	Resync(ctx context.Context, mid int64) error
 }
 
-func Substance(hub linkhub.Huber, digest DigestService) SubstanceService {
+func Substance(pusher push.Pusher, digest DigestService, sequence SequenceService) SubstanceService {
 	return &substanceService{
-		hub:    hub,
-		digest: digest,
+		pusher:   pusher,
+		digest:   digest,
+		sequence: sequence,
 	}
 }
 
 type substanceService struct {
-	hub    linkhub.Huber
-	digest DigestService
+	mutex    sync.Mutex
+	pusher   push.Pusher
+	digest   DigestService
+	sequence SequenceService
 }
 
 func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*param.IDName {
@@ -101,12 +109,14 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	name, mid := sc.Name, sc.MinionID
 
 	var bid int64
+	var inet string
+	tbl := query.Substance
 	if mid != 0 {
 		// 检查节点
-		tbl := query.Minion
-		mon, err := tbl.WithContext(ctx).
-			Select(tbl.Status, tbl.BrokerID).
-			Where(tbl.ID.Eq(mid)).
+		monTbl := query.Minion
+		mon, err := monTbl.WithContext(ctx).
+			Select(monTbl.Status, monTbl.BrokerID, monTbl.Inet).
+			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err != nil {
 			return errcode.ErrNodeNotExist
@@ -115,15 +125,22 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 		if status != model.MSOffline && status != model.MSOnline {
 			return errcode.ErrNodeStatus
 		}
-		bid = mon.BrokerID
-	}
+		// 私有配置检查配置名是否存在
+		if count, err := tbl.WithContext(ctx).
+			Where(tbl.Name.Eq(name), tbl.MinionID.Eq(mid)).
+			Or(tbl.Name.Eq(name), tbl.MinionID.Eq(0)).
+			Count(); count != 0 || err != nil {
+			return errcode.FmtErrNameExist.Fmt(name)
+		}
 
-	// 检查 name 是否已经存在
-	tbl := query.Substance
-	if count, err := tbl.WithContext(ctx).
-		Where(tbl.Name.Eq(name)).
-		Count(); err != nil || count != 0 {
-		return errcode.FmtErrNameExist.Fmt(name)
+		bid = mon.BrokerID
+		inet = mon.Inet
+	} else { // 公有配置检查名字是否重复
+		if count, err := tbl.WithContext(ctx).
+			Where(tbl.Name.Eq(name)).
+			Count(); err != nil || count != 0 {
+			return errcode.FmtErrNameExist.Fmt(name)
+		}
 	}
 
 	// 计算 hash
@@ -145,27 +162,90 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 		return err
 	}
 
-	if bid != 0 { // 推送
-		// TODO biz.hub.Unicast()
+	if mid != 0 { // 推送
+		biz.pusher.TaskSync(ctx, bid, mid, inet)
 	}
 
 	return nil
 }
 
 func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) error {
-	// if st.db.Model(new(model.Compound)).Where("? MEMBER OF (substances)", r.ID).Count(&count); count != 0 {
-	//		return errno.ErrHasCompound
-	//	}
+	biz.mutex.Lock()
+	defer biz.mutex.Unlock()
+
+	// 1. 查询数据库中原有的数据
+	id, version := su.ID, su.Version
+	tbl := query.Substance
+	sub, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(id)).
+		Where(tbl.Version.Eq(version)).
+		First()
+	if err != nil {
+		return err
+	}
+
+	sum := biz.digest.SumMD5(su.Chunk)
+	change := sum != sub.Hash
+
+	sub.Hash = sum
+	sub.Chunk = su.Chunk
+	sub.Icon = su.Icon
+	sub.Desc = su.Desc
+	sub.UpdatedID = userID
+	sub.Version = version + 1
+
+	if _, err = tbl.WithContext(ctx).Where(tbl.Version.Eq(version)).Updates(sub); err != nil || !change {
+		return err
+	}
+
+	if mid := sub.MinionID; mid != 0 {
+		monTbl := query.Minion
+		mon, err := monTbl.WithContext(ctx).
+			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
+			Where(monTbl.ID.Eq(mid)).
+			First()
+		if err == nil {
+			biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+		}
+		return nil
+	}
+
+	// 查询所有相关 tag
+	// SELECT DISTINCT tag
+	// FROM effect
+	// WHERE effect_id = ? AND compound = FALSE
+	//   OR (compound = TRUE AND effect_id IN (SELECT id FROM compound WHERE JSON_CONTAINS(substances, JSON_ARRAY(?))))
+	effTbl := query.Effect
 	comTbl := query.Compound
 	column := comTbl.Substances.ColumnName().String()
-	var dats []*model.Compound
-	ret := comTbl.WithContext(ctx).UnderlyingDB().
-		Where(datatypes.JSONArrayQuery(column).Contains(su.ID)).
-		Or(datatypes.JSONArrayQuery(column).Contains(strconv.FormatInt(su.ID, 10))).
-		Find(&dats)
-	log.Println(ret)
 
-	return nil
+	inSQL := comTbl.WithContext(ctx).Distinct(comTbl.ID).
+		Where(gen.Cond(datatypes.JSONArrayQuery(column).Contains(su.ID))...).
+		Or(gen.Cond(datatypes.JSONArrayQuery(column).Contains(strconv.FormatInt(su.ID, 10)))...)
+	effCtx := effTbl.WithContext(ctx)
+	orSQL := effCtx.Where(effTbl.Enable.Is(true)).
+		Where(effTbl.Compound.Is(true)).
+		Where(effCtx.Columns(effTbl.EffectID).In(inSQL))
+
+	var tags []string
+	err = effTbl.WithContext(ctx).
+		Distinct(effTbl.Tag).
+		Where(effTbl.Enable.Is(true)).
+		Where(effTbl.EffectID.Eq(id)).
+		Where(effTbl.Compound.Is(false)).
+		Or(orSQL).
+		Scan(&tags)
+	if err != nil || len(tags) == 0 {
+		return err
+	}
+
+	taskID := biz.sequence.Generate()
+	bids, err := transact.EffectTaskTx(ctx, taskID, tags)
+	if err == nil && len(bids) != 0 {
+		biz.pusher.TaskTable(ctx, bids, taskID)
+	}
+
+	return err
 }
 
 func (biz *substanceService) Delete(ctx context.Context, id int64) error {
@@ -202,15 +282,79 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 	}
 
 	// 删除数据
-	ret, err := subTbl.WithContext(ctx).Delete(dat)
-	if err != nil || ret.RowsAffected != 0 {
+	if _, err = subTbl.WithContext(ctx).Delete(dat); err != nil {
 		return err
 	}
 
 	// 私有配置通知节点
 	if mid != 0 {
-		// TODO 通知节点更新
+		monTbl := query.Minion
+		mon, err := monTbl.WithContext(ctx).
+			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
+			Where(monTbl.ID.Eq(mid)).
+			First()
+		if err == nil {
+			biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+		}
 	}
 
-	return errcode.ErrDeleteFailed
+	return nil
+}
+
+// Reload 命令 agent 节点重新加载指定配置。
+// 该配置必须在该 agent 上发布且已启用，注意要防止越权重启。
+func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
+	// 检查 minion 节点
+	monTbl := query.Minion
+	mon, err := monTbl.WithContext(ctx).
+		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
+		Where(monTbl.ID.Eq(mid)).
+		First()
+	if err != nil {
+		return err
+	}
+	status := mon.Status
+	if status != model.MSOnline && status != model.MSOffline {
+		return errcode.ErrNodeStatus
+	}
+
+	// 1. 查询配置是否存在
+	tbl := query.Substance
+	sub, err := tbl.WithContext(ctx).
+		Select(tbl.ID, tbl.MinionID).
+		Where(tbl.ID.Eq(sid)).
+		First()
+	if err != nil {
+		return err
+	}
+	if did := sub.MinionID; did != 0 && did != mid {
+		return errcode.ErrExceedAuthority
+	}
+
+	// TODO 公有配置检查越权
+
+	biz.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
+
+	return nil
+}
+
+// Resync 重新同步节点上的配置状态
+func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
+	// 检查 minion 节点
+	monTbl := query.Minion
+	mon, err := monTbl.WithContext(ctx).
+		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
+		Where(monTbl.ID.Eq(mid)).
+		First()
+	if err != nil {
+		return err
+	}
+	status := mon.Status
+	if status != model.MSOnline && status != model.MSOffline {
+		return errcode.ErrNodeStatus
+	}
+
+	biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+
+	return nil
 }

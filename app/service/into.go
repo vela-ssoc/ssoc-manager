@@ -87,7 +87,7 @@ func (ito *intoService) BWS(ctx context.Context, w http.ResponseWriter, r *http.
 		return err
 	}
 
-	netutil.SocketPipe(up, down)
+	netutil.TwoSockPIPE(up, down)
 
 	return nil
 }
@@ -106,7 +106,7 @@ func (ito *intoService) ARR(ctx context.Context, w http.ResponseWriter, r *http.
 	}
 
 	r.Header.Set(linkhub.HeaderXNodeID, strconv.FormatInt(minion.ID, 10))
-	ito.hub.Forward(minion.ID, w, r)
+	ito.hub.Forward(minion.BrokerID, w, r)
 
 	return nil
 }
@@ -137,7 +137,7 @@ func (ito *intoService) AWS(ctx context.Context, w http.ResponseWriter, r *http.
 		return err
 	}
 
-	netutil.SocketPipe(up, down)
+	netutil.TwoSockPIPE(up, down)
 
 	return nil
 }

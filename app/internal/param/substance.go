@@ -29,3 +29,13 @@ type SubstanceUpdate struct {
 	Chunk   []byte `json:"chunk" validate:"gt=0,lte=524288"` // 524288 = 512 * 1024, 512k
 	Version int64  `json:"version"`
 }
+
+type SubstanceReload struct {
+	IntID
+	SubstanceID int64 `json:"substance_id,string" validate:"required,gt=0"`
+}
+
+type SubstanceCommand struct {
+	IntID
+	Cmd string `json:"cmd" validate:"oneof=resync"`
+}

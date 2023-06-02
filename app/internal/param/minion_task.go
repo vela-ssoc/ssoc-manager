@@ -46,3 +46,26 @@ type MinionTaskDetailRequest struct {
 	IntID
 	SubstanceID int64 `json:"substance_id,string" query:"substance_id"`
 }
+
+type TaskGather struct {
+	Name    string `json:"name"`
+	Dialect bool   `json:"dialect"`
+	Running int    `json:"running"`
+	Doing   int    `json:"doing"`
+	Fail    int    `json:"fail"`
+	Panic   int    `json:"panic"`
+	Reg     int    `json:"reg"`
+	Update  int    `json:"update"`
+}
+
+// TaskCount task 状态分类统计
+type TaskCount struct {
+	Dialect int `json:"dialect" gorm:"column:dialect"` // 私有配置总数
+	Public  int `json:"public"  gorm:"column:public"`  // 公有配置总数
+	Running int `json:"running" gorm:"column:running"` // 运行状态为 running 的总数
+	Doing   int `json:"doing"   gorm:"column:doing"`   // 运行状态为 doing   的总数
+	Fail    int `json:"fail"    gorm:"column:fail"`    // 运行状态为 fail    的总数
+	Panic   int `json:"panic"   gorm:"column:panic"`   // 运行状态为 panic   的总数
+	Reg     int `json:"reg"     gorm:"column:reg"`     // 运行状态为 reg     的总数
+	Update  int `json:"update"  gorm:"column:update"`  // 运行状态为 update  的总数
+}

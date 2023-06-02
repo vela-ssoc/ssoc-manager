@@ -30,7 +30,4 @@ Authorization: 62492104347275264.cspwnalfawfq.60dcf6e7e92768cb34007a49640b79ba1a
 }
 
 ### effects
-PATCH http://localhost:8089/api/v1/substance
-Accept: application/json
-Authorization: 62492104347275264.cso84ibirxse.3da679358dd154491baaea6375e80d28a66acff85cd5192cbffa999b18512521
-Content-Type: application/json
+POST http://172.31.61.168:8081/api/v1/arr/agent/task/status?node=172.31.61.150&authorization=28522648801388888.cstiudsn659z.14fc55595a06ab065d9566e6f76896ded34678d1a566e4aabacf50858614cacb

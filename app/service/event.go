@@ -19,8 +19,10 @@ func Event() EventService {
 
 type eventService struct{}
 
-func (evt *eventService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event) {
-	db := query.Event.WithContext(ctx).
+func (biz *eventService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event) {
+	tbl := query.Event
+	db := tbl.WithContext(ctx).
+		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
 
@@ -30,7 +32,7 @@ func (evt *eventService) Page(ctx context.Context, page param.Pager, scope dynsq
 	}
 
 	var dats []*model.Event
-	db.Order("id DESC").Scopes(page.DBScope(count)).Find(&dats)
+	db.Scopes(page.DBScope(count)).Find(&dats)
 
 	return count, dats
 }

@@ -9,6 +9,10 @@ type IntID struct {
 	ID int64 `json:"id,string" form:"id" query:"id" validate:"required,gt=0"`
 }
 
+type OptionalIDs struct {
+	ID Int64s `json:"id" form:"id" query:"id"`
+}
+
 type Int64s []int64
 
 func (is Int64s) MarshalJSON() (text []byte, err error) {
@@ -42,7 +46,7 @@ func (is *Int64s) UnmarshalJSON(raw []byte) error {
 }
 
 type Data struct {
-	Data any
+	Data any `json:"data,omitempty"`
 }
 
 func WarpData(dats any) *Data {

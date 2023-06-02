@@ -4,6 +4,7 @@ import "github.com/xgfone/ship/v5"
 
 var (
 	ErrUnauthorized = ship.ErrUnauthorized.Newf("认证无效")
+	ErrForbidden    = ship.ErrForbidden.Newf("禁止操作")
 
 	ErrUnsupportedWebSocket        = ship.ErrBadRequest.Newf("该接口接口不支持 websocket 请求")
 	ErrRequiredWebSocket           = ship.ErrBadRequest.Newf("该接口必须是 websocket 协议的请求")
@@ -26,6 +27,9 @@ var (
 	ErrRequiredGroup               = ship.ErrBadRequest.Newf("group 条件必须填写")
 	ErrDeleteFailed                = ship.ErrBadRequest.Newf("删除失败")
 	ErrNodeStatus                  = ship.ErrBadRequest.Newf("节点状态不允许操作")
+	ErrExceedAuthority             = ship.ErrBadRequest.Newf("越权访问")
+	ErrDeprecated                  = ship.ErrBadRequest.Newf("版本已被标记为过期")
+	ErrInetAddress                 = ship.ErrBadRequest.Newf("inet 地址无效")
 )
 
 type Errorf interface {
@@ -41,4 +45,5 @@ func (f formatError) Fmt(a ...any) error {
 const (
 	FmtErrSSOAuth   = formatError("sso 账户认证错误：%s")
 	FmtErrNameExist = formatError("名字 %s 已经存在")
+	FmtErrInetExist = formatError("inet %s 已经存在")
 )

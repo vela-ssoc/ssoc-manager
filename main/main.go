@@ -17,13 +17,12 @@ func main() {
 	configPath := flag.String("c", "resources/config/manager.yaml", "配置文件路径")
 	flag.Parse()
 
-	if banner.Print(os.Stdout); *printExit {
+	if banner.WriteTo(os.Stdout); *printExit {
 		return
 	}
 
-	bg := context.Background()
 	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
-	ctx, cancel := signal.NotifyContext(bg, cares...)
+	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
 	defer cancel()
 
 	slog := logback.Stdout()

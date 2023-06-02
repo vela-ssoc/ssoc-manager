@@ -198,7 +198,7 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 		eff.taskID = taskID
 
 		// 推送任务
-		eff.pusher.SubstanceTask(ctx, brokerIDs, taskID)
+		eff.pusher.TaskTable(ctx, brokerIDs, taskID)
 	}
 
 	return taskID, nil
@@ -267,7 +267,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		eff.taskID = taskID
 
 		// 推送任务
-		eff.pusher.SubstanceTask(ctx, brokerIDs, taskID)
+		eff.pusher.TaskTable(ctx, brokerIDs, taskID)
 	}
 
 	return taskID, nil
@@ -302,7 +302,7 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 		eff.taskID = taskID
 
 		// 推送任务
-		eff.pusher.SubstanceTask(ctx, brkIDs, taskID)
+		eff.pusher.TaskTable(ctx, brkIDs, taskID)
 	}
 
 	return taskID, nil

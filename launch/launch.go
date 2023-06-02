@@ -6,8 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/taskpool"
@@ -47,11 +50,12 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	slog.Replace(zapLog)
 	gormLog := logback.Gorm(zapLog, logCfg.Level)
 
-	db, _, err := dbms.Open(dbCfg, gormLog)
+	db, sdb, err := dbms.Open(dbCfg, gormLog)
 	if err != nil {
 		return nil, err
 	}
 	query.SetDefault(db)
+	gfs := gridfs.NewCDN(sdb, "", 60*1024)
 
 	const name = "manager"
 	const headerKey = ship.HeaderAuthorization
@@ -76,7 +80,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 		sh.Route("/").Static(static)
 	}
 
-	anon := sh.Group("/api/v1")
+	base := "/api/v1"
+	anon := sh.Group(base)
 	bearer := anon.Clone().Use(auth.Bearer)
 	basic := anon.Clone().Use(auth.Basic)
 
@@ -84,18 +89,20 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	pool := taskpool.NewPool(32, 128)
 
 	// ==========[ broker begin ] ==========
-	huber := linkhub.New(http.NewServeMux(), pool) // 将连接中心注入到 broker 接入网关中
+	huber := linkhub.New(http.NewServeMux(), pool, cfg) // 将连接中心注入到 broker 接入网关中
 	pusher := push.NewPush(huber)
 	brkHandle := blink.New(huber)        // 将 broker 网关注入到 blink service 中
 	blinkREST := mgtapi.Blink(brkHandle) // 构造 REST 层
 	blinkREST.Route(anon, bearer, basic) // 注册路由用于调用
-	if err = huber.RestDB(); err != nil {
+	if err = huber.ResetDB(); err != nil {
 		return nil, err
 	}
 	// ==========[ broker end ] ==========
 
 	client := netutil.NewClient()
-	_ = service.Emc(huber, client)
+	emcService := service.Emc(pusher, client)
+	emcREST := mgtapi.Emc(emcService)
+	emcREST.Route(anon, bearer, basic)
 
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
@@ -111,7 +118,9 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 
-	minionService := service.Minion()
+	cmdbCfg := cmdb.NewConfigure(slog)
+	cmdbClient := cmdb.NewClient(cmdbCfg, client, slog)
+	minionService := service.Minion(cmdbClient)
 	minionREST := mgtapi.Minion(huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
@@ -124,7 +133,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	tagREST.Route(anon, bearer, basic)
 
 	// -----[ 配置与发布 ]-----
-	substanceService := service.Substance(huber, digestService)
+	substanceService := service.Substance(pusher, digestService, sequenceService)
 	substanceREST := mgtapi.Substance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
 
@@ -137,9 +146,19 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	effectREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----
 
-	elasticService := service.Elastic(name)
+	esForwardCfg := elastic.NewForwardConfigure(name)
+	esForward := elastic.NewForward(esForwardCfg)
+	elasticService := service.Elastic(pusher, esForward, esForwardCfg)
 	elasticREST := mgtapi.Elastic(elasticService, headerKey, queryKey)
 	elasticREST.Route(anon, bearer, basic)
+
+	processService := service.Process()
+	processREST := mgtapi.Process(processService)
+	processREST.Route(anon, bearer, basic)
+
+	accountService := service.Account()
+	accountREST := mgtapi.Account(accountService)
+	accountREST.Route(anon, bearer, basic)
 
 	oplogService := service.Oplog()
 	oplogREST := mgtapi.Oplog(oplogService)
@@ -157,17 +176,74 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskREST := mgtapi.Risk(riskService)
 	riskREST.Route(anon, bearer, basic)
 
+	storeService := service.Store(pusher, cmdbCfg)
+
 	eventService := service.Event()
 	eventREST := mgtapi.Event(eventService)
 	eventREST.Route(anon, bearer, basic)
+	storeREST := mgtapi.Store(storeService)
+	storeREST.Route(anon, bearer, basic)
 
-	sbomService := service.SBOM()
-	sbomREST := mgtapi.SBOM(sbomService)
-	sbomREST.Route(anon, bearer, basic)
+	sbomComponentService := service.SBOMComponent()
+	sbomComponentREST := mgtapi.SBOMComponent(sbomComponentService)
+	sbomComponentREST.Route(anon, bearer, basic)
+	sbomProjectService := service.SBOMProject()
+	sbomProjectREST := mgtapi.SBOMProject(sbomProjectService)
+	sbomProjectREST.Route(anon, bearer, basic)
+	sbomVulnService := service.SBOMVuln()
+	sbomVulnREST := mgtapi.SBOMVuln(sbomVulnService)
+	sbomVulnREST.Route(anon, bearer, basic)
+
+	vipService := service.VIP()
+	vipREST := mgtapi.VIP(vipService)
+	vipREST.Route(anon, bearer, basic)
 
 	cmdbService := service.Cmdb()
 	cmdbREST := mgtapi.Cmdb(cmdbService)
 	cmdbREST.Route(anon, bearer, basic)
+
+	dashService := service.Dash()
+	dashREST := mgtapi.Dash(dashService)
+	dashREST.Route(anon, bearer, basic)
+
+	thirdService := service.Third(pusher, gfs)
+	thirdREST := mgtapi.Third(thirdService)
+	thirdREST.Route(anon, bearer, basic)
+
+	brokerService := service.Broker()
+	brokerREST := mgtapi.Broker(brokerService)
+	brokerREST.Route(anon, bearer, basic)
+
+	minionBinaryService := service.MinionBinary()
+	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)
+	minionBinaryREST.Route(anon, bearer, basic)
+
+	minionListenService := service.MinionListen()
+	minionListenREST := mgtapi.MinionListen(minionListenService)
+	minionListenREST.Route(anon, bearer, basic)
+
+	minionAccountService := service.MinionAccount()
+	minionAccountREST := mgtapi.MinionAccount(minionAccountService)
+	minionAccountREST.Route(anon, bearer, basic)
+
+	deployService := service.Deploy(storeService)
+	deployREST := mgtapi.Deploy(deployService)
+	deployREST.Route(anon, bearer, basic)
+
+	domainService := service.Domain()
+	domainREST := mgtapi.Domain(domainService)
+	domainREST.Route(anon, bearer, basic)
+
+	riskIPService := service.RiskIP()
+	riskIPREST := mgtapi.RiskIP(riskIPService)
+	riskIPREST.Route(anon, bearer, basic)
+
+	emailService := service.Email()
+	emailREST := mgtapi.Email(emailService)
+	emailREST.Route(anon, bearer, basic)
+
+	davREST := mgtapi.DavFS(base)
+	davREST.Route(anon, bearer, basic)
 
 	app := &application{
 		cfg:     cfg,

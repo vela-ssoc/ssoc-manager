@@ -6,8 +6,10 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/integrate"
+	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/bridge/push"
+	"gorm.io/gen/field"
 )
 
 type ElasticService interface {
@@ -18,26 +20,25 @@ type ElasticService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Elastic(name string) ElasticService {
-	px := integrate.NewElastic(name)
+func Elastic(pusher push.Pusher, forward elastic.Forwarder, cfg elastic.ForwardConfigurer) ElasticService {
 	return &elasticService{
-		px: px,
+		pusher:  pusher,
+		forward: forward,
+		cfg:     cfg,
 	}
 }
 
 type elasticService struct {
-	px integrate.ElasticSearcher
+	forward elastic.Forwarder
+	cfg     elastic.ForwardConfigurer
+	pusher  push.Pusher
 }
 
-func (ela *elasticService) Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	h, err := ela.px.Load(ctx)
-	if err == nil {
-		h.ServeHTTP(w, r)
-	}
-	return err
+func (biz *elasticService) Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	return biz.forward.ServeHTTP(ctx, w, r)
 }
 
-func (ela *elasticService) Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic) {
+func (biz *elasticService) Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic) {
 	ret := make([]*model.Elastic, 0, page.Size())
 	tbl := query.Elastic
 	db := tbl.WithContext(ctx)
@@ -57,7 +58,7 @@ func (ela *elasticService) Page(ctx context.Context, page param.Pager) (int64, [
 	return count, ret
 }
 
-func (ela *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) error {
+func (biz *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) error {
 	dat := &model.Elastic{
 		Host:     ec.Host,
 		Username: ec.Username,
@@ -81,31 +82,34 @@ func (ela *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) 
 		return txe.Create(dat)
 	})
 	if err == nil {
-		ela.px.Reset()
+		biz.pusher.ElasticReset(ctx)
 	}
 
 	return err
 }
 
 // Update 更新 es 后端代理
-func (ela *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) error {
+func (biz *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) error {
 	// 先查询原有数据
+	id := eu.ID
 	tbl := query.Elastic
-	es, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(eu.ID)).First()
+	es, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
 	}
 
 	// 更新数据
 	reset := es.Enable || eu.Enable
-	es.Host = eu.Host
-	es.Username = eu.Username
-	es.Password = eu.Password
-	es.Enable = eu.Enable
-	es.Desc = eu.Desc
+	assigns := []field.AssignExpr{
+		tbl.Host.Value(eu.Host),
+		tbl.Username.Value(eu.Username),
+		tbl.Password.Value(eu.Password),
+		tbl.Enable.Value(eu.Enable),
+		tbl.Desc.Value(eu.Desc),
+	}
 
 	if !eu.Enable {
-		_, err = tbl.WithContext(ctx).Updates(es)
+		_, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).UpdateColumnSimple(assigns...)
 	} else {
 		err = query.Q.Transaction(func(tx *query.Query) error {
 			db := tx.Elastic.WithContext(ctx)
@@ -113,22 +117,22 @@ func (ela *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) 
 				Update(tbl.Enable, false); exx != nil {
 				return exx
 			}
-
-			_, exx := db.Updates(es)
+			_, exx := db.Where(tbl.ID.Eq(id)).UpdateColumnSimple(assigns...)
 			return exx
 		})
 	}
 
 	// 是否需要 reset
 	if err == nil && reset {
-		ela.px.Reset()
+		biz.cfg.Reset()
+		biz.pusher.ElasticReset(ctx)
 	}
 
 	return err
 }
 
 // Delete 根据 ID 删除 es 配置
-func (ela *elasticService) Delete(ctx context.Context, id int64) error {
+func (biz *elasticService) Delete(ctx context.Context, id int64) error {
 	tbl := query.Elastic
 	db := tbl.WithContext(ctx)
 	es, err := db.Where(tbl.ID.Eq(id)).First()
@@ -139,7 +143,8 @@ func (ela *elasticService) Delete(ctx context.Context, id int64) error {
 	reset := es.Enable
 	_, err = db.Delete(es)
 	if err == nil && reset {
-		ela.px.Reset()
+		biz.cfg.Reset()
+		biz.pusher.ElasticReset(ctx)
 	}
 
 	return err
