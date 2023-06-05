@@ -13,9 +13,10 @@ import (
 )
 
 func main() {
-	printExit := flag.Bool("v", false, "打印版本号就退出")
-	configPath := flag.String("c", "resources/config/manager.yaml", "配置文件路径")
-	flag.Parse()
+	flagSet := flag.NewFlagSet("安全平台", flag.ExitOnError)
+	printExit := flagSet.Bool("v", false, "打印版本号就退出")
+	configPath := flagSet.String("c", "resources/config/manager.yaml", "配置文件路径")
+	_ = flagSet.Parse(os.Args[1:])
 
 	if banner.WriteTo(os.Stdout); *printExit {
 		return
