@@ -20,12 +20,12 @@ type dashREST struct {
 }
 
 func (rest *dashREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/dash/status").GET(rest.Status)
-	bearer.Route("/dash/goos").GET(rest.Goos)
-	bearer.Route("/dash/edition").GET(rest.Edition)
-	bearer.Route("/dash/evtlvl").GET(rest.Evtlvl)
-	bearer.Route("/dash/risklvl").GET(rest.Risklvl)
-	bearer.Route("/dash/risksts").GET(rest.Risksts)
+	bearer.Route("/dash/status").Data(route.Ignore()).GET(rest.Status)
+	bearer.Route("/dash/goos").Data(route.Ignore()).GET(rest.Goos)
+	bearer.Route("/dash/edition").Data(route.Ignore()).GET(rest.Edition)
+	bearer.Route("/dash/evtlvl").Data(route.Ignore()).GET(rest.Evtlvl)
+	bearer.Route("/dash/risklvl").Data(route.Ignore()).GET(rest.Risklvl)
+	bearer.Route("/dash/risksts").Data(route.Ignore()).GET(rest.Risksts)
 }
 
 func (rest *dashREST) Status(c *ship.Context) error {

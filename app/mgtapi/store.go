@@ -20,7 +20,12 @@ type storeREST struct {
 }
 
 func (rest *storeREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/stores").GET(rest.Page)
+	bearer.Route("/store/indices").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/stores").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/store").
+		Data(route.Ignore()).GET(rest.Detail).
+		Data(route.Named("修改或新增模板")).POST(rest.Upsert).
+		Data(route.Named("删除模板")).DELETE(rest.Delete)
 }
 
 func (rest *storeREST) Page(c *ship.Context) error {
@@ -35,4 +40,33 @@ func (rest *storeREST) Page(c *ship.Context) error {
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+// Detail 查询单个配置数据
+func (rest *storeREST) Detail(c *ship.Context) error {
+	id := c.Query("id")
+	ctx := c.Request().Context()
+	res, err := rest.svc.FindID(ctx, id)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *storeREST) Upsert(c *ship.Context) error {
+	var req param.StoreUpsert
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Upsert(ctx, &req)
+}
+
+func (rest *storeREST) Delete(c *ship.Context) error {
+	id := c.Query("id")
+	ctx := c.Request().Context()
+
+	return rest.svc.Delete(ctx, id)
 }

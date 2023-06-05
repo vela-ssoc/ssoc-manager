@@ -21,8 +21,8 @@ type AuthVerify struct {
 
 type AuthLogin struct {
 	AuthBase
-	// ID   string `json:"id"   validate:"required,lte=100"`
-	// Code string `json:"code" validate:"omitempty,len=6,numeric"`
+	CaptchaID string `json:"captcha_id" validate:"required,lte=255"`
+	Code      string `json:"code" validate:"len=6,numeric"`
 }
 
 type AuthDong struct {

@@ -35,9 +35,11 @@ func (rest *davREST) Route(_, _, basic *ship.RouteGroupBuilder) {
 	forbids := []string{http.MethodPut, http.MethodDelete, "PROPPATCH", "MKCOL", "COPY", "MOVE"}
 
 	basic.Route(rest.still).
+		Data(route.Named("WebDAV 访问")).
 		Method(rest.DAV, allows...).
 		Method(rest.Forbidden, forbids...)
 	basic.Route(rest.still+"/*path").
+		Data(route.Named("WebDAV 访问")).
 		Method(rest.DAV, allows...).
 		Method(rest.Forbidden, forbids...)
 }

@@ -36,8 +36,8 @@ type accountREST struct {
 }
 
 func (rest *accountREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/account/cond").GET(rest.Cond)
-	bearer.Route("/accounts").GET(rest.Page)
+	bearer.Route("/account/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/accounts").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *accountREST) Cond(c *ship.Context) error {

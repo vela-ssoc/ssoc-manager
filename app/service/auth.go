@@ -14,7 +14,7 @@ type AuthService interface {
 	Picture(ctx context.Context, uname string) (*param.AuthPicture, error)
 	Verify(ctx context.Context, av param.AuthVerify) (factor bool, err error)
 	Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error
-	Login(ctx context.Context, ab param.AuthLogin, view modview.LoginDong) (*model.User, error)
+	Login(ctx context.Context, ab param.AuthLogin) (*model.User, error)
 }
 
 func Auth(verify VerifyService, lock LoginLockService, user UserService) AuthService {
@@ -42,16 +42,16 @@ func (ath *authService) Verify(ctx context.Context, av param.AuthVerify) (bool, 
 }
 
 func (ath *authService) Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error {
-	return ath.verify.DongCode(ctx, ad.Username, ad.Password, view)
+	return ath.verify.DongCode(ctx, ad.Username, ad.CaptchaID, view)
 }
 
-func (ath *authService) Login(ctx context.Context, ab param.AuthLogin, view modview.LoginDong) (*model.User, error) {
+func (ath *authService) Login(ctx context.Context, ab param.AuthLogin) (*model.User, error) {
 	// 校验验证码
 	uname, passwd := ab.Username, ab.Password
-	//captID, dong := ab.ID, ab.Dong
-	//if err := ath.verify.Submit(ctx, uname, captID, dong); err != nil {
-	//	return nil, err
-	//}
+	captID, dong := ab.CaptchaID, ab.Code
+	if err := ath.verify.Submit(ctx, uname, captID, dong); err != nil {
+		return nil, err
+	}
 
 	// 检查是否被限制登录
 	if ath.lock.Limited(ctx, uname) {

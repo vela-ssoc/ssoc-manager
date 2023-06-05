@@ -15,6 +15,7 @@ type Pusher interface {
 	ThirdDelete(ctx context.Context, name string)
 	ElasticReset(ctx context.Context)
 	EmcReset(ctx context.Context)
+	StoreReset(ctx context.Context, id string)
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -60,33 +61,12 @@ func (pi *pushImpl) EmcReset(ctx context.Context) {
 	pi.hub.Broadcast(accord.FPEmcReset, nil)
 }
 
+func (pi *pushImpl) StoreReset(ctx context.Context, id string) {
+	req := &accord.StoreRestRequest{ID: id}
+	pi.hub.Broadcast(accord.FPStoreReset, req)
+}
+
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {
 	req := &accord.ThirdDiff{Name: name, Event: event}
 	pi.hub.Broadcast(accord.FPThirdDiff, req)
 }
-
-//
-//func (pi *pushImpl) SubstanceTask(ctx context.Context, bids []int64, taskID int64) {
-//	if taskID == 0 || len(bids) == 0 {
-//		return
-//	}
-//
-//	req := &substanceTask{TaskID: taskID}
-//	futures := pi.hub.Multicast(bids, pathSubstanceTask, req)
-//	for fut := range futures {
-//		err := fut.Error()
-//		if err == nil {
-//			break
-//		}
-//		msg := err.Error()
-//		tbl := query.SubstanceTask
-//		_, _ = tbl.WithContext(ctx).
-//			Where(tbl.TaskID.Eq(taskID)).
-//			Where(tbl.Executed.Is(false)).
-//			UpdateColumnSimple(
-//				tbl.Executed.Value(true),
-//				tbl.Failed.Value(true),
-//				tbl.Reason.Value(msg),
-//			)
-//	}
-//}

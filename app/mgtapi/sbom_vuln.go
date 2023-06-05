@@ -26,9 +26,9 @@ type sbomVulnREST struct {
 }
 
 func (rest *sbomVulnREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/sbom/vulns").GET(rest.Page)
-	bearer.Route("/sbom/vuln/cond").GET(rest.Cond)
-	bearer.Route("/sbom/vuln/projects").GET(rest.Project)
+	bearer.Route("/sbom/vulns").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/sbom/vuln/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/sbom/vuln/projects").Data(route.Ignore()).GET(rest.Project)
 }
 
 func (rest *sbomVulnREST) Cond(c *ship.Context) error {

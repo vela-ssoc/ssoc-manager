@@ -34,8 +34,8 @@ type sbomProjectREST struct {
 }
 
 func (rest *sbomProjectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/sbom/projects").GET(rest.Page)
-	bearer.Route("/sbom/project/cond").GET(rest.Cond)
+	bearer.Route("/sbom/projects").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/sbom/project/cond").Data(route.Ignore()).GET(rest.Cond)
 }
 
 func (rest *sbomProjectREST) Cond(c *ship.Context) error {

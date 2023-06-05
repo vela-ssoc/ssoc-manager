@@ -30,13 +30,13 @@ type riskIPREST struct {
 }
 
 func (rest *riskIPREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/riskip/cond").GET(rest.Cond)
-	bearer.Route("/riskips").POST(rest.Page)
+	bearer.Route("/riskip/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/riskips").Data(route.Ignore()).POST(rest.Page)
 	bearer.Route("/riskip").
-		POST(rest.Create).
-		PATCH(rest.Update).
-		PUT(rest.Import).
-		DELETE(rest.Delete)
+		Data(route.Named("新建风险 IP")).POST(rest.Create).
+		Data(route.Named("修改风险 IP")).PATCH(rest.Update).
+		Data(route.Named("导入风险 IP")).PUT(rest.Import).
+		Data(route.Named("删除风险 IP")).DELETE(rest.Delete)
 }
 
 func (rest *riskIPREST) Cond(c *ship.Context) error {

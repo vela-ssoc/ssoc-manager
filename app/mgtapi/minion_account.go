@@ -22,7 +22,7 @@ type minionAccountREST struct {
 }
 
 func (rest *minionAccountREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/accounts").GET(rest.Page)
+	bearer.Route("/accounts").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *minionAccountREST) Cond(c *ship.Context) error {

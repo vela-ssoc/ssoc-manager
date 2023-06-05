@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong"
+	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
+	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -29,7 +32,7 @@ type VerifyService interface {
 	Submit(ctx context.Context, uname, captID, dongCode string) error
 }
 
-func Verify(minute int, emc EmcService) VerifyService {
+func Verify(minute int, dcli dong.Client, tmpl formwork.Loader, slog logback.Logger) VerifyService {
 	capt := captcha.GetCaptcha()
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if minute < 1 || minute > 10 {
@@ -37,8 +40,10 @@ func Verify(minute int, emc EmcService) VerifyService {
 	}
 
 	return &verifyService{
+		slog:   slog,
 		minute: minute,
-		emc:    emc,
+		dcli:   dcli,
+		tmpl:   tmpl,
 		capt:   capt,
 		random: random,
 		expire: time.Duration(minute) * time.Minute,
@@ -47,8 +52,10 @@ func Verify(minute int, emc EmcService) VerifyService {
 }
 
 type verifyService struct {
+	slog   logback.Logger
 	minute int // 验证码有效分钟
-	emc    EmcService
+	dcli   dong.Client
+	tmpl   formwork.Loader
 	capt   *captcha.Captcha
 	random *rand.Rand
 	expire time.Duration // 验证码有效期
@@ -75,7 +82,7 @@ func (vs *verifyService) Picture(ctx context.Context, uname string) (*param.Auth
 		First()
 	factor := true
 	if err == nil && user != nil {
-		factor = user.Dong != "" && vs.emc != nil
+		factor = user.Dong != "" && vs.dcli != nil
 	}
 
 	vs.storeValidInfo(points, uname, captID, factor)
@@ -111,7 +118,7 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 	num := vs.random.Intn(1_000_000) // 0-999999
 	code := fmt.Sprintf("%6d", num)  // 0 填充： 123 -> 000123
 	vi.setDongCode(code)
-	view.DongCode = code
+	view.Code = code
 	view.Minute = vs.minute
 
 	// 查询用户信息
@@ -125,7 +132,10 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 		return nil
 	}
 
-	// TODO: 渲染模板，发送数据
+	title, body := vs.tmpl.LoginDong(ctx, "", view)
+	if err = vs.dcli.Send(ctx, []string{user.Dong}, nil, title, body); err != nil {
+		vs.slog.Warnf("发送咚咚验证码错误：%s", err)
+	}
 
 	return err
 }
@@ -223,7 +233,7 @@ func (vi *validInfo) verified(captID string) bool {
 
 	return vi.picOK &&
 		vi.captID == captID &&
-		now.After(vi.picAt.Add(vi.expire))
+		now.Before(vi.picAt.Add(vi.expire))
 }
 
 func (vi *validInfo) submit(captID, dongCode string) bool {
@@ -236,7 +246,7 @@ func (vi *validInfo) submit(captID, dongCode string) bool {
 		!vi.dongUsed &&
 		vi.captID == captID &&
 		dongCode == vi.dongCode &&
-		now.After(vi.dongAt.Add(vi.expire))
+		now.Before(vi.dongAt.Add(vi.expire))
 	vi.dongUsed = true
 
 	return pass

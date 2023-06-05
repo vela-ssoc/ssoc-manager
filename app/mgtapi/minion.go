@@ -53,15 +53,15 @@ type minionREST struct {
 }
 
 func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/minion/cond").GET(rest.Cond)
-	bearer.Route("/minions").GET(rest.Page)
+	bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/minion").
-		GET(rest.Detail).
-		POST(rest.Create).
-		DELETE(rest.Delete)
-	bearer.Route("/minion/drop").DELETE(rest.Drop)
-	bearer.Route("/minion/activate").PATCH(rest.Activate)
-	bearer.Route("/sheet/minion").GET(rest.CSV)
+		Data(route.Ignore()).GET(rest.Detail).
+		Data(route.Named("新增 agent 节点")).POST(rest.Create).
+		Data(route.Named("逻辑删除 agent 节点")).DELETE(rest.Delete)
+	bearer.Route("/minion/drop").Data(route.Named("物理删除 agent 节点")).DELETE(rest.Drop)
+	bearer.Route("/minion/activate").Data(route.Named("激活 agent 节点")).PATCH(rest.Activate)
+	bearer.Route("/sheet/minion").Data(route.Ignore()).GET(rest.CSV)
 }
 
 func (rest *minionREST) Cond(c *ship.Context) error {

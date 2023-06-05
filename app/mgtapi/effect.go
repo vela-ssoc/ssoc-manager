@@ -20,11 +20,11 @@ type effectREST struct {
 }
 
 func (eff *effectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/effects").GET(eff.Page)
+	bearer.Route("/effects").Data(route.Ignore()).GET(eff.Page)
 	bearer.Route("/effect").
-		POST(eff.Create).
-		PUT(eff.Update).
-		DELETE(eff.Delete)
+		Data(route.Named("创建配置发布")).POST(eff.Create).
+		Data(route.Named("更新配置发布")).PUT(eff.Update).
+		Data(route.Named("删除配置发布")).DELETE(eff.Delete)
 }
 
 func (eff *effectREST) Page(c *ship.Context) error {

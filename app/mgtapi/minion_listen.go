@@ -35,8 +35,8 @@ type minionListenREST struct {
 }
 
 func (rest *minionListenREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/listen/cond").GET(rest.Cond)
-	bearer.Route("/listens").GET(rest.Page)
+	bearer.Route("/listen/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/listens").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *minionListenREST) Cond(c *ship.Context) error {

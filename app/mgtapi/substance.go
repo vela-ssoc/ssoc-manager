@@ -21,15 +21,15 @@ type substanceREST struct {
 }
 
 func (rest *substanceREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/minion/reload").PATCH(rest.Reload)
-	bearer.Route("/minion/command").PATCH(rest.Command)
-	bearer.Route("/substances").GET(rest.Page)
-	bearer.Route("/substance/indices").GET(rest.Indices)
+	bearer.Route("/minion/reload").Data(route.Named("重启配置")).PATCH(rest.Reload)
+	bearer.Route("/minion/command").Data(route.Named("发送配置指令")).PATCH(rest.Command)
+	bearer.Route("/substances").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/substance/indices").Data(route.Ignore()).GET(rest.Indices)
 	bearer.Route("/substance").
-		GET(rest.Detail).
-		POST(rest.Create).
-		PUT(rest.Update).
-		DELETE(rest.Delete)
+		Data(route.Ignore()).GET(rest.Detail).
+		Data(route.Named("新增配置")).POST(rest.Create).
+		Data(route.Named("修改配置")).PUT(rest.Update).
+		Data(route.Named("删除配置")).DELETE(rest.Delete)
 }
 
 func (rest *substanceREST) Indices(c *ship.Context) error {

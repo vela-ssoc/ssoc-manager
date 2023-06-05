@@ -5,6 +5,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -18,17 +19,19 @@ type UserService interface {
 	Authenticate(ctx context.Context, uname, passwd string) (*model.User, error)
 }
 
-func User(digest DigestService) UserService {
+func User(digest DigestService, sso ssoauth.Client) UserService {
 	return &userService{
 		digest: digest,
+		sso:    sso,
 	}
 }
 
 type userService struct {
 	digest DigestService
+	sso    ssoauth.Client
 }
 
-func (usr *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {
+func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {
 	tbl := query.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
@@ -47,7 +50,7 @@ func (usr *userService) Page(ctx context.Context, page param.Pager) (int64, para
 	return count, ret
 }
 
-func (usr *userService) Indices(ctx context.Context, indexer param.Indexer) param.UserSummaries {
+func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) param.UserSummaries {
 	tbl := query.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
@@ -61,7 +64,7 @@ func (usr *userService) Indices(ctx context.Context, indexer param.Indexer) para
 	return ret
 }
 
-func (usr *userService) Authenticate(ctx context.Context, uname, passwd string) (*model.User, error) {
+func (biz *userService) Authenticate(ctx context.Context, uname, passwd string) (*model.User, error) {
 	tbl := query.User
 	user, err := tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
@@ -72,13 +75,16 @@ func (usr *userService) Authenticate(ctx context.Context, uname, passwd string) 
 	}
 	// 本地账户
 	if user.IsLocal() {
-		if !usr.digest.Compare(user.Password, passwd) {
+		if !biz.digest.Compare(user.Password, passwd) {
 			return nil, errcode.ErrPassword
 		}
 		return user, nil
 	}
 
 	// sso 认证的账户
+	if err = biz.sso.Auth(ctx, uname, passwd); err != nil {
+		return nil, err
+	}
 
-	return nil, err
+	return user, nil
 }

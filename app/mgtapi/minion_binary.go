@@ -20,9 +20,11 @@ type minionBinaryREST struct {
 }
 
 func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/monbins").GET(rest.Page)
-	bearer.Route("/monbin/deprecate").PATCH(rest.Deprecate)
-	bearer.Route("/monbin").DELETE(rest.Delete)
+	bearer.Route("/monbins").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/monbin/deprecate").
+		Data(route.Named("agent 客户端标记为过期")).PATCH(rest.Deprecate)
+	bearer.Route("/monbin").
+		Data(route.Named("删除 agent 客户端")).DELETE(rest.Delete)
 }
 
 func (rest *minionBinaryREST) Page(c *ship.Context) error {

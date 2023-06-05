@@ -25,12 +25,12 @@ type authREST struct {
 
 // Route 注册路由
 func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
-	anon.Route("/captcha/generate").POST(ath.Picture)
-	anon.Route("/captcha/verify").POST(ath.Verify)
-	anon.Route("/ding").POST(ath.Dong)
-	anon.Route("/login").POST(ath.Login)
+	anon.Route("/captcha/generate").Data(route.Ignore()).POST(ath.Picture)
+	anon.Route("/captcha/verify").Data(route.Ignore()).POST(ath.Verify)
+	anon.Route("/ding").Data(route.Ignore()).POST(ath.Dong)
+	anon.Route("/login").Data(route.DestPasswd("用户登录")).POST(ath.Login)
 
-	bearer.Route("/logout").DELETE(ath.Logout)
+	bearer.Route("/logout").Data(route.Named("用户退出登录")).DELETE(ath.Logout)
 }
 
 // Picture 图片验证码
@@ -56,11 +56,11 @@ func (ath *authREST) Verify(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	_, err := ath.svc.Verify(ctx, req)
+	ding, err := ath.svc.Verify(ctx, req)
 	if err != nil {
 		return err
 	}
-	res := &param.AuthNeedDong{Ding: false}
+	res := &param.AuthNeedDong{Ding: ding}
 
 	return c.JSON(http.StatusOK, res)
 }
@@ -102,15 +102,8 @@ func (ath *authREST) Login(c *ship.Context) error {
 		remoteIP = remoteIP[:idx]
 	}
 
-	clientIP := c.ClientIP()
-	view := modview.LoginDong{
-		Header:   c.Header(),
-		RemoteIP: remoteIP,
-		ClientIP: clientIP,
-		LoginAt:  time.Now(),
-	}
 	ctx := c.Request().Context()
-	user, err := ath.svc.Login(ctx, req, view)
+	user, err := ath.svc.Login(ctx, req)
 	if err != nil {
 		return err
 	}

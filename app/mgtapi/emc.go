@@ -20,11 +20,11 @@ type emcREST struct {
 }
 
 func (rest *emcREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/emcs").GET(rest.Page)
+	bearer.Route("/emcs").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/emc").
-		POST(rest.Create).
-		PUT(rest.Update).
-		DELETE(rest.Delete)
+		Data(route.Named("新则咚咚服务号")).POST(rest.Create).
+		Data(route.Named("修改咚咚服务号")).PUT(rest.Update).
+		Data(route.Named("删除咚咚服务号")).DELETE(rest.Delete)
 }
 
 func (rest *emcREST) Page(c *ship.Context) error {

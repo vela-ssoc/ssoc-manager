@@ -31,8 +31,8 @@ type vipREST struct {
 }
 
 func (rest *vipREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/vip/cond").GET(rest.Cond)
-	bearer.Route("/vips").GET(rest.Page)
+	bearer.Route("/vip/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/vips").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *vipREST) Cond(c *ship.Context) error {

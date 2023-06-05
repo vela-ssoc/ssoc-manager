@@ -36,8 +36,8 @@ type processREST struct {
 }
 
 func (rest *processREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/process/cond").GET(rest.Cond)
-	bearer.Route("/processes").GET(rest.Page)
+	bearer.Route("/process/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/processes").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *processREST) Cond(c *ship.Context) error {

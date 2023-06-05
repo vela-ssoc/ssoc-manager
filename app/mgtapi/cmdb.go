@@ -18,7 +18,7 @@ type cmdbREST struct {
 }
 
 func (rest *cmdbREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/cmdb").GET(rest.Detail)
+	bearer.Route("/cmdb").Data(route.Ignore()).GET(rest.Detail)
 }
 
 func (rest *cmdbREST) Detail(c *ship.Context) error {

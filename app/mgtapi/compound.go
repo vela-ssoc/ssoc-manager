@@ -20,7 +20,7 @@ type compoundREST struct {
 }
 
 func (rest *compoundREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/compound/indices").GET(rest.Indices)
+	bearer.Route("/compound/indices").Data(route.Ignore()).GET(rest.Indices)
 }
 
 func (rest *compoundREST) Indices(c *ship.Context) error {

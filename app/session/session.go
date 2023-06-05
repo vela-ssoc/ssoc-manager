@@ -150,7 +150,7 @@ func (ssd *sessDB) DelSession(token string) error {
 	tbl := query.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.Token.Eq(token)).
-		Delete()
+		UpdateColumnSimple(tbl.Token.Value(""))
 
 	return err
 }

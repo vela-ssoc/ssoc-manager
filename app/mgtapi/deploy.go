@@ -21,7 +21,7 @@ type deployREST struct {
 }
 
 func (rest *deployREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/deploy/lan").GET(rest.LAN)
+	bearer.Route("/deploy/lan").Data(route.Ignore()).GET(rest.LAN)
 }
 
 func (rest *deployREST) LAN(c *ship.Context) error {

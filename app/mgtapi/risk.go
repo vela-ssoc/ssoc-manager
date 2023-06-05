@@ -36,11 +36,11 @@ type riskREST struct {
 }
 
 func (rsk *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/risk/cond").GET(rsk.Cond)
-	bearer.Route("/risk/attack").GET(rsk.Attack)
-	bearer.Route("/risk/group").GET(rsk.Group)
-	bearer.Route("/risk/recent").GET(rsk.Recent)
-	bearer.Route("/risks").GET(rsk.Page)
+	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rsk.Cond)
+	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rsk.Attack)
+	bearer.Route("/risk/group").Data(route.Ignore()).GET(rsk.Group)
+	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rsk.Recent)
+	bearer.Route("/risks").Data(route.Ignore()).GET(rsk.Page)
 }
 
 func (rsk *riskREST) Cond(c *ship.Context) error {

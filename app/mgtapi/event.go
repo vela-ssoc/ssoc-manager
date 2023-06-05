@@ -55,8 +55,8 @@ type eventREST struct {
 }
 
 func (evt *eventREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/event/cond").GET(evt.Cond)
-	bearer.Route("/events").GET(evt.Page)
+	bearer.Route("/event/cond").Data(route.Ignore()).GET(evt.Cond)
+	bearer.Route("/events").Data(route.Ignore()).GET(evt.Page)
 }
 
 func (evt *eventREST) Cond(c *ship.Context) error {

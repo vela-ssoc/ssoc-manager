@@ -19,8 +19,8 @@ type userREST struct {
 }
 
 func (usr *userREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/user/indices").GET(usr.Indices)
-	bearer.Route("/users").GET(usr.Page)
+	bearer.Route("/user/indices").Data(route.Ignore()).GET(usr.Indices)
+	bearer.Route("/users").Data(route.Ignore()).GET(usr.Page)
 }
 
 // Page 分页查询

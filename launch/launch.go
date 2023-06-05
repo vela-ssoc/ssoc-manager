@@ -6,11 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/app/route"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
+	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/taskpool"
@@ -61,6 +66,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	const headerKey = ship.HeaderAuthorization
 	queryKey := strings.ToLower(headerKey)
 	auth := middle.Auth(headerKey, queryKey)
+	routeRecord := route.NewRecord()
+	recordMid := middle.Oplog(routeRecord)
 
 	secCfg := cfg.Section
 	prob := problem.NewHandle(name)
@@ -81,7 +88,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	}
 
 	base := "/api/v1"
-	anon := sh.Group(base)
+	anon := sh.Group(base).Use(recordMid)
 	bearer := anon.Clone().Use(auth.Bearer)
 	basic := anon.Clone().Use(auth.Basic)
 
@@ -107,12 +114,18 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	userService := service.User(digestService)
+	tmplStore := formwork.NewStore(slog)
+	dongCfg := dong.NewConfigure()
+	dongCli := dong.NewClient(dongCfg, client, slog)
+
+	ssoCfg := ssoauth.NewConfigure(slog)
+	ssoCli := ssoauth.NewClient(ssoCfg, client, slog)
+	userService := service.User(digestService, ssoCli)
 	userREST := mgtapi.User(userService)
 	userREST.Route(anon, bearer, basic)
 
-	verifyService := service.Verify(3, nil)              // 验证码 3 分钟有效期
-	loginLockService := service.LoginLock(time.Hour, 10) // 每小时错误 10 次就锁定账户
+	verifyService := service.Verify(3, dongCli, tmplStore, slog) // 验证码 3 分钟有效期
+	loginLockService := service.LoginLock(time.Hour, 10)         // 每小时错误 10 次就锁定账户
 
 	authService := service.Auth(verifyService, loginLockService, userService)
 	authREST := mgtapi.Auth(authService)
@@ -176,7 +189,13 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskREST := mgtapi.Risk(riskService)
 	riskREST.Route(anon, bearer, basic)
 
-	storeService := service.Store(pusher, cmdbCfg)
+	storeConfigs := []service.StoreConfigurer{cmdbCfg, ssoCfg}
+	tmplLoaders := tmplStore.Loaders()
+	for _, ld := range tmplLoaders {
+		scCfg := service.StoreConfigurer(ld)
+		storeConfigs = append(storeConfigs, scCfg)
+	}
+	storeService := service.Store(pusher, storeConfigs...)
 
 	eventService := service.Event()
 	eventREST := mgtapi.Event(eventService)

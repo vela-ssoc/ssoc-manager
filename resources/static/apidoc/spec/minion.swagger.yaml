@@ -1,0 +1,136 @@
+openapi: 3.0.3
+info:
+  title: minion节点接口文档
+  description: broker 与 minion 的接口
+  version: 1.0.0
+  contact:
+    name: WangZY
+    email: hnwzy@live.com
+    url: 'https://ssoc.eastmoney.com'
+  termsOfService: 'https://security.eastmoney.com'
+servers:
+  - url: /v1
+    description: BaseURL
+tags:
+  - name: 三方文件
+    description: 三方文件
+paths:
+  /third/infos:
+    post:
+      summary: 获取三方文件信息
+      operationId: post-third-infos
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: 文件名
+                        hash:
+                          type: string
+                          description: 小写 md5
+              examples:
+                示例:
+                  value:
+                    data:
+                      - name: dnslog.lua
+                        hash: b747e69f309581180f1bb2717bc21015
+                      - name: html.zip
+                        hash: 3c4ff239c50b640250d11a3c86d94633
+      tags:
+        - 三方文件
+      description: 上报三方文件名，获取文件信息
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: array
+                  description: 文件名
+                  uniqueItems: true
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+              required:
+                - data
+            examples:
+              示例:
+                value:
+                  data:
+                    - code.lua
+                    - dnslog.lua
+                    - html.zip
+        description: '`data`: 为必填字段，内部元素最好去重唯一。'
+    parameters: []
+  /third/down:
+    get:
+      summary: 下载三方文件
+      tags:
+        - 三方文件
+      responses:
+        '200':
+          description: |
+            请求成功返回文件下载流
+
+            ### 从 Header 中获取文件信息
+
+            ```go
+            info := struct {
+              Name      string `json:"name"`
+              Hash      string `json:"hash"`
+              Path      string `json:"path"`
+              Desc      string `json:"desc"`
+              Size      int    `json:"size"`
+              Extension string `json:"extension"`
+            }
+
+            supplement, _ := url.QueryUnescape(res.Header().Get("Content-Supplement"))
+            err := json.Unmarshal([]byte(supplement), &info)
+            ```
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: 文件下载流
+          headers:
+            Content-Supplement:
+              schema:
+                type: string
+                example: '%7B%22name%22%3A%22osquery.exe%22%2C%22hash%22%3A%229f5f39939cde881b0641c64bae46d81c%22%2C%22size%22%3A4562197%2C%22extension%22%3A%22.exe%22%7D'
+              description: 文件流信息详情（URLEncode）
+        '304':
+          description: 代表文件没有修改变化
+        '404':
+          description: 代表文件不存在了
+      operationId: get-third-down
+      description: 下载三方文件
+      parameters:
+        - schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+            example: osquery.exe
+          in: query
+          name: name
+          required: true
+          description: 文件名
+        - schema:
+            type: string
+            maxLength: 100
+            example: 017849b6eb3dd8eb89496ca2165db571
+          in: query
+          name: hash
+          description: 哈希

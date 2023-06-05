@@ -38,9 +38,9 @@ func Oplog(svc service.OplogService) route.Router {
 }
 
 func (op *oplogREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/oplog/cond").GET(op.Cond)
-	bearer.Route("/oplogs").GET(op.Page)
-	bearer.Route("/oplog").DELETE(op.Delete)
+	bearer.Route("/oplog/cond").Data(route.Ignore()).GET(op.Cond)
+	bearer.Route("/oplogs").Data(route.Ignore()).GET(op.Page)
+	bearer.Route("/oplog").Data(route.Named("删除操作日志")).DELETE(op.Delete)
 }
 
 func (op *oplogREST) Cond(c *ship.Context) error {

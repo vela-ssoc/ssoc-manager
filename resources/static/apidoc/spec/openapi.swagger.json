@@ -1,0 +1,322 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "安全平台服务接口文档",
+    "description": "### 测试环境 Token\n\n暂且使用 `62123917224329216.9707475579fdf7620fde905f7f29a6fb5140229c9aca7f17fa84d4be039c` 用于测试\n\n### 业务状态码\n\n业务状态码复用的是 HTTP 状态码，并非在 body 中包含一个 code 来辨别成功失败。\n\n<details>\n<summary>2xx</summary>\n\n- 2xx 代表请求处理成功\n\n</details>\n\n<details>\n<summary>4xx</summary>\n\n- 4xx 代表客户端有误，此时 HTTP body 数据说明了具体错误原因\n\n- 400 BadRequest: 代表一般的业务操作错误，body 内容即为错误原因\n\n- 401 Unauthorized: 认证信息错误被拒绝，检查 Token 是否有效\n\n- 429 TooManyRequests: 请求过多或重复请求，一般稍作等待再请求即可\n\n</details>\n\n### 数据格式\n\n<details>\n<summary>日期时间格式</summary>\n\n- 默认格式为 [RFC3339](https://datatracker.ietf.org/doc/rfc3339/)，如有例外则会在接口字段处加以说明。\n\n</details>",
+    "version": "1.0.0",
+    "termsOfService": "https://security.eastmoney.com",
+    "contact": {
+      "name": "安全管理部",
+      "url": "https://vela-ssoc.eastmoney.com",
+      "email": "security@eastmoney.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "API"
+    }
+  ],
+  "tags": [
+    {
+      "name": "vuln",
+      "description": "漏洞模块"
+    },
+    {
+      "name": "sbom",
+      "description": "组件模块"
+    }
+  ],
+  "paths": {
+    "/vulnerabilities": {
+      "get": {
+        "summary": "漏洞同步",
+        "tags": [
+          "vuln"
+        ],
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "description": "漏洞列表",
+                  "items": {
+                    "type": "object",
+                    "description": "漏洞条目",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "数据库 ID"
+                      },
+                      "vuln_id": {
+                        "type": "string",
+                        "description": "漏洞显示 ID"
+                      },
+                      "sonatype_id": {
+                        "type": "string",
+                        "description": "ossindex 的 ID"
+                      },
+                      "checksum": {
+                        "type": "string",
+                        "description": "组件的 SHA-1"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "组件名称，如：jackson-databind"
+                      },
+                      "version": {
+                        "type": "string",
+                        "description": "组件版本，如：2.13.2"
+                      },
+                      "purl": {
+                        "type": "string",
+                        "description": "purl"
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "description": "显示名称"
+                      },
+                      "title": {
+                        "type": "string",
+                        "description": "漏洞标题"
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "漏洞简介"
+                      },
+                      "cvss_score": {
+                        "type": "number",
+                        "description": "cvss 评分 0-10"
+                      },
+                      "level": {
+                        "type": "integer",
+                        "enum": [
+                          0,
+                          1,
+                          2,
+                          3,
+                          4
+                        ],
+                        "description": "漏洞级别 0-无危 1-低危 2-中危 3-高危 4-紧急"
+                      },
+                      "cvss_vector": {
+                        "type": "string",
+                        "description": "cvss_vector"
+                      },
+                      "cve": {
+                        "type": "string",
+                        "description": "CWE 编号"
+                      },
+                      "cwe": {
+                        "type": "string",
+                        "description": "CVE 编号"
+                      },
+                      "reference": {
+                        "type": "string",
+                        "description": "漏洞数据链接引用"
+                      },
+                      "external_references": {
+                        "type": "array",
+                        "description": "漏洞数据扩展链接引用",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "description": "漏洞入库时间",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "vuln_id",
+                      "purl",
+                      "cvss_score",
+                      "level",
+                      "created_at"
+                    ]
+                  }
+                },
+                "examples": {
+                  "示例数据": {
+                    "value": [
+                      {
+                        "id": "68770633532981248",
+                        "vuln_id": "CVE-2020-36518",
+                        "sonatype_id": "CVE-2020-36518",
+                        "checksum": "926e48c451166a291f1ce6c6276d9abbefa7c00f",
+                        "name": "jackson-databind",
+                        "version": "2.13.2",
+                        "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.2",
+                        "display_name": "CVE-2020-36518",
+                        "title": "[CVE-2020-36518] CWE-787: Out-of-bounds Write",
+                        "description": "JACKSON-DATABIND 2.13.0之前的版本允许Java StackOverflow异常和通过大量嵌套对象拒绝服务。",
+                        "cvss_score": 7.5,
+                        "level": 3,
+                        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                        "cwe": "CWE-787",
+                        "cve": "CVE-2020-36518",
+                        "reference": "https://ossindex.sonatype.org/component/pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.2?utm_source=go-http-client&utm_medium=integration&utm_content=1.1",
+                        "external_references": [
+                          "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2020-36518",
+                          "https://github.com/FasterXML/jackson-databind/issues/2816"
+                        ],
+                        "created_at": "2022-08-09T18:29:57+08:00"
+                      },
+                      {
+                        "id": "68770634342481920",
+                        "vuln_id": "sonatype-2015-0002",
+                        "sonatype_id": "sonatype-2015-0002",
+                        "checksum": "",
+                        "name": "commons-collections",
+                        "version": "3.2.1",
+                        "purl": "pkg:maven/commons-collections/commons-collections@3.2.1",
+                        "display_name": "sonatype-2015-0002",
+                        "title": "1 vulnerability found",
+                        "description": "1 non-CVE vulnerability found. To see more details, please create a free account at https://ossindex.sonatype.org/ and request for this information using your registered account",
+                        "cvss_score": 9,
+                        "level": 4,
+                        "cvss_vector": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H",
+                        "cwe": "CWE-699",
+                        "cve": "",
+                        "reference": "https://ossindex.sonatype.org/component/pkg:maven/commons-collections/commons-collections@3.2.1?utm_source=go-http-client&utm_medium=integration&utm_content=1.1",
+                        "external_references": [],
+                        "created_at": "2022-08-09T18:29:57+08:00"
+                      },
+                      {
+                        "id": "68770635147788288",
+                        "vuln_id": "CVE-2021-44228",
+                        "sonatype_id": "CVE-2021-44228",
+                        "checksum": "f8b9123acd13058c941aff25f308c9ed8000bb13",
+                        "name": "log4j-core",
+                        "version": "2.14.1",
+                        "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+                        "display_name": "CVE-2021-44228",
+                        "title": "[CVE-2021-44228] CWE-502: Deserialization of Untrusted Data",
+                        "description": "ApacheLog4j2 2.0-beta9至2.15.0(不包括安全版本2.12.2、2.12.3和2.3.1)配置、日志消息和参数中使用的JNDI功能不能防御攻击者控制的LDAP和其他JNDI相关端点。启用消息查找替换时，可以控制日志消息或日志消息参数的攻击者可以执行从LDAP服务器加载的任意代码。从log4j 2.15.0开始，默认情况下已禁用此行为。从版本2.16.0(以及2.12.2、2.12.3和2.3.1)开始，此功能已完全删除。请注意，此漏洞特定于log4j-core，不会影响log4net、log4cxx或其他Apache Logging Services项目。",
+                        "cvss_score": 10,
+                        "level": 4,
+                        "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+                        "cwe": "CWE-502",
+                        "cve": "CVE-2021-44228",
+                        "reference": "https://ossindex.sonatype.org/component/pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1?utm_source=go-http-client&utm_medium=integration&utm_content=1.1",
+                        "external_references": [
+                          "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2021-44228",
+                          "https://github.com/apache/logging-log4j2/pull/608",
+                          "https://issues.apache.org/jira/browse/LOG4J2-2109",
+                          "https://issues.apache.org/jira/browse/LOG4J2-3201",
+                          "https://logging.apache.org/log4j/2.x/security.html",
+                          "https://github.com/advisories/GHSA-jfh8-c2jp-5v3q"
+                        ],
+                        "created_at": "2022-08-09T18:29:57+08:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-vulnerabilities",
+        "description": "## 使用说明\n\n- `offset_id` 为空时则从第一条漏洞开始查询\n\n- 每次查询记下最后一条数据的 `id` 用作下次查询的 `offset_id` （返回的数据是按照 `id` 递增的）\n\n- 当返回的结果的 length 为 0 或小于 `size` 时，通常说明后面没有新数据\n\n## 请求说明\n\n| 字段 | 类型 | 是否必填 | 校验 | 默认值 | \n| ---- | ---- | ---- | ---- | ---- |\n| `size` | int | 否 | 0 ≤ `size` ≤ 200 | 100 |\n| `offset_id` | string | 否 | `offset_id`.length ≤ 30 | 无 |\n\n## CVSS v3.x 评分标准细则点击 [nvd.nist.gov](https://nvd.nist.gov/vuln-metrics/cvss)\n\n| 分数 | 级别 | level 标识 |\n| ---- | ---- | ---- |\n| 0.0 | None （无危） | 0 |\n| 0.1-3.9 | Low （低危） | 1 |\n| 4.0-6.9 | Medium （中危） | 2 |\n| 7.0-8.9 | High （高危） | 3 |\n| 9.0-10.0 | Critical （紧急） | 4 |\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "example": 10,
+              "minimum": 1,
+              "maximum": 200
+            },
+            "in": "query",
+            "name": "size",
+            "description": "查询条数"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 30
+            },
+            "in": "query",
+            "name": "offset_id",
+            "description": "上次查询的最后一条 ID"
+          }
+        ],
+        "deprecated": true
+      }
+    },
+    "/sbom/purl": {
+      "post": {
+        "summary": "上报 purl",
+        "operationId": "post-sbom-purl",
+        "responses": {
+          "200": {
+            "description": "状态码 2xx 代表上报并处理成功"
+          }
+        },
+        "tags": [
+          "sbom"
+        ],
+        "description": "## 请求说明\n\n| 字段 | 类型 | 是否必填 | 校验 |\n| ---- | ---- | ---- | ---- |\n| `purl` | array[string] | 是 | 1 ≤ purl.length ≤ 1000 |",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "x-examples": {
+                  "example-1": {
+                    "purl": [
+                      "pkg:maven/org.yaml/snakeyaml@1.23",
+                      "pkg:maven/com.google.guava/guava@19.0",
+                      "pkg:maven/net.minidev/json-smart@2.4.2"
+                    ]
+                  }
+                },
+                "properties": {
+                  "purl": {
+                    "type": "array",
+                    "description": "purl",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "purl"
+                ]
+              },
+              "examples": {
+                "请求示例": {
+                  "value": {
+                    "purl": [
+                      "pkg:maven/org.yaml/snakeyaml@1.23",
+                      "pkg:maven/com.google.guava/guava@19.0",
+                      "pkg:maven/net.minidev/json-smart@2.4.2"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Authorization": {
+        "name": "Authorization",
+        "type": "apiKey",
+        "in": "header",
+        "description": "Token"
+      }
+    }
+  },
+  "security": [
+    {
+      "Authorization": []
+    }
+  ]
+}

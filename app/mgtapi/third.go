@@ -32,13 +32,13 @@ type thirdREST struct {
 }
 
 func (rest *thirdREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/third/cond").GET(rest.Cond)
-	bearer.Route("/thirds").GET(rest.Page)
+	bearer.Route("/third/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/thirds").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/third").
-		GET(rest.Download).
-		POST(rest.Create).
-		PUT(rest.Update).
-		DELETE(rest.Delete)
+		Data(route.Ignore()).GET(rest.Download).
+		Data(route.Named("新增三方文件")).POST(rest.Create).
+		Data(route.Named("更新三方文件")).PUT(rest.Update).
+		Data(route.Named("删除三方文件")).DELETE(rest.Delete)
 }
 
 func (rest *thirdREST) Cond(c *ship.Context) error {

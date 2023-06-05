@@ -20,7 +20,7 @@ type tagREST struct {
 }
 
 func (rest *tagREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/tag/indices").GET(rest.Indices)
+	bearer.Route("/tag/indices").Data(route.Ignore()).GET(rest.Indices)
 }
 
 func (rest *tagREST) Indices(c *ship.Context) error {

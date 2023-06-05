@@ -20,7 +20,7 @@ type emailREST struct {
 }
 
 func (rest *emailREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/emails").GET(rest.Page)
+	bearer.Route("/emails").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *emailREST) Page(c *ship.Context) error {

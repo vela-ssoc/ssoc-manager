@@ -31,10 +31,10 @@ func (ito *intoREST) Route(_, _, basic *ship.RouteGroupBuilder) {
 		ship.PROPFIND, "LOCK", "MKCOL", "PROPPATCH", "COPY", "MOVE", "UNLOCK",
 	}
 
-	basic.Route("/bws/*path").GET(ito.BWS)
-	basic.Route("/brr/*path").Method(ito.BRR, methods...)
-	basic.Route("/aws/*path").GET(ito.AWS)
-	basic.Route("/arr/*path").Method(ito.ARR, methods...)
+	basic.Route("/bws/*path").Data(route.IgnoreBody("BWS")).GET(ito.BWS)
+	basic.Route("/brr/*path").Data(route.Named("BRR")).Method(ito.BRR, methods...)
+	basic.Route("/aws/*path").Data(route.IgnoreBody("AWS")).GET(ito.AWS)
+	basic.Route("/arr/*path").Data(route.Named("ARR")).Method(ito.ARR, methods...)
 }
 
 func (ito *intoREST) BRR(c *ship.Context) error {

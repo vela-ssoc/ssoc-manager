@@ -38,8 +38,8 @@ type domainREST struct {
 }
 
 func (rest *domainREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/domain/cond").GET(rest.Cond)
-	bearer.Route("/domains").GET(rest.Page)
+	bearer.Route("/domain/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/domains").Data(route.Ignore()).GET(rest.Page)
 }
 
 func (rest *domainREST) Cond(c *ship.Context) error {

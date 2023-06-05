@@ -42,12 +42,12 @@ type minionTaskREST struct {
 }
 
 func (rest *minionTaskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/tasks").GET(rest.Page)
-	bearer.Route("/task").GET(rest.Detail)
-	bearer.Route("/task/cond").GET(rest.Cond)
-	bearer.Route("/task/minion").GET(rest.Minion)
-	bearer.Route("/task/gathers").GET(rest.Gathers)
-	bearer.Route("/task/count").GET(rest.Count)
+	bearer.Route("/tasks").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/task").Data(route.Ignore()).GET(rest.Detail)
+	bearer.Route("/task/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/task/minion").Data(route.Ignore()).GET(rest.Minion)
+	bearer.Route("/task/gathers").Data(route.Ignore()).GET(rest.Gathers)
+	bearer.Route("/task/count").Data(route.Ignore()).GET(rest.Count)
 }
 
 func (rest *minionTaskREST) Cond(c *ship.Context) error {

@@ -15,7 +15,7 @@ type blinkREST struct {
 }
 
 func (lnk *blinkREST) Route(anon, _, _ *ship.RouteGroupBuilder) {
-	anon.Route("/broker").CONNECT(lnk.Join)
+	anon.Route("/broker").Data(route.IgnoreBody("broker 节点上线")).CONNECT(lnk.Join)
 }
 
 func (lnk *blinkREST) Join(c *ship.Context) error {

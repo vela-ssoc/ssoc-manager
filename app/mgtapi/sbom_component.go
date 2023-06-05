@@ -35,8 +35,8 @@ type sbomComponentREST struct {
 }
 
 func (rest *sbomComponentREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/sbom/components").GET(rest.Page)
-	bearer.Route("/sbom/component/cond").GET(rest.Cond)
+	bearer.Route("/sbom/components").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/sbom/component/cond").Data(route.Ignore()).GET(rest.Cond)
 }
 
 func (rest *sbomComponentREST) Cond(c *ship.Context) error {

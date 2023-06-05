@@ -20,8 +20,8 @@ type brokerREST struct {
 }
 
 func (rest *brokerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/brokers").GET(rest.Page)
-	bearer.Route("/broker/indices").GET(rest.Indices)
+	bearer.Route("/brokers").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/broker/indices").Data(route.Ignore()).GET(rest.Indices)
 }
 
 func (rest *brokerREST) Page(c *ship.Context) error {

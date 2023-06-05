@@ -24,13 +24,13 @@ type elasticREST struct {
 }
 
 func (ela *elasticREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/ribana/*path").Any(ela.Forward)
-	bearer.Route("/ribana").Any(ela.Forward)
+	bearer.Route("/elastics").Data(route.Ignore()).GET(ela.Page)
+	bearer.Route("/ribana/*path").Data(route.Named("Ribana")).Any(ela.Forward)
+	bearer.Route("/ribana").Data(route.Named("Ribana")).Any(ela.Forward)
 	bearer.Route("/elastic").
-		POST(ela.Create).
-		PUT(ela.Update).
-		DELETE(ela.Delete)
-	bearer.Route("/elastics").GET(ela.Page)
+		Data(route.Named("新增 es 服务器")).POST(ela.Create).
+		Data(route.Named("修改 es 服务器")).PUT(ela.Update).
+		Data(route.Named("删除 es 服务器")).DELETE(ela.Delete)
 }
 
 func (ela *elasticREST) Forward(c *ship.Context) error {
