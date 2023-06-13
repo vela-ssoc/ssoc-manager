@@ -23,6 +23,7 @@ func (a *application) run() error {
 	select {
 	case err = <-ch:
 	case <-a.parent.Done():
+		err = a.parent.Err()
 	}
 
 	return err

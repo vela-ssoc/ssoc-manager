@@ -27,10 +27,8 @@ func main() {
 	defer cancel()
 
 	slog := logback.Stdout()
-	slog.Info("按 Ctrl+C 结束运行")
+	slog.Info("按 [Ctrl] + [C] 结束运行")
 
-	if err := launch.Run(ctx, *configPath, slog); err != nil {
-		slog.Warnf("程序启动错误：%v", err)
-	}
-	slog.Warn("程序已停止运行")
+	err := launch.Run(ctx, *configPath, slog)
+	slog.Warnf("程序停止运行：%v", err)
 }

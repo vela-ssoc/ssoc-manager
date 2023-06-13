@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/vela-ssoc/vela-common-mb/accord"
+	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
+	"gorm.io/gen/field"
 )
 
 type Pusher interface {
@@ -16,6 +18,9 @@ type Pusher interface {
 	ElasticReset(ctx context.Context)
 	EmcReset(ctx context.Context)
 	StoreReset(ctx context.Context, id string)
+	NotifierReset(ctx context.Context)
+	CmdbReset(ctx context.Context)
+	Startup(ctx context.Context, bid, mid int64)
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -27,6 +32,25 @@ type pushImpl struct {
 }
 
 func (pi *pushImpl) TaskTable(ctx context.Context, bids []int64, tid int64) {
+	req := &accord.TaskTable{TaskID: tid}
+	ret := pi.hub.Multicast(bids, accord.FPTaskTable, req)
+	tbl := query.SubstanceTask
+	for ft := range ret {
+		err := ft.Error()
+		if err == nil {
+			continue
+		}
+
+		assigns := []field.AssignExpr{
+			tbl.Executed.Value(true),
+			tbl.Reason.Value(err.Error()),
+			tbl.Failed.Value(true),
+		}
+		bid := ft.BrokerID()
+		_, _ = tbl.WithContext(ctx).
+			Where(tbl.TaskID.Eq(tid), tbl.BrokerID.Eq(bid)).
+			UpdateColumnSimple(assigns...)
+	}
 }
 
 func (pi *pushImpl) TaskSync(ctx context.Context, bid, mid int64, inet string) {
@@ -64,6 +88,19 @@ func (pi *pushImpl) EmcReset(ctx context.Context) {
 func (pi *pushImpl) StoreReset(ctx context.Context, id string) {
 	req := &accord.StoreRestRequest{ID: id}
 	pi.hub.Broadcast(accord.FPStoreReset, req)
+}
+
+func (pi *pushImpl) NotifierReset(ctx context.Context) {
+	pi.hub.Broadcast(accord.FPNotifierReset, nil)
+}
+
+func (pi *pushImpl) CmdbReset(ctx context.Context) {
+	pi.hub.Broadcast(accord.FPCmdbReset, nil)
+}
+
+func (pi *pushImpl) Startup(ctx context.Context, bid int64, mid int64) {
+	req := accord.Startup{ID: mid}
+	_ = pi.hub.Oneway(bid, accord.FPStartup, req)
 }
 
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {

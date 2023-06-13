@@ -30,6 +30,7 @@ var (
 	ErrExceedAuthority             = ship.ErrBadRequest.Newf("越权访问")
 	ErrDeprecated                  = ship.ErrBadRequest.Newf("版本已被标记为过期")
 	ErrInetAddress                 = ship.ErrBadRequest.Newf("inet 地址无效")
+	ErrAlreadyExist                = ship.ErrBadRequest.Newf("数据已存在")
 )
 
 type Errorf interface {

@@ -2,10 +2,12 @@ package mgtapi
 
 import (
 	"net/http"
+	"sync/atomic"
 
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -16,7 +18,8 @@ func MinionBinary(svc service.MinionBinaryService) route.Router {
 }
 
 type minionBinaryREST struct {
-	svc service.MinionBinaryService
+	svc       service.MinionBinaryService
+	uploading atomic.Bool
 }
 
 func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
@@ -24,6 +27,7 @@ func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/monbin/deprecate").
 		Data(route.Named("agent 客户端标记为过期")).PATCH(rest.Deprecate)
 	bearer.Route("/monbin").
+		Data(route.Named("上传 agent 客户端")).POST(rest.Create).
 		Data(route.Named("删除 agent 客户端")).DELETE(rest.Delete)
 }
 
@@ -61,4 +65,20 @@ func (rest *minionBinaryREST) Delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.Delete(ctx, req.ID)
+}
+
+func (rest *minionBinaryREST) Create(c *ship.Context) error {
+	var req param.NodeBinaryCreate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	// 限制只有一个用户操作
+	if !rest.uploading.CompareAndSwap(false, true) {
+		return errcode.ErrTaskBusy
+	}
+	defer rest.uploading.Store(false)
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Create(ctx, &req)
 }

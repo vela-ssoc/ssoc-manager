@@ -60,3 +60,8 @@ func (rrs RiskRecentTemps) Charts(days int) *RecentCharts {
 		Risk: charts,
 	}
 }
+
+type PieTopN struct {
+	TopN  []*NameCount `json:"topn"`
+	Other int          `json:"other"`
+}

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
@@ -41,6 +42,8 @@ func (rsk *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/group").Data(route.Ignore()).GET(rsk.Group)
 	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rsk.Recent)
 	bearer.Route("/risks").Data(route.Ignore()).GET(rsk.Page)
+	bearer.Route("/risk/csv").Data(route.Ignore()).GET(rsk.CSV)
+	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rsk.Pie)
 }
 
 func (rsk *riskREST) Cond(c *ship.Context) error {
@@ -113,6 +116,44 @@ func (rsk *riskREST) Recent(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	res := rsk.svc.Recent(ctx, day)
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (rsk *riskREST) CSV(c *ship.Context) error {
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (rsk *riskREST) Pie(c *ship.Context) error {
+	group := c.Query("group")
+	rtype := c.Query("risk_type")
+	topN, _ := strconv.Atoi(c.Query("topn"))
+	if topN <= 0 || topN >= 100 {
+		topN = 10
+	}
+
+	ctx := c.Request().Context()
+	tx := query.Risk.WithContext(ctx).UnderlyingDB()
+	if rtype != "" {
+		tx.Where("risk_type = ?", rtype)
+	}
+
+	res := &param.PieTopN{TopN: make([]*param.NameCount, 0, topN)}
+	var count int64
+	if tx.Count(&count); count == 0 {
+		return c.JSON(http.StatusOK, res)
+	}
+	tx.Select("COUNT(*) count", group+" name").
+		Group(group).
+		Order("count DESC").
+		Limit(topN).
+		Scan(&res.TopN)
+
+	var num int
+	for _, tn := range res.TopN {
+		num += tn.Count
+	}
+	res.Other = int(count) - num
 
 	return c.JSON(http.StatusOK, res)
 }

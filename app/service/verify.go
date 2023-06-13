@@ -32,7 +32,7 @@ type VerifyService interface {
 	Submit(ctx context.Context, uname, captID, dongCode string) error
 }
 
-func Verify(minute int, dcli dong.Client, tmpl formwork.Loader, slog logback.Logger) VerifyService {
+func Verify(minute int, dcli dong.Client, tmpl formwork.Render, slog logback.Logger) VerifyService {
 	capt := captcha.GetCaptcha()
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if minute < 1 || minute > 10 {
@@ -55,7 +55,7 @@ type verifyService struct {
 	slog   logback.Logger
 	minute int // 验证码有效分钟
 	dcli   dong.Client
-	tmpl   formwork.Loader
+	tmpl   formwork.Render
 	capt   *captcha.Captcha
 	random *rand.Rand
 	expire time.Duration // 验证码有效期

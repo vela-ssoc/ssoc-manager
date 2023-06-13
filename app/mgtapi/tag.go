@@ -21,6 +21,7 @@ type tagREST struct {
 
 func (rest *tagREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/tag/indices").Data(route.Ignore()).GET(rest.Indices)
+	bearer.Route("/minion/tag").Data(route.Named("修改节点标签")).PATCH(rest.Update)
 }
 
 func (rest *tagREST) Indices(c *ship.Context) error {
@@ -34,4 +35,16 @@ func (rest *tagREST) Indices(c *ship.Context) error {
 	res := rest.svc.Indices(ctx, idx)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *tagREST) Update(c *ship.Context) error {
+	var req param.TagUpdate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.Update(ctx, req.ID, req.Tags)
+
+	return err
 }

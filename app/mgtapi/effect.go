@@ -88,7 +88,13 @@ func (eff *effectREST) Update(c *ship.Context) error {
 }
 
 func (eff *effectREST) Delete(c *ship.Context) error {
-	// ctx := c.Request().Context()
-	// eff.svc.Update(ctx)
-	return nil
+	var req param.IntID
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	_, err := eff.svc.Delete(ctx, req.ID)
+
+	return err
 }

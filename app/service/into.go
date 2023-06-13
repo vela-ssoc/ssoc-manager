@@ -87,7 +87,7 @@ func (ito *intoService) BWS(ctx context.Context, w http.ResponseWriter, r *http.
 		return err
 	}
 
-	netutil.TwoSockPIPE(up, down)
+	netutil.PipeWebsocket(up, down)
 
 	return nil
 }
@@ -137,7 +137,7 @@ func (ito *intoService) AWS(ctx context.Context, w http.ResponseWriter, r *http.
 		return err
 	}
 
-	netutil.TwoSockPIPE(up, down)
+	netutil.PipeWebsocket(up, down)
 
 	return nil
 }

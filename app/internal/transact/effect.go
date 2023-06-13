@@ -97,9 +97,6 @@ func (et *effectTaskTx) Func(tx *query.Query) error {
 			CreateInBatches(tasks, limit); err != nil {
 			return err
 		}
-		if num < limit {
-			break
-		}
 	}
 
 	return nil

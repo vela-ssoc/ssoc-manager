@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/app/route"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
@@ -23,6 +21,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-manager/app/mgtapi"
 	"github.com/vela-ssoc/vela-manager/app/middle"
+	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
@@ -114,7 +113,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	tmplStore := formwork.NewStore(slog)
+	tmplStore := formwork.NewRend(slog)
 	dongCfg := dong.NewConfigure()
 	dongCli := dong.NewClient(dongCfg, client, slog)
 
@@ -141,7 +140,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	intoREST := mgtapi.Into(intoService, headerKey, queryKey)
 	intoREST.Route(anon, bearer, basic)
 
-	tagService := service.Tag()
+	tagService := service.Tag(pusher)
 	tagREST := mgtapi.Tag(tagService)
 	tagREST.Route(anon, bearer, basic)
 
@@ -177,6 +176,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	oplogREST := mgtapi.Oplog(oplogService)
 	oplogREST.Route(anon, bearer, basic)
 
+	notifierService := service.Notifier(pusher)
+	notifierREST := mgtapi.Notifier(notifierService)
+	notifierREST.Route(anon, bearer, basic)
+
 	minionTaskService := service.MinionTask()
 	minionTaskREST := mgtapi.MinionTask(minionTaskService)
 	minionTaskREST.Route(anon, bearer, basic)
@@ -188,6 +191,19 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskService := service.Risk()
 	riskREST := mgtapi.Risk(riskService)
 	riskREST.Route(anon, bearer, basic)
+
+	passDNSService := service.PassDNS()
+	passDNSREST := mgtapi.PassDNS(passDNSService)
+	passDNSREST.Route(anon, bearer, basic)
+	passIPService := service.PassIP()
+	passIPREST := mgtapi.PassIP(passIPService)
+	passIPREST.Route(anon, bearer, basic)
+	riskDNSService := service.RiskDNS()
+	riskDNSREST := mgtapi.RiskDNS(riskDNSService)
+	riskDNSREST.Route(anon, bearer, basic)
+	riskFileService := service.RiskFile()
+	riskFileREST := mgtapi.RiskFile(riskFileService)
+	riskFileREST.Route(anon, bearer, basic)
 
 	storeConfigs := []service.StoreConfigurer{cmdbCfg, ssoCfg}
 	tmplLoaders := tmplStore.Loaders()
@@ -233,7 +249,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
-	minionBinaryService := service.MinionBinary()
+	minionBinaryService := service.MinionBinary(gfs)
 	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)
 	minionBinaryREST.Route(anon, bearer, basic)
 
@@ -245,7 +261,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	minionAccountREST := mgtapi.MinionAccount(minionAccountService)
 	minionAccountREST.Route(anon, bearer, basic)
 
-	deployService := service.Deploy(storeService)
+	deployService := service.Deploy(storeService, gfs)
 	deployREST := mgtapi.Deploy(deployService)
 	deployREST.Route(anon, bearer, basic)
 
@@ -260,6 +276,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	emailService := service.Email()
 	emailREST := mgtapi.Email(emailService)
 	emailREST.Route(anon, bearer, basic)
+
+	startupService := service.Startup(storeService, pusher)
+	startupREST := mgtapi.Startup(startupService)
+	startupREST.Route(anon, bearer, basic)
 
 	davREST := mgtapi.DavFS(base)
 	davREST.Route(anon, bearer, basic)
