@@ -22,7 +22,17 @@ func Risk(svc service.RiskService) route.Router {
 	fromCodeCol := dynsql.StringColumn("from_code", "来源模块").Build()
 
 	table := dynsql.Builder().
-		Filters(subjectCol, riskTypeCol, inetCol, levelCol, statusCol, fromCodeCol).
+		Filters(subjectCol, riskTypeCol, inetCol, levelCol, statusCol, fromCodeCol,
+			dynsql.TimeColumn("occur_at", "产生时间").Build(),
+			dynsql.StringColumn("region", "归属地").Build(),
+			dynsql.StringColumn("remote_ip", "外部IP").Build(),
+			dynsql.IntColumn("remote_port", "外部端口").Build(),
+			dynsql.StringColumn("local_ip", "本地IP").Build(),
+			dynsql.IntColumn("local_port", "本地端口").Build(),
+			dynsql.StringColumn("payload", "攻击载荷").Build(),
+			dynsql.IntColumn("minion_id", "终端ID").Build(),
+			dynsql.IntColumn("id", "风险ID").Build(),
+		).
 		Groups(subjectCol, riskTypeCol, inetCol, levelCol, statusCol, fromCodeCol).
 		Build()
 	return &riskREST{
@@ -36,58 +46,64 @@ type riskREST struct {
 	table dynsql.Table
 }
 
-func (rsk *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rsk.Cond)
-	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rsk.Attack)
-	bearer.Route("/risk/group").Data(route.Ignore()).GET(rsk.Group)
-	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rsk.Recent)
-	bearer.Route("/risks").Data(route.Ignore()).GET(rsk.Page)
-	bearer.Route("/risk/csv").Data(route.Ignore()).GET(rsk.CSV)
-	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rsk.Pie)
+func (rest *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rest.Attack)
+	bearer.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
+	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rest.Recent)
+	bearer.Route("/risks").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/risk/csv").Data(route.Ignore()).GET(rest.CSV)
+	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rest.Pie)
+	bearer.Route("/risk").
+		Data(route.Named("批量删除风险事件")).DELETE(rest.Delete)
+	bearer.Route("/risk/ignore").
+		Data(route.Named("批量忽略风险事件")).PATCH(rest.Ignore)
+	bearer.Route("/risk/process").
+		Data(route.Named("批量处理风险事件")).PATCH(rest.Process)
 }
 
-func (rsk *riskREST) Cond(c *ship.Context) error {
-	res := rsk.table.Schema()
+func (rest *riskREST) Cond(c *ship.Context) error {
+	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rsk *riskREST) Page(c *ship.Context) error {
+func (rest *riskREST) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
-	scope, err := rsk.table.Inter(req.Input)
+	scope, err := rest.table.Inter(req.Input)
 	if err != nil {
 		return ship.ErrBadRequest.New(err)
 	}
 	page := req.Pager()
 	ctx := c.Request().Context()
 
-	count, dats := rsk.svc.Page(ctx, page, scope)
+	count, dats := rest.svc.Page(ctx, page, scope)
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rsk *riskREST) Attack(c *ship.Context) error {
+func (rest *riskREST) Attack(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
-	scope, err := rsk.table.Inter(req.Input)
+	scope, err := rest.table.Inter(req.Input)
 	if err != nil {
 		return ship.ErrBadRequest.New(err)
 	}
 	page := req.Pager()
 	ctx := c.Request().Context()
 
-	count, dats := rsk.svc.Attack(ctx, page, scope)
+	count, dats := rest.svc.Attack(ctx, page, scope)
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rsk *riskREST) Group(c *ship.Context) error {
+func (rest *riskREST) Group(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -95,36 +111,36 @@ func (rsk *riskREST) Group(c *ship.Context) error {
 	if req.Group == "" {
 		return errcode.ErrRequiredGroup
 	}
-	scope, err := rsk.table.Inter(req.Input)
+	scope, err := rest.table.Inter(req.Input)
 	if err != nil {
 		return ship.ErrBadRequest.New(err)
 	}
 	page := req.Pager()
 	ctx := c.Request().Context()
 
-	count, dats := rsk.svc.Group(ctx, page, scope)
+	count, dats := rest.svc.Group(ctx, page, scope)
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rsk *riskREST) Recent(c *ship.Context) error {
+func (rest *riskREST) Recent(c *ship.Context) error {
 	day, _ := strconv.Atoi(c.Query("day"))
 	if day > 30 || day < 1 { // 最多支持30天内查询，参数错误或超过有效范围默认为7天
 		day = 7
 	}
 
 	ctx := c.Request().Context()
-	res := rsk.svc.Recent(ctx, day)
+	res := rest.svc.Recent(ctx, day)
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rsk *riskREST) CSV(c *ship.Context) error {
+func (rest *riskREST) CSV(c *ship.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
-func (rsk *riskREST) Pie(c *ship.Context) error {
+func (rest *riskREST) Pie(c *ship.Context) error {
 	group := c.Query("group")
 	rtype := c.Query("risk_type")
 	topN, _ := strconv.Atoi(c.Query("topn"))
@@ -156,4 +172,58 @@ func (rsk *riskREST) Pie(c *ship.Context) error {
 	res.Other = int(count) - num
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *riskREST) Delete(c *ship.Context) error {
+	var req dynsql.Input
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if len(req.Filters) == 0 {
+		return errcode.ErrRequiredFilter
+	}
+	scope, err := rest.table.Inter(req)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Delete(ctx, scope)
+}
+
+func (rest *riskREST) Ignore(c *ship.Context) error {
+	var req dynsql.Input
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if len(req.Filters) == 0 {
+		return errcode.ErrRequiredFilter
+	}
+	scope, err := rest.table.Inter(req)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Ignore(ctx, scope)
+}
+
+func (rest *riskREST) Process(c *ship.Context) error {
+	var req dynsql.Input
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if len(req.Filters) == 0 {
+		return errcode.ErrRequiredFilter
+	}
+	scope, err := rest.table.Inter(req)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Process(ctx, scope)
 }

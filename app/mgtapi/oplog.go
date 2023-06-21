@@ -72,7 +72,7 @@ func (op *oplogREST) Delete(c *ship.Context) error {
 		return err
 	}
 	if len(req.Filters) == 0 {
-		return errcode.ErrRequiredDeleteCondition
+		return errcode.ErrRequiredFilter
 	}
 	scope, err := op.table.Inter(req)
 	if err != nil {

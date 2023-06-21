@@ -1,7 +1,10 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"text/template"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -9,11 +12,13 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/stegano"
 	"github.com/vela-ssoc/vela-common-mba/definition"
+	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
 
 type DeployService interface {
 	LAN(ctx context.Context) string
+	Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error)
 	OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error)
 }
 
@@ -67,8 +72,6 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 	if err != nil {
 		return nil, err
 	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer inf.Close()
 
 	hide := &definition.MinionHide{
 		Servername: brk.Servername,
@@ -86,4 +89,23 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 	}
 
 	return file, nil
+}
+
+func (biz *deployService) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
+	id := "global.deploy." + goos + ".tmpl"
+	st, err := biz.store.FindID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	tpl, err := template.New(id).Parse(string(st.Value))
+	if err != nil {
+		return nil, err
+	}
+
+	buf := new(bytes.Buffer)
+	if err = tpl.Execute(buf, data); err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }

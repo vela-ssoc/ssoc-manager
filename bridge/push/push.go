@@ -21,6 +21,8 @@ type Pusher interface {
 	NotifierReset(ctx context.Context)
 	CmdbReset(ctx context.Context)
 	Startup(ctx context.Context, bid, mid int64)
+	Upgrade(ctx context.Context, bid, mid int64)
+	Command(ctx context.Context, bid, mid int64, cmd string)
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -101,6 +103,16 @@ func (pi *pushImpl) CmdbReset(ctx context.Context) {
 func (pi *pushImpl) Startup(ctx context.Context, bid int64, mid int64) {
 	req := accord.Startup{ID: mid}
 	_ = pi.hub.Oneway(bid, accord.FPStartup, req)
+}
+
+func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mid int64) {
+	req := accord.Upgrade{ID: mid}
+	_ = pi.hub.Oneway(bid, accord.FPUpgrade, req)
+}
+
+func (pi *pushImpl) Command(ctx context.Context, bid int64, mid int64, cmd string) {
+	req := accord.Upgrade{ID: mid}
+	_ = pi.hub.Oneway(bid, accord.FPUpgrade, req)
 }
 
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {

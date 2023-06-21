@@ -37,5 +37,5 @@ type SubstanceReload struct {
 
 type SubstanceCommand struct {
 	IntID
-	Cmd string `json:"cmd" validate:"oneof=resync"`
+	Cmd string `json:"cmd" validate:"oneof=resync offline"`
 }

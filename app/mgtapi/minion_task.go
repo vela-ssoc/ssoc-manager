@@ -20,12 +20,12 @@ func MinionTask(svc service.MinionTaskService) route.Router {
 		Set("update", "正在更新")
 	dialectEnums := dynsql.BoolEnum().True("私有").False("公有")
 	filters := []dynsql.Column{
-		dynsql.StringColumn("inet", "终端IP").Build(),
-		dynsql.StringColumn("name", "名称").Build(),
-		dynsql.BoolColumn("dialect", "属性").Enums(dialectEnums).Build(),
-		dynsql.StringColumn("status", "状态").Enums(statusEnums).Build(),
-		dynsql.IntColumn("minion_id", "节点ID").Build(),
-		dynsql.IntColumn("substance_id", "配置ID").Build(),
+		dynsql.StringColumn("minion_task.inet", "终端IP").Build(),
+		dynsql.StringColumn("minion_task.name", "名称").Build(),
+		dynsql.BoolColumn("minion_task.dialect", "属性").Enums(dialectEnums).Build(),
+		dynsql.StringColumn("minion_task.status", "状态").Enums(statusEnums).Build(),
+		dynsql.IntColumn("minion_task.minion_id", "节点ID").Build(),
+		dynsql.IntColumn("minion_task.substance_id", "配置ID").Build(),
 	}
 
 	table := dynsql.Builder().Filters(filters...).Build()

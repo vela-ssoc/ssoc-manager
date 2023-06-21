@@ -116,7 +116,7 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 	}
 
 	num := vs.random.Intn(1_000_000) // 0-999999
-	code := fmt.Sprintf("%6d", num)  // 0 填充： 123 -> 000123
+	code := fmt.Sprintf("%06d", num) // 0 填充： 123 -> 000123
 	vi.setDongCode(code)
 	view.Code = code
 	view.Minute = vs.minute

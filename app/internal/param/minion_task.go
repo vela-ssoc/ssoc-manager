@@ -69,3 +69,24 @@ type TaskCount struct {
 	Reg     int `json:"reg"     gorm:"column:reg"`     // 运行状态为 reg     的总数
 	Update  int `json:"update"  gorm:"column:update"`  // 运行状态为 update  的总数
 }
+
+type TaskList []*taskList
+
+type taskList struct {
+	ID          int64     `json:"id,string"           gorm:"column:id"`           // 数据库 ID
+	Inet        string    `json:"inet"                gorm:"column:inet"`         // 节点 IPv4
+	MinionID    int64     `json:"minion_id,string"    gorm:"column:minion_id"`    // 节点 ID
+	SubstanceID int64     `json:"substance_id,string" gorm:"column:substance_id"` // 配置 ID
+	Name        string    `json:"name"                gorm:"column:name"`         // 配置名
+	Dialect     bool      `json:"dialect"             gorm:"column:dialect"`      // 是否时私有配置
+	Status      string    `json:"status"              gorm:"column:status"`       // 运行状态 running doing fail panic reg update
+	Hash        string    `json:"hash"                gorm:"column:hash"`         // 配置文件哈希
+	ReportHash  string    `json:"report_hash"         gorm:"column:report_hash"`  // 上报的哈希
+	Link        string    `json:"link"                gorm:"column:link"`         // 外链
+	From        string    `json:"from"                gorm:"column:from"`         // 来源模块
+	Failed      bool      `json:"failed"              gorm:"column:failed"`       // 是否运行错误
+	Cause       string    `json:"cause"               gorm:"column:cause"`        // 运行错误的原因
+	UpdatedAt   time.Time `json:"updated_at"          gorm:"column:updated_at"`   // 配置文件最近更新事件
+	CreatedAt   time.Time `json:"created_at"          gorm:"column:created_at"`   // 配置文件创建事件
+	ReportAt    time.Time `json:"report_at"           gorm:"column:report_at"`    // 下发节点的最新上报时间
+}

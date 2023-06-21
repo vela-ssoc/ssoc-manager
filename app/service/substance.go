@@ -25,6 +25,7 @@ type SubstanceService interface {
 	Delete(ctx context.Context, id int64) error
 	Reload(ctx context.Context, mid, sid int64) error
 	Resync(ctx context.Context, mid int64) error
+	Command(ctx context.Context, mid int64, cmd string) error
 }
 
 func Substance(pusher push.Pusher, digest DigestService, sequence SequenceService) SubstanceService {
@@ -178,10 +179,12 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	tbl := query.Substance
 	sub, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
-		Where(tbl.Version.Eq(version)).
 		First()
 	if err != nil {
 		return err
+	}
+	if sub.Version != su.Version {
+		return errcode.ErrVersion
 	}
 
 	sum := biz.digest.SumMD5(su.Chunk)
@@ -240,10 +243,12 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	}
 
 	taskID := biz.sequence.Generate()
-	bids, err := transact.EffectTaskTx(ctx, taskID, tags)
-	if err == nil && len(bids) != 0 {
-		biz.pusher.TaskTable(ctx, bids, taskID)
-	}
+	go func() {
+		bids, err := transact.EffectTaskTx(ctx, taskID, tags)
+		if err == nil && len(bids) != 0 {
+			biz.pusher.TaskTable(ctx, bids, taskID)
+		}
+	}()
 
 	return err
 }
@@ -331,8 +336,6 @@ func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 		return errcode.ErrExceedAuthority
 	}
 
-	// TODO 公有配置检查越权
-
 	biz.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
 
 	return nil
@@ -355,6 +358,27 @@ func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
 	}
 
 	biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+
+	return nil
+}
+
+// Command 向指定节点发送指令
+func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string) error {
+	// 检查 minion 节点
+	monTbl := query.Minion
+	mon, err := monTbl.WithContext(ctx).
+		Select(monTbl.ID, monTbl.Status, monTbl.BrokerID).
+		Where(monTbl.ID.Eq(mid)).
+		First()
+	if err != nil {
+		return err
+	}
+	status := mon.Status
+	if status != model.MSOnline && status != model.MSOffline {
+		return errcode.ErrNodeStatus
+	}
+
+	biz.pusher.Command(ctx, mon.BrokerID, mid, cmd)
 
 	return nil
 }

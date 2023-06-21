@@ -3,6 +3,8 @@ package param
 import (
 	"time"
 
+	"github.com/vela-ssoc/vela-common-mb/dynsql"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 )
 
@@ -72,4 +74,9 @@ type MinionDetail struct {
 	AgentTotal    int64              `json:"agent_total"    gorm:"column:agent_total"`
 	AgentAlloc    int64              `json:"agent_alloc"    gorm:"column:agent_alloc"`
 	Tags          model.MinionTags   `json:"tags"           gorm:"-"`
+}
+
+type MinionBatchRequest struct {
+	Cmd string `json:"cmd" validate:"oneof=resync restart upgrade offline"`
+	dynsql.Input
 }

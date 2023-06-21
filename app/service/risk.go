@@ -7,6 +7,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type RiskService interface {
@@ -14,6 +15,9 @@ type RiskService interface {
 	Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack)
 	Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount)
 	Recent(ctx context.Context, day int) *param.RecentCharts
+	Delete(ctx context.Context, scope dynsql.Scope) error
+	Ignore(ctx context.Context, scope dynsql.Scope) error
+	Process(ctx context.Context, scope dynsql.Scope) error
 }
 
 func Risk() RiskService {
@@ -91,4 +95,35 @@ func (rsk *riskService) Recent(ctx context.Context, day int) *param.RecentCharts
 		Scan(&temps)
 
 	return temps.Charts(day)
+}
+
+func (rsk *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
+	ret := query.Risk.WithContext(ctx).
+		UnderlyingDB().
+		Scopes(scope.Where).
+		Delete(&model.Risk{})
+	if ret.Error != nil || ret.RowsAffected != 0 {
+		return ret.Error
+	}
+	return errcode.ErrDeleteFailed
+}
+
+func (rsk *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
+	tbl := query.Risk
+	col := tbl.Status.ColumnName().String()
+	tbl.WithContext(ctx).
+		UnderlyingDB().
+		Scopes(scope.Where).
+		UpdateColumn(col, model.RSIgnore)
+	return nil
+}
+
+func (rsk *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
+	tbl := query.Risk
+	col := tbl.Status.ColumnName().String()
+	tbl.WithContext(ctx).
+		UnderlyingDB().
+		Scopes(scope.Where).
+		UpdateColumn(col, model.RSProcessed)
+	return nil
 }

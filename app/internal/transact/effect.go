@@ -8,7 +8,10 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 )
 
-func EffectTaskTx(ctx context.Context, taskID int64, tags []string) (brokerIDs []int64, err error) {
+func EffectTaskTx(_ context.Context, taskID int64, tags []string) (brokerIDs []int64, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
 	et := &effectTaskTx{
 		ctx:    ctx,
 		taskID: taskID,

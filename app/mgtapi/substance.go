@@ -133,7 +133,9 @@ func (rest *substanceREST) Command(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	switch req.Cmd {
-	default: // resync
+	case "resync":
 		return rest.svc.Resync(ctx, mid)
+	default:
+		return rest.svc.Command(ctx, mid, req.Cmd)
 	}
 }

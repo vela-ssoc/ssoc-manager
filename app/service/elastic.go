@@ -20,7 +20,7 @@ type ElasticService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Elastic(pusher push.Pusher, forward elastic.Forwarder, cfg elastic.ForwardConfigurer) ElasticService {
+func Elastic(pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer) ElasticService {
 	return &elasticService{
 		pusher:  pusher,
 		forward: forward,
@@ -29,8 +29,8 @@ func Elastic(pusher push.Pusher, forward elastic.Forwarder, cfg elastic.ForwardC
 }
 
 type elasticService struct {
-	forward elastic.Forwarder
-	cfg     elastic.ForwardConfigurer
+	forward elastic.Searcher
+	cfg     elastic.Configurer
 	pusher  push.Pusher
 }
 

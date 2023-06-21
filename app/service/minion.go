@@ -4,15 +4,15 @@ import (
 	"context"
 	"net"
 
-	"gorm.io/gen/field"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/internal/sheet"
+	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"gorm.io/gen/field"
 )
 
 type MinionService interface {
@@ -23,16 +23,19 @@ type MinionService interface {
 	Delete(ctx context.Context, scope dynsql.Scope) error
 	Activate(ctx context.Context, id []int64) error
 	CSV(ctx context.Context) sheet.CSVStreamer
+	Upgrade(ctx context.Context, id int64) error
 }
 
-func Minion(cmdbw cmdb.Client) MinionService {
+func Minion(cmdbw cmdb.Client, pusher push.Pusher) MinionService {
 	return &minionService{
-		cmdbw: cmdbw,
+		cmdbw:  cmdbw,
+		pusher: pusher,
 	}
 }
 
 type minionService struct {
-	cmdbw cmdb.Client
+	cmdbw  cmdb.Client
+	pusher push.Pusher
 }
 
 func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionSummary) {
@@ -304,4 +307,23 @@ func (biz *minionService) Activate(ctx context.Context, id []int64) error {
 func (biz *minionService) CSV(ctx context.Context) sheet.CSVStreamer {
 	read := sheet.MinionCSV(ctx, 500, true)
 	return sheet.NewCSV(read)
+}
+
+func (biz *minionService) Upgrade(ctx context.Context, mid int64) error {
+	// 查询节点信息
+	tbl := query.Minion
+	mon, err := tbl.WithContext(ctx).
+		Select(tbl.ID, tbl.Status, tbl.BrokerID).
+		Where(tbl.ID.Eq(mid)).First()
+	if err != nil {
+		return err
+	}
+	if mon.Status == model.MSDelete {
+		return errcode.ErrNodeStatus
+	}
+
+	// 通知 agent 升级
+	biz.pusher.Upgrade(ctx, mon.BrokerID, mon.ID)
+
+	return nil
 }

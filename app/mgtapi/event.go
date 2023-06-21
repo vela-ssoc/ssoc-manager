@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -24,7 +25,6 @@ func Event(svc service.EventService) route.Router {
 		dynsql.StringColumn("inet", "终端 IP").Build(),
 		dynsql.IntColumn("minion_id", "终端 ID").Build(),
 		dynsql.StringColumn("from_code", "来源").Build(),
-		dynsql.IntColumn("minion_id", "终端ID").Build(),
 		dynsql.TimeColumn("occur_at", "时间").Build(),
 		dynsql.StringColumn("subject", "主题").Build(),
 		dynsql.StringColumn("typeof", "类型").Build(),
@@ -35,7 +35,8 @@ func Event(svc service.EventService) route.Router {
 		dynsql.StringColumn("msg", "信息").Build(),
 		dynsql.StringColumn("error", "错误信息").Build(),
 		dynsql.StringColumn("region", "IP归属地").Build(),
-		dynsql.BoolColumn("send_alert", "是否发送告警").Enums(dynsql.BoolEnum().True("是").False("否")).Build(),
+		dynsql.BoolColumn("send_alert", "是否发送告警").
+			Enums(dynsql.BoolEnum().True("是").False("否")).Build(),
 		dynsql.TimeColumn("created_at", "创建时间").Build(),
 		dynsql.IntColumn("minion_id", "终端ID").Build(),
 	}
@@ -57,6 +58,10 @@ type eventREST struct {
 func (evt *eventREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/event/cond").Data(route.Ignore()).GET(evt.Cond)
 	bearer.Route("/events").Data(route.Ignore()).GET(evt.Page)
+	bearer.Route("/event/confirm").
+		Data(route.Named("忽略事件")).DELETE(evt.Confirm)
+	bearer.Route("/event").
+		Data(route.Named("批量删除事件")).DELETE(evt.Delete)
 }
 
 func (evt *eventREST) Cond(c *ship.Context) error {
@@ -80,4 +85,32 @@ func (evt *eventREST) Page(c *ship.Context) error {
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (evt *eventREST) Confirm(c *ship.Context) error {
+	var req param.OptionalIDs
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return evt.svc.Confirm(ctx, req.ID)
+}
+
+func (evt *eventREST) Delete(c *ship.Context) error {
+	var req dynsql.Input
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if len(req.Filters) == 0 {
+		return errcode.ErrRequiredFilter
+	}
+	scope, err := evt.table.Inter(req)
+	if err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return evt.svc.Delete(ctx, scope)
 }

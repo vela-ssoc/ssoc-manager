@@ -132,7 +132,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 
 	cmdbCfg := cmdb.NewConfigure(slog)
 	cmdbClient := cmdb.NewClient(cmdbCfg, client, slog)
-	minionService := service.Minion(cmdbClient)
+	minionService := service.Minion(cmdbClient, pusher)
 	minionREST := mgtapi.Minion(huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
@@ -149,7 +149,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	substanceREST := mgtapi.Substance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
 
-	compoundService := service.Compound()
+	compoundService := service.Compound(pusher, sequenceService)
 	compoundREST := mgtapi.Compound(compoundService)
 	compoundREST.Route(anon, bearer, basic)
 
@@ -158,8 +158,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	effectREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----
 
-	esForwardCfg := elastic.NewForwardConfigure(name)
-	esForward := elastic.NewForward(esForwardCfg)
+	esForwardCfg := elastic.NewConfigure(name)
+	esForward := elastic.NewSearch(esForwardCfg, client)
 	elasticService := service.Elastic(pusher, esForward, esForwardCfg)
 	elasticREST := mgtapi.Elastic(elasticService, headerKey, queryKey)
 	elasticREST.Route(anon, bearer, basic)

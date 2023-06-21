@@ -1,7 +1,10 @@
 package mgtapi
 
 import (
+	"net/http"
+
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/xgfone/ship/v5"
@@ -40,9 +43,24 @@ func (rest *minionListenREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (rest *minionListenREST) Cond(c *ship.Context) error {
-	return nil
+	res := rest.table.Schema()
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *minionListenREST) Page(c *ship.Context) error {
-	return nil
+	var req param.PageSQL
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+	scope, err := rest.table.Inter(req.Input)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+	page := req.Pager()
+
+	ctx := c.Request().Context()
+	count, dats := rest.svc.Page(ctx, page, scope)
+	res := page.Result(count, dats)
+
+	return c.JSON(http.StatusOK, res)
 }

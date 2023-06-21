@@ -121,7 +121,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) error {
 	conn := hub.newConn(tran, ident, issue)
 	if !hub.putConn(conn) {
-		return errors.New("")
+		return ErrBrokerRepeat
 	}
 	sid := conn.sid
 	defer hub.delConn(sid)

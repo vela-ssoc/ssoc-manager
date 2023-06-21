@@ -24,11 +24,20 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 	commentCol := dynsql.StringColumn("minion.`comment`", "描述").Build()
 	statusEnums := dynsql.IntEnum().Set(1, "未激活").Set(2, "离线").
 		Set(3, "在线").Set(4, "已删除")
-	statusCol := dynsql.IntColumn("minion.status", "状态").Enums(statusEnums).Build()
+	statusCol := dynsql.IntColumn("minion.status", "状态").
+		Enums(statusEnums).
+		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
+		Build()
 	goosEnums := dynsql.StringEnum().Sames([]string{"linux", "windows", "darwin"})
-	goosCol := dynsql.StringColumn("minion.goos", "操作系统").Enums(goosEnums).Build()
+	goosCol := dynsql.StringColumn("minion.goos", "操作系统").
+		Enums(goosEnums).
+		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
+		Build()
 	archEnums := dynsql.StringEnum().Sames([]string{"amd64", "386", "arm64", "arm"})
-	archCol := dynsql.StringColumn("minion.arch", "系统架构").Enums(archEnums).Build()
+	archCol := dynsql.StringColumn("minion.arch", "系统架构").
+		Enums(archEnums).
+		Operators([]dynsql.Operator{dynsql.Eq, dynsql.Ne, dynsql.In, dynsql.NotIn}).
+		Build()
 	brkCol := dynsql.StringColumn("minion.broker_name", "代理节点").Build()
 	dutyCol := dynsql.StringColumn("minion.op_duty", "运维负责人").Build()
 	catCol := dynsql.TimeColumn("minion.created_at", "创建时间").Build()
@@ -62,6 +71,8 @@ func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/minion/drop").Data(route.Named("物理删除 agent 节点")).DELETE(rest.Drop)
 	bearer.Route("/minion/activate").Data(route.Named("激活 agent 节点")).PATCH(rest.Activate)
 	bearer.Route("/sheet/minion").Data(route.Ignore()).GET(rest.CSV)
+	bearer.Route("/minion/upgrade").Data(route.Named("节点检查更新")).PATCH(rest.Upgrade)
+	bearer.Route("/minion/batch").Data(route.Named("批量操作")).PATCH(rest.Batch)
 }
 
 func (rest *minionREST) Cond(c *ship.Context) error {
@@ -163,4 +174,33 @@ func (rest *minionREST) CSV(c *ship.Context) error {
 	c.SetRespHeader(ship.HeaderContentDisposition, stm.Disposition())
 
 	return c.Stream(http.StatusOK, stm.MIME(), stm)
+}
+
+func (rest *minionREST) Upgrade(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Upgrade(ctx, req.ID)
+}
+
+func (rest *minionREST) Batch(c *ship.Context) error {
+	//var req param.MinionBatchRequest
+	//if err := c.Bind(&req); err != nil {
+	//	return err
+	//}
+	//if len(req.Filters) == 0 {
+	//	return errcode.ErrRequiredFilter
+	//}
+	//scope, err := rest.table.Inter(req.Input)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//ctx := c.Request().Context()
+
+	return nil
 }

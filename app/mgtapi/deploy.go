@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/vela-ssoc/vela-manager/app/internal/modview"
+
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
@@ -24,7 +26,7 @@ type deployREST struct {
 func (rest *deployREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/deploy/lan").Data(route.Ignore()).GET(rest.LAN)
 	anon.Route("/deploy/minion").
-		Data(route.Named("下载 agent 部署脚本")).GET(rest.Minion)
+		Data(route.Named("下载 agent 部署脚本")).GET(rest.Script)
 	anon.Route("/deploy/minion/download").
 		Data(route.Named("下载 agent 二进制客户端")).GET(rest.MinionDownload)
 }
@@ -52,19 +54,41 @@ func (rest *deployREST) LAN(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *deployREST) Minion(c *ship.Context) error {
+func (rest *deployREST) Script(c *ship.Context) error {
 	var req param.DeployMinionDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
 
 	r := c.Request()
-	path := r.URL.Path
+	reqURL := r.URL
+
+	scheme := "http"
+	if c.IsTLS() {
+		scheme = "https"
+	}
+
+	path := reqURL.Path + "/download"
 	downURL := &url.URL{
-		Path:     path + "/download",
+		Scheme:   scheme,
+		Host:     r.Host,
+		Path:     path,
+		RawQuery: reqURL.RawQuery,
+	}
+	ctx := c.Request().Context()
+
+	data := &modview.Deploy{DownloadURL: downURL}
+	read, err := rest.svc.Script(ctx, req.Goos, data)
+	if err == nil {
+		return c.Stream(http.StatusOK, ship.MIMETextPlainCharsetUTF8, read)
+	}
+
+	redirectURL := &url.URL{
+		Path:     path,
 		RawQuery: r.URL.RawQuery,
 	}
-	return c.Redirect(http.StatusTemporaryRedirect, downURL.String())
+
+	return c.Redirect(http.StatusTemporaryRedirect, redirectURL.String())
 }
 
 func (rest *deployREST) MinionDownload(c *ship.Context) error {

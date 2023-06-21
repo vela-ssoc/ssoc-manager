@@ -34,7 +34,7 @@ func (biz *tagService) Indices(ctx context.Context, idx param.Indexer) []string 
 		dao.Where(tbl.Tag.Like(kw))
 	}
 
-	var dats []string
+	dats := make([]string, 0, idx.Size())
 	_ = dao.Order(tbl.Tag).Scopes(idx.Scope).Scan(&dats)
 
 	return dats

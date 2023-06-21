@@ -40,8 +40,7 @@ func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*mod
 	tbl := query.Broker
 	dao := tbl.WithContext(ctx)
 	if kw := idx.Keyword(); kw != "" {
-		dao.Where(tbl.Name.Like(kw)).
-			Or(tbl.Servername.Like(kw))
+		dao.Or(tbl.Name.Like(kw), tbl.Servername.Like(kw))
 	}
 
 	dats, _ := dao.Scopes(idx.Scope).Find()

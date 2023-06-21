@@ -3536,7 +3536,8 @@
       "get": {
         "summary": "节点标签列表",
         "tags": [
-          "tag"
+          "tag",
+          "最近修改"
         ],
         "responses": {
           "200": {
@@ -3581,7 +3582,27 @@
           }
         },
         "operationId": "get-tag-indices",
-        "description": "节点标签列表"
+        "description": "### 2023-06-15 变更记录\n上一版本中该接口未作限制，调用该接口会返回所有的后端 tag 标签。由于 tag 太多，所以这一版本中加入限制。\n\n| 字段 | 是否必填 | 说明 |\n| ---- | ---- | ---- |\n| `size` | 否   | 显示条数，最大 100 条，不填默认 10 条。 |\n| `keyword` | 否   | 搜索关键字 |\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "example": 10,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "size",
+            "description": "默认100条"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "keyword",
+            "description": "搜索关键字"
+          }
+        ]
       }
     },
     "/substances": {

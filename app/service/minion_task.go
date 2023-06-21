@@ -14,7 +14,7 @@ import (
 )
 
 type MinionTaskService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionTask)
+	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList)
 	Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error)
 	Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error)
 	Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather)
@@ -27,15 +27,24 @@ func MinionTask() MinionTaskService {
 
 type minionTaskService struct{}
 
-func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionTask) {
-	db := query.MinionTask.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
+func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList) {
+	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	stmt := db.Table("minion_task AS minion_task").
+		Joins("LEFT JOIN substance st ON st.id = minion_task.substance_id").
+		Scopes(scope.Where).
+		Order("minion_task.id DESC")
+
 	var count int64
-	if db.Count(&count); count == 0 {
+	if stmt.Count(&count); count == 0 {
 		return 0, nil
 	}
 
-	var dats []*model.MinionTask
-	db.Scopes(page.DBScope(count)).Find(&dats)
+	var dats param.TaskList
+	stmt.Select("minion_task.id", "minion_task.inet", "minion_task.minion_id", "minion_task.substance_id",
+		"minion_task.name", "minion_task.dialect", "minion_task.status", "minion_task.hash AS report_hash", "st.hash",
+		"minion_task.link", "minion_task.`from`", "minion_task.failed", "minion_task.cause", "st.created_at",
+		"st.updated_at", "minion_task.created_at AS report_at").
+		Scopes(page.DBScope(count)).Find(&dats)
 
 	return count, dats
 }

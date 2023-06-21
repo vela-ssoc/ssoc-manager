@@ -6,6 +6,8 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/app/internal/transact"
+	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
@@ -17,11 +19,17 @@ type CompoundService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Compound() CompoundService {
-	return &compoundService{}
+func Compound(pusher push.Pusher, seq SequenceService) CompoundService {
+	return &compoundService{
+		pusher: pusher,
+		seq:    seq,
+	}
 }
 
-type compoundService struct{}
+type compoundService struct {
+	pusher push.Pusher
+	seq    SequenceService
+}
 
 func (biz *compoundService) Indices(ctx context.Context, idx param.Indexer) []*param.IDName {
 	tbl := query.Compound
@@ -153,9 +161,15 @@ func (biz *compoundService) Update(ctx context.Context, req *param.CompoundUpdat
 		return err
 	}
 
-	// TODO 通知节点更新
+	taskID := biz.seq.Generate()
+	brokerIDs, err := transact.EffectTaskTx(ctx, taskID, tags)
+	if err != nil {
+		return err
+	}
 
-	// 查询
+	// 推送任务
+	biz.pusher.TaskTable(ctx, brokerIDs, taskID)
+
 	return nil
 }
 
