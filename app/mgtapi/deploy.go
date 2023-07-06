@@ -6,7 +6,6 @@ import (
 	"net/url"
 
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"

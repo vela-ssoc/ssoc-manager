@@ -10,12 +10,11 @@ import (
 )
 
 type EffectCreate struct {
-	Name       string   `json:"name"       validate:"required,lte=50"`                            // 配置发布名字
-	Enable     bool     `json:"enable"`                                                           // 是否开启
-	Tags       []string `json:"tags"       validate:"gte=1,lte=100,unique,dive,required"`         // 生效的节点 tag
-	Exclusion  []string `json:"exclusion"  validate:"lte=100,unique,dive,ipv4"`                   // 排除的节点 (以节点 IPv4 维度)
-	Substances Int64s   `json:"substances" validate:"required_without=Compounds,lte=100,unique"`  // 配置
-	Compounds  Int64s   `json:"compounds"  validate:"required_without=Substances,lte=100,unique"` // 组合
+	Name       string   `json:"name"       validate:"required,lte=50"`                    // 配置发布名字
+	Enable     bool     `json:"enable"`                                                   // 是否开启
+	Tags       []string `json:"tags"       validate:"gte=1,lte=100,unique,dive,required"` // 生效的节点 tag
+	Exclusion  []string `json:"exclusion"  validate:"lte=100,unique,dive,ipv4"`           // 排除的节点 (以节点 IPv4 维度)
+	Substances Int64s   `json:"substances" validate:"gte=1,lte=100,unique"`               // 配置
 }
 
 func (ec EffectCreate) Check(ctx context.Context) error {
@@ -41,16 +40,6 @@ func (ec EffectCreate) Check(ctx context.Context) error {
 			return errcode.ErrSubstanceNotExist
 		}
 	}
-	// 3. 服务组合必须存在
-	if size := len(ec.Compounds); size != 0 {
-		comTbl := query.Compound
-		count, _ = comTbl.WithContext(ctx).
-			Where(comTbl.ID.In(ec.Compounds...)).
-			Count()
-		if int(count) != size {
-			return errcode.ErrCompoundNotExist
-		}
-	}
 
 	return nil
 }
@@ -60,22 +49,6 @@ func (ec EffectCreate) Expand(subID, createdID int64) []*model.Effect {
 	now := time.Now()
 
 	for _, tag := range ec.Tags {
-		for _, com := range ec.Compounds {
-			eff := &model.Effect{
-				Name:      ec.Name,
-				SubmitID:  subID,
-				Tag:       tag,
-				EffectID:  com,
-				Compound:  true,
-				Enable:    ec.Enable,
-				Exclusion: ec.Exclusion,
-				CreatedID: createdID,
-				UpdatedID: createdID,
-				CreatedAt: now,
-				UpdatedAt: now,
-			}
-			ret = append(ret, eff)
-		}
 		for _, sub := range ec.Substances {
 			eff := &model.Effect{
 				Name:      ec.Name,
@@ -109,23 +82,6 @@ func (ec EffectUpdate) Expand(reduce *model.EffectReduce, updatedID int64) []*mo
 	version := ec.Version + 1
 
 	for _, tag := range ec.Tags {
-		for _, com := range ec.Compounds {
-			eff := &model.Effect{
-				Name:      ec.Name,
-				SubmitID:  subID,
-				Tag:       tag,
-				EffectID:  com,
-				Compound:  true,
-				Enable:    ec.Enable,
-				Exclusion: ec.Exclusion,
-				CreatedID: reduce.CreatedID,
-				UpdatedID: updatedID,
-				CreatedAt: reduce.CreatedAt,
-				UpdatedAt: now,
-				Version:   version,
-			}
-			ret = append(ret, eff)
-		}
 		for _, sub := range ec.Substances {
 			eff := &model.Effect{
 				Name:      ec.Name,
@@ -148,8 +104,7 @@ func (ec EffectUpdate) Expand(reduce *model.EffectReduce, updatedID int64) []*mo
 }
 
 type EffectTaskResp struct {
-	Created bool  `json:"created"`
-	TaskID  int64 `json:"task_id,string"`
+	TaskID int64 `json:"task_id,string"`
 }
 
 type EffectSummary struct {
@@ -163,4 +118,16 @@ type EffectSummary struct {
 	Substances []*IDName `json:"substances"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type EffectProgress struct {
+	ID       int64 `json:"id,string"` // 任务 ID
+	Count    int   `json:"count"`     // 总数
+	Executed int   `json:"executed"`  // 已经下发完毕的
+	Failed   int   `json:"failed"`    // 下发失败的
+}
+
+type EffectProgressesRequest struct {
+	OptionalID
+	Page
 }

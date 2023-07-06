@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"time"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/transact"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
-	"gorm.io/datatypes"
-	"gorm.io/gen"
 )
 
 type SubstanceService interface {
@@ -21,7 +18,7 @@ type SubstanceService interface {
 	Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary)
 	Detail(ctx context.Context, id int64) (*model.Substance, error)
 	Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error
-	Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) error
+	Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) (int64, error)
 	Delete(ctx context.Context, id int64) error
 	Reload(ctx context.Context, mid, sid int64) error
 	Resync(ctx context.Context, mid int64) error
@@ -38,6 +35,7 @@ func Substance(pusher push.Pusher, digest DigestService, sequence SequenceServic
 
 type substanceService struct {
 	mutex    sync.Mutex
+	taskID   int64
 	pusher   push.Pusher
 	digest   DigestService
 	sequence SequenceService
@@ -170,7 +168,7 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	return nil
 }
 
-func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) error {
+func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) (int64, error) {
 	biz.mutex.Lock()
 	defer biz.mutex.Unlock()
 
@@ -181,10 +179,14 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		Where(tbl.ID.Eq(id)).
 		First()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if sub.Version != su.Version {
-		return errcode.ErrVersion
+		return 0, errcode.ErrVersion
+	}
+
+	if biz.existTask(ctx) {
+		return 0, errcode.ErrTaskBusy
 	}
 
 	sum := biz.digest.SumMD5(su.Chunk)
@@ -197,8 +199,10 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	sub.UpdatedID = userID
 	sub.Version = version + 1
 
-	if _, err = tbl.WithContext(ctx).Where(tbl.Version.Eq(version)).Updates(sub); err != nil || !change {
-		return err
+	if _, err = tbl.WithContext(ctx).
+		Where(tbl.Version.Eq(version)).
+		Updates(sub); err != nil || !change {
+		return 0, err
 	}
 
 	if mid := sub.MinionID; mid != 0 {
@@ -210,7 +214,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		if err == nil {
 			biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
 		}
-		return nil
+		return 0, nil
 	}
 
 	// 查询所有相关 tag
@@ -219,30 +223,19 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	// WHERE effect_id = ? AND compound = FALSE
 	//   OR (compound = TRUE AND effect_id IN (SELECT id FROM compound WHERE JSON_CONTAINS(substances, JSON_ARRAY(?))))
 	effTbl := query.Effect
-	comTbl := query.Compound
-	column := comTbl.Substances.ColumnName().String()
-
-	inSQL := comTbl.WithContext(ctx).Distinct(comTbl.ID).
-		Where(gen.Cond(datatypes.JSONArrayQuery(column).Contains(su.ID))...).
-		Or(gen.Cond(datatypes.JSONArrayQuery(column).Contains(strconv.FormatInt(su.ID, 10)))...)
-	effCtx := effTbl.WithContext(ctx)
-	orSQL := effCtx.Where(effTbl.Enable.Is(true)).
-		Where(effTbl.Compound.Is(true)).
-		Where(effCtx.Columns(effTbl.EffectID).In(inSQL))
-
 	var tags []string
 	err = effTbl.WithContext(ctx).
 		Distinct(effTbl.Tag).
 		Where(effTbl.Enable.Is(true)).
 		Where(effTbl.EffectID.Eq(id)).
-		Where(effTbl.Compound.Is(false)).
-		Or(orSQL).
 		Scan(&tags)
 	if err != nil || len(tags) == 0 {
-		return err
+		return 0, err
 	}
 
 	taskID := biz.sequence.Generate()
+	biz.taskID = taskID
+
 	go func() {
 		bids, err := transact.EffectTaskTx(ctx, taskID, tags)
 		if err == nil && len(bids) != 0 {
@@ -250,7 +243,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		}
 	}()
 
-	return err
+	return taskID, nil
 }
 
 func (biz *substanceService) Delete(ctx context.Context, id int64) error {
@@ -271,18 +264,8 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 		effTbl := query.Effect
 		if count, err = effTbl.WithContext(ctx).
 			Where(effTbl.EffectID.Eq(id)).
-			Where(effTbl.Compound.Is(true)).
 			Count(); err != nil || count != 0 {
 			return errcode.ErrSubstanceEffected
-		}
-		// 2. 公有配置组合成服务后不能删除
-		comTbl := query.Compound
-		column := comTbl.Substances.ColumnName().String()
-		comTbl.WithContext(ctx).UnderlyingDB().
-			Where(datatypes.JSONArrayQuery(column).Contains(id)).
-			Count(&count)
-		if count != 0 {
-			return errcode.ErrSubstanceCompounded
 		}
 	}
 
@@ -381,4 +364,22 @@ func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string)
 	biz.pusher.Command(ctx, mon.BrokerID, mid, cmd)
 
 	return nil
+}
+
+// existTask 是否有正在运行的任务
+func (biz *substanceService) existTask(ctx context.Context) bool {
+	tid := biz.taskID
+	if tid == 0 {
+		return false
+	}
+
+	before := time.Now().Add(-10 * time.Minute)
+	tbl := query.SubstanceTask
+	count, _ := tbl.WithContext(ctx).
+		Where(tbl.TaskID.Eq(tid)).
+		Where(tbl.Executed.Is(false)).
+		Where(tbl.CreatedAt.Gte(before)).
+		Count()
+
+	return count != 0
 }

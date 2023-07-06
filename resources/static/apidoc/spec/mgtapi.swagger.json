@@ -404,8 +404,7 @@
         },
         "description": "用户登录逻辑\n\n1. 先输入用户名密码\n\n2. 获取图片验证码\n\n3. 对图片验证码进行校验\n\n4. 根据第三步的返回值来决定是否发送咚咚验证码\n\n5. 点击登录\n",
         "tags": [
-          "login",
-          "最近修改"
+          "login"
         ],
         "security": [],
         "requestBody": {
@@ -2743,7 +2742,7 @@
         "tags": [
           "minion"
         ],
-        "description": "获取节点列表",
+        "description": "# 2023-06-30\n\n新增 `keyword` 搜索字段用于高级模式搜索\n",
         "parameters": [
           {
             "schema": {
@@ -2776,6 +2775,14 @@
             "in": "query",
             "name": "filters",
             "description": "过滤条件"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "keyword",
+            "description": "搜索关键字"
           }
         ]
       }
@@ -3536,8 +3543,7 @@
       "get": {
         "summary": "节点标签列表",
         "tags": [
-          "tag",
-          "最近修改"
+          "tag"
         ],
         "responses": {
           "200": {
@@ -3582,18 +3588,8 @@
           }
         },
         "operationId": "get-tag-indices",
-        "description": "### 2023-06-15 变更记录\n上一版本中该接口未作限制，调用该接口会返回所有的后端 tag 标签。由于 tag 太多，所以这一版本中加入限制。\n\n| 字段 | 是否必填 | 说明 |\n| ---- | ---- | ---- |\n| `size` | 否   | 显示条数，最大 100 条，不填默认 10 条。 |\n| `keyword` | 否   | 搜索关键字 |\n",
+        "description": "| 字段 | 是否必填 | 说明 |\n| ---- | ---- | ---- |\n| `keyword` | 否   | 搜索关键字 |\n",
         "parameters": [
-          {
-            "schema": {
-              "type": "number",
-              "example": 10,
-              "maximum": 100
-            },
-            "in": "query",
-            "name": "size",
-            "description": "默认100条"
-          },
           {
             "schema": {
               "type": "string"
@@ -4884,13 +4880,38 @@
         "operationId": "post-effect",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "任务 ID"
+                    }
+                  }
+                },
+                "examples": {
+                  "创建任务": {
+                    "value": {
+                      "id": "10592888837689866"
+                    }
+                  },
+                  "未创建任务": {
+                    "value": {
+                      "id": "0"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
           "effect"
         ],
-        "description": "## 2022-10-11\n\n请求报文新增 `exclusion` 字段，即：按照节点的 IPv4(inet) 排除节点",
+        "description": "## 2023-07-05\n\n- 响应报文增加 `id` 字段，如果 `id == 0` 或返回报文中不存在 `id` 则代表此次修改未创建任务。可以通过 `id` [查询下发进度](get-effect-progress) 和 [查询下发任务进度列表](get-effect-progresses)。\n\n- 请求报文移除 `compounds` （服务组合）字段。\n\n## 2022-10-11\n\n请求报文新增 `exclusion` 字段，即：按照节点的 IPv4(inet) 排除节点",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4935,6 +4956,7 @@
                   },
                   "compounds": {
                     "type": "array",
+                    "deprecated": true,
                     "items": {
                       "type": "string"
                     }
@@ -4953,16 +4975,13 @@
               "examples": {
                 "示例": {
                   "value": {
-                    "name": "芭比Q了",
+                    "name": "基线扫描",
                     "enable": true,
                     "tags": [
                       "linux"
                     ],
                     "substances": [
                       "10714173771497472"
-                    ],
-                    "compounds": [
-                      "8549733772967900"
                     ],
                     "exclusion": [
                       "172.31.61.168"
@@ -4971,7 +4990,8 @@
                 }
               }
             }
-          }
+          },
+          "description": ""
         }
       },
       "put": {
@@ -4985,7 +5005,7 @@
         "tags": [
           "effect"
         ],
-        "description": "## 2022-10-11\n\n请求报文新增 `exclusion` 字段，即：按照节点的 IPv4(inet) 排除节点",
+        "description": "## 2023-07-05\n\n- 响应报文增加 `id` 字段，如果 `id == 0` 或返回报文中不存在 `id` 则代表此次修改未创建任务。可以通过 `id` [查询下发进度](get-effect-progress) 和 [查询下发任务进度列表](get-effect-progresses)。\n\n- 请求报文移除 `compounds` （服务组合）字段。\n\n## 2022-10-11\n\n请求报文新增 `exclusion` 字段，即：按照节点的 IPv4(inet) 排除节点",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5038,6 +5058,7 @@
                   },
                   "compounds": {
                     "type": "array",
+                    "deprecated": true,
                     "items": {
                       "type": "string"
                     }
@@ -5060,16 +5081,13 @@
                   "value": {
                     "id": "10714173771493360",
                     "version": 2,
-                    "name": "芭比Q了",
+                    "name": "基线扫描",
                     "enable": true,
                     "tags": [
                       "linux"
                     ],
                     "substances": [
                       "10714173771497472"
-                    ],
-                    "compounds": [
-                      "8549733772967900"
                     ],
                     "exclusion": [
                       "172.31.61.168"
@@ -5086,13 +5104,26 @@
         "operationId": "delete-effect",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "下发进度 ID"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
           "effect"
         ],
-        "description": "删除发布",
+        "description": "## 2023-07-05\n\n- 响应报文增加 `id` 字段，如果 `id == 0` 或返回报文中不存在 `id` 则代表此次修改未创建任务。可以通过 `id` [查询下发进度](get-effect-progress) 和 [查询下发任务进度列表](get-effect-progresses)。\n\n- 请求报文移除 `compounds` （服务组合）字段。",
         "parameters": [
           {
             "schema": {
@@ -6216,6 +6247,124 @@
             }
           }
         }
+      },
+      "delete": {
+        "summary": "删除代理节点",
+        "operationId": "delete-broker",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "broker",
+          "最近修改"
+        ],
+        "description": "删除代理节点",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "代理节点 ID"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "examples": {
+                "Example 1": {
+                  "value": {
+                    "id": "32132104347271234"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "修改代理节点信息",
+        "operationId": "patch-broker",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "bind": {
+                    "type": "string"
+                  },
+                  "servername": {
+                    "type": "string"
+                  },
+                  "lan": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "vip": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "x-examples": {
+                  "Example 1": {
+                    "id": "789654235544123255",
+                    "name": "测试环境",
+                    "bind": "0.0.0.0:8080",
+                    "servername": "vela-ssoc-brock-1.eastmoney.com",
+                    "lan": [
+                      "ws://172.31.61.168:8080"
+                    ],
+                    "vip": [
+                      "ws://vela-ssoc-brock-1.eastmoney.com"
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "Example 1": {
+                  "value": {
+                    "id": "789654235544123255",
+                    "name": "测试环境",
+                    "bind": "0.0.0.0:8080",
+                    "servername": "vela-ssoc-brock-1.eastmoney.com",
+                    "lan": [
+                      "ws://172.31.61.168:8080"
+                    ],
+                    "vip": [
+                      "ws://vela-ssoc-brock-1.eastmoney.com"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "修改代理节点信息",
+        "tags": [
+          "broker",
+          "最近修改"
+        ]
       }
     },
     "/notifiers": {
@@ -6830,7 +6979,9 @@
               }
             }
           }
-        }
+        },
+        "x-internal": false,
+        "deprecated": true
       }
     },
     "/editions": {
@@ -23020,6 +23171,459 @@
             }
           }
         }
+      }
+    },
+    "/arr/{path}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string",
+            "example": "xxx/xxx"
+          },
+          "name": "path",
+          "in": "path",
+          "required": true,
+          "description": "agent 节点定义的路径"
+        }
+      ],
+      "get": {
+        "summary": "透传调用 agent 节点",
+        "responses": {},
+        "operationId": "get-arr-path",
+        "description": "该接口会将请求原样转发给后端的 agent 节点，同时后端 agent 的响应信息也会原样返回给前端。故：该接口的业务数据格式文档需要前端和 agent 接口开发者商量，该接口只是提供了 HTTP 通道与基础鉴权。\n\n如何确定该请求转发到哪个后端 agent 上：\n\n- 推荐做法：在请求 Header 的 `X-Node-Identify` 带上节点标识，节点标识可以是节点的 ID，也可以是节点的 IP，ID 与 IP 二选一。\n\n- 在请求的 query 参数 `node` 带上节点标识。\n\n如果 `X-Node-Identify` 和 `node` 中都有值，则以 `X-Node-Identify` 为准。",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "172.31.61.168"
+            },
+            "in": "header",
+            "name": "X-Node-Identify",
+            "description": "节点标识（可以是节点 IP 也可以是节点 ID）"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "172.31.61.168"
+            },
+            "in": "query",
+            "name": "node",
+            "description": "节点标识（可以是节点 IP 也可以是节点 ID）"
+          }
+        ],
+        "tags": [
+          "minion"
+        ]
+      }
+    },
+    "/tag/sidebar": {
+      "get": {
+        "summary": "获取标签及节点个数",
+        "tags": [
+          "tag"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "x-examples": {
+                    "Example 1": [
+                      {
+                        "name": "6.x",
+                        "count": 210
+                      },
+                      {
+                        "name": "7.x",
+                        "count": 699
+                      },
+                      {
+                        "name": "abb",
+                        "count": 2
+                      },
+                      {
+                        "name": "acc",
+                        "count": 2
+                      },
+                      {
+                        "name": "amd64",
+                        "count": 1229
+                      },
+                      {
+                        "name": "deny",
+                        "count": 2
+                      },
+                      {
+                        "name": "linux",
+                        "count": 877
+                      },
+                      {
+                        "name": "lixin",
+                        "count": 1
+                      },
+                      {
+                        "name": "rock-web",
+                        "count": 1
+                      },
+                      {
+                        "name": "sec",
+                        "count": 1
+                      },
+                      {
+                        "name": "src",
+                        "count": 1
+                      },
+                      {
+                        "name": "sslvpn-syslog",
+                        "count": 1
+                      },
+                      {
+                        "name": "test",
+                        "count": 3
+                      },
+                      {
+                        "name": "test001",
+                        "count": 2
+                      },
+                      {
+                        "name": "vpn-doc",
+                        "count": 1
+                      },
+                      {
+                        "name": "windows",
+                        "count": 334
+                      },
+                      {
+                        "name": "wwww",
+                        "count": 1
+                      },
+                      {
+                        "name": "wzh",
+                        "count": 2
+                      },
+                      {
+                        "name": "xf",
+                        "count": 1
+                      }
+                    ]
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "标签名"
+                      },
+                      "count": {
+                        "type": "integer",
+                        "description": "该标签下 agent 个数"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": [
+                      {
+                        "name": "test",
+                        "count": 3
+                      },
+                      {
+                        "name": "test001",
+                        "count": 2
+                      },
+                      {
+                        "name": "vpn-doc",
+                        "count": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-tag-sidebar",
+        "description": "获取标签及节点个数"
+      }
+    },
+    "/minion/unload": {
+      "patch": {
+        "summary": "静默模式开关",
+        "operationId": "patch-minion-unload",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "minion"
+        ],
+        "description": "静默模式开关",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "节点 ID",
+                    "example": "32132104347271234"
+                  },
+                  "unload": {
+                    "type": "boolean",
+                    "description": "开关"
+                  }
+                },
+                "required": [
+                  "id",
+                  "unload"
+                ]
+              },
+              "examples": {
+                "Example 1": {
+                  "value": {
+                    "id": "32132104347271234",
+                    "unload": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": []
+    },
+    "/effect/progress": {
+      "get": {
+        "summary": "查询下发进度",
+        "tags": [
+          "effect",
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "`failed` <= `executed` <= `count`\n\n- `尚未执行的个数` = `count` - `executed`\n- `执行成功的个数` = `executed` - `failed`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "description": "任务总数"
+                    },
+                    "executed": {
+                      "type": "integer",
+                      "description": "已经执行的个数"
+                    },
+                    "failed": {
+                      "type": "integer",
+                      "description": "执行失败的个数"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-effect-progress",
+        "description": "查询下发进度",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "id",
+            "description": "任务 ID （为空则查询最新的下发任务）"
+          }
+        ]
+      }
+    },
+    "/effect/progresses": {
+      "get": {
+        "summary": "查询下发任务进度列表",
+        "tags": [
+          "effect",
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "current": {
+                      "type": "integer"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "task_id": {
+                            "type": "integer"
+                          },
+                          "minion_id": {
+                            "type": "integer"
+                          },
+                          "inet": {
+                            "type": "string"
+                          },
+                          "broker_id": {
+                            "type": "integer"
+                          },
+                          "broker_name": {
+                            "type": "string"
+                          },
+                          "failed": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "executed": {
+                            "type": "boolean"
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "total": 1267,
+                      "current": 1,
+                      "size": 2,
+                      "records": [
+                        {
+                          "id": "178585023580356608",
+                          "task_id": 1686222787403431400,
+                          "minion_id": 62588856827801600,
+                          "inet": "10.205.14.127",
+                          "broker_id": 62566208253382660,
+                          "broker_name": "周浦内网Broker",
+                          "failed": true,
+                          "reason": "Post \"http://62566208253382656/api/v1/task/table\": 代理节点未上线",
+                          "executed": true,
+                          "created_at": "2023-06-08T19:13:07+08:00",
+                          "updated_at": "2023-06-08T19:13:10+08:00"
+                        },
+                        {
+                          "id": "178585023580356609",
+                          "task_id": 1686222787403431400,
+                          "minion_id": 62588992047968260,
+                          "inet": "10.205.202.86",
+                          "broker_id": 62566208253382660,
+                          "broker_name": "周浦内网Broker",
+                          "failed": true,
+                          "reason": "Post \"http://62566208253382656/api/v1/task/table\": 代理节点未上线",
+                          "executed": true,
+                          "created_at": "2023-06-08T19:13:07+08:00",
+                          "updated_at": "2023-06-08T19:13:10+08:00"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "examples": {
+                  "Example 1": {
+                    "value": {
+                      "total": 1267,
+                      "current": 1,
+                      "size": 2,
+                      "records": [
+                        {
+                          "id": "178585023580356608",
+                          "task_id": 1686222787403431400,
+                          "minion_id": 62588856827801600,
+                          "inet": "10.205.14.127",
+                          "broker_id": 62566208253382660,
+                          "broker_name": "周浦内网Broker",
+                          "failed": true,
+                          "reason": "Post \"http://62566208253382656/api/v1/task/table\": 代理节点未上线",
+                          "executed": true,
+                          "created_at": "2023-06-08T19:13:07+08:00",
+                          "updated_at": "2023-06-08T19:13:10+08:00"
+                        },
+                        {
+                          "id": "178585023580356609",
+                          "task_id": 1686222787403431400,
+                          "minion_id": 62588992047968260,
+                          "inet": "10.205.202.86",
+                          "broker_id": 62566208253382660,
+                          "broker_name": "周浦内网Broker",
+                          "failed": true,
+                          "reason": "Post \"http://62566208253382656/api/v1/task/table\": 代理节点未上线",
+                          "executed": true,
+                          "created_at": "2023-06-08T19:13:07+08:00",
+                          "updated_at": "2023-06-08T19:13:10+08:00"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-effect-progresses",
+        "description": "查询下发任务进度列表",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "current",
+            "description": "页码"
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "size",
+            "description": "显示条数"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "keyword",
+            "description": "搜索关键字"
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "id",
+            "description": "任务 ID （为空则查询最新的下发任务）"
+          }
+        ],
+        "x-extension-1": null
       }
     }
   },

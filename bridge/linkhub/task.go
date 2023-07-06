@@ -1,8 +1,6 @@
 package linkhub
 
-import (
-	"sync"
-)
+import "sync"
 
 type ErrorFuture struct {
 	bid int64
@@ -23,7 +21,7 @@ type silentTask struct {
 
 func (st *silentTask) Run() {
 	defer st.wg.Done()
-	err := st.hub.silentJSON(st.bid, st.path, st.req)
+	err := st.hub.silentJSON(nil, st.bid, st.path, st.req)
 	fut := &ErrorFuture{bid: st.bid, err: err}
 	st.ret <- fut
 }
@@ -45,7 +43,7 @@ func (rt *resultTask) Wait() error {
 
 func (rt *resultTask) Run() {
 	defer rt.wg.Done()
-	rt.err = rt.huber.sendJSON(rt.id, rt.path, rt.req, rt.resp)
+	rt.err = rt.huber.sendJSON(nil, rt.id, rt.path, rt.req, rt.resp)
 }
 
 type onewayTask struct {
@@ -59,7 +57,7 @@ type onewayTask struct {
 
 func (rt *onewayTask) Run() {
 	defer rt.wg.Done()
-	rt.err = rt.hub.silentJSON(rt.bid, rt.path, rt.req)
+	rt.err = rt.hub.silentJSON(nil, rt.bid, rt.path, rt.req)
 }
 
 func (rt *onewayTask) Wait() error {

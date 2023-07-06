@@ -9,14 +9,14 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
-	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
 	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-manager/app/mgtapi"
@@ -92,7 +92,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	basic := anon.Clone().Use(auth.Basic)
 
 	// 初始化协程池
-	pool := taskpool.NewPool(32, 128)
+	pool := gopool.New(1024, 1024, 10*time.Minute)
 
 	// ==========[ broker begin ] ==========
 	huber := linkhub.New(http.NewServeMux(), pool, cfg) // 将连接中心注入到 broker 接入网关中
@@ -109,28 +109,28 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	emcService := service.Emc(pusher, client)
 	emcREST := mgtapi.Emc(emcService)
 	emcREST.Route(anon, bearer, basic)
+	store := storage.NewStore()
 
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	tmplStore := formwork.NewRend(slog)
 	dongCfg := dong.NewConfigure()
 	dongCli := dong.NewClient(dongCfg, client, slog)
 
-	ssoCfg := ssoauth.NewConfigure(slog)
+	ssoCfg := ssoauth.NewConfigure(store)
 	ssoCli := ssoauth.NewClient(ssoCfg, client, slog)
 	userService := service.User(digestService, ssoCli)
 	userREST := mgtapi.User(userService)
 	userREST.Route(anon, bearer, basic)
 
-	verifyService := service.Verify(3, dongCli, tmplStore, slog) // 验证码 3 分钟有效期
-	loginLockService := service.LoginLock(time.Hour, 10)         // 每小时错误 10 次就锁定账户
+	verifyService := service.Verify(3, dongCli, store, slog) // 验证码 3 分钟有效期
+	loginLockService := service.LoginLock(time.Hour, 10)     // 每小时错误 10 次就锁定账户
 
 	authService := service.Auth(verifyService, loginLockService, userService)
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 
-	cmdbCfg := cmdb.NewConfigure(slog)
+	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbClient := cmdb.NewClient(cmdbCfg, client, slog)
 	minionService := service.Minion(cmdbClient, pusher)
 	minionREST := mgtapi.Minion(huber, minionService)
@@ -148,10 +148,6 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	substanceService := service.Substance(pusher, digestService, sequenceService)
 	substanceREST := mgtapi.Substance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
-
-	compoundService := service.Compound(pusher, sequenceService)
-	compoundREST := mgtapi.Compound(compoundService)
-	compoundREST.Route(anon, bearer, basic)
 
 	effectService := service.Effect(pusher, sequenceService)
 	effectREST := mgtapi.Effect(effectService)
@@ -205,15 +201,9 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskFileREST := mgtapi.RiskFile(riskFileService)
 	riskFileREST.Route(anon, bearer, basic)
 
-	storeConfigs := []service.StoreConfigurer{cmdbCfg, ssoCfg}
-	tmplLoaders := tmplStore.Loaders()
-	for _, ld := range tmplLoaders {
-		scCfg := service.StoreConfigurer(ld)
-		storeConfigs = append(storeConfigs, scCfg)
-	}
-	storeService := service.Store(pusher, storeConfigs...)
+	storeService := service.Store(pusher, store)
 
-	eventService := service.Event()
+	eventService := service.Event(store)
 	eventREST := mgtapi.Event(eventService)
 	eventREST.Route(anon, bearer, basic)
 	storeREST := mgtapi.Store(storeService)
@@ -261,7 +251,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	minionAccountREST := mgtapi.MinionAccount(minionAccountService)
 	minionAccountREST.Route(anon, bearer, basic)
 
-	deployService := service.Deploy(storeService, gfs)
+	deployService := service.Deploy(store, gfs)
 	deployREST := mgtapi.Deploy(deployService)
 	deployREST.Route(anon, bearer, basic)
 
@@ -277,7 +267,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	emailREST := mgtapi.Email(emailService)
 	emailREST.Route(anon, bearer, basic)
 
-	startupService := service.Startup(storeService, pusher)
+	startupService := service.Startup(store, pusher)
 	startupREST := mgtapi.Startup(startupService)
 	startupREST.Route(anon, bearer, basic)
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -30,18 +31,13 @@ type StoreService interface {
 
 type storeService struct {
 	pusher push.Pusher
-	hm     map[string]StoreConfigurer
+	store  storage.Storer
 }
 
-func Store(pusher push.Pusher, ss ...StoreConfigurer) StoreService {
-	hm := make(map[string]StoreConfigurer, len(ss))
-	for _, s := range ss {
-		id := s.ID()
-		hm[id] = s
-	}
+func Store(pusher push.Pusher, store storage.Storer) StoreService {
 	return &storeService{
 		pusher: pusher,
-		hm:     hm,
+		store:  store,
 	}
 }
 
@@ -72,11 +68,8 @@ func (biz *storeService) Page(ctx context.Context, page param.Pager) (int64, []*
 
 func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) error {
 	id, val := req.ID, req.Value
-	cfg := biz.hm[id]
-	if cfg != nil {
-		if err := cfg.Validate(val); err != nil {
-			return err
-		}
+	if biz.store.Invalid(id, val) {
+		return errcode.ErrInvalidData
 	}
 
 	tbl := query.Store
@@ -98,11 +91,11 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 			Where(tbl.ID.Eq(id), tbl.Version.Eq(req.Version)).
 			UpdateColumnSimple(assigns...)
 	}
-	if err != nil || cfg == nil {
+	if err != nil {
 		return err
 	}
-	cfg.Reset()
-	if cfg.Shared() {
+	biz.store.Reset(id)
+	if biz.store.Shared(id) {
 		biz.pusher.StoreReset(ctx, id)
 	}
 
@@ -110,20 +103,19 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 }
 
 func (biz *storeService) Delete(ctx context.Context, id string) error {
-	cfg := biz.hm[id]
 	tbl := query.Store
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		Delete()
-	if err != nil || cfg == nil {
+	if err != nil {
 		return err
 	}
 	if ret.RowsAffected == 0 {
 		return errcode.ErrDeleteFailed
 	}
 
-	cfg.Reset()
-	if cfg.Shared() {
+	biz.store.Reset(id)
+	if biz.store.Shared(id) {
 		biz.pusher.StoreReset(ctx, id)
 	}
 

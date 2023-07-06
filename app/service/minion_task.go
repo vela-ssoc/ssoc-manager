@@ -96,41 +96,41 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 
 func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error) {
 	monTbl := query.Minion
-	mon, err := monTbl.WithContext(ctx).Select(monTbl.Inet).Where(monTbl.ID.Eq(mid)).First()
+	tagTbl := query.MinionTag
+	effTbl := query.Effect
+	taskTbl := query.MinionTask
+
+	mon, err := monTbl.WithContext(ctx).
+		Select(monTbl.Inet, monTbl.Unload).
+		Where(monTbl.ID.Eq(mid)).
+		First()
 	if err != nil {
 		return nil, errcode.ErrNodeNotExist
 	}
 
-	tagTbl := query.MinionTag
-	effTbl := query.Effect
-
-	// SELECT * FROM effect WHERE enable = true AND tag IN (SELECT DISTINCT tag FROM minion_tag WHERE minion_id = $mid)
-	subSQL := tagTbl.WithContext(ctx).Distinct(tagTbl.Tag).Where(tagTbl.MinionID.Eq(mid))
-	effs, err := effTbl.WithContext(ctx).
-		Where(effTbl.Enable.Is(true)).
-		Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
-		Find()
-	comIDs, subIDs := model.Effects(effs).Exclusion(mon.Inet)
-	if len(comIDs) != 0 {
-		comTbl := query.Compound
-		coms, err := comTbl.WithContext(ctx).Select(comTbl.ID).Where(comTbl.ID.In(comIDs...)).Find()
-		if err == nil {
-			ids := model.Compounds(coms).SubstanceIDs()
-			subIDs = append(subIDs, ids...)
+	var subs []*model.Substance
+	if !mon.Unload {
+		// SELECT * FROM effect WHERE enable = true AND tag IN (SELECT DISTINCT tag FROM minion_tag WHERE minion_id = $mid)
+		subSQL := tagTbl.WithContext(ctx).Distinct(tagTbl.Tag).Where(tagTbl.MinionID.Eq(mid))
+		effs, _ := effTbl.WithContext(ctx).
+			Where(effTbl.Enable.Is(true)).
+			Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
+			Find()
+		subIDs := model.Effects(effs).Exclusion(mon.Inet)
+		if len(subIDs) != 0 {
+			subTbl := query.Substance
+			dats, exx := subTbl.WithContext(ctx).
+				Omit(subTbl.Chunk).
+				Where(subTbl.MinionID.Eq(mid)).
+				Or(subTbl.ID.In(subIDs...)).
+				Find()
+			if exx != nil {
+				return nil, exx
+			}
+			subs = dats
 		}
 	}
 
-	subTbl := query.Substance
-	subs, err := subTbl.WithContext(ctx).
-		Omit(subTbl.Chunk).
-		Where(subTbl.MinionID.Eq(mid)).
-		Or(subTbl.ID.In(subIDs...)).
-		Find()
-	if err != nil {
-		return nil, err
-	}
-
-	taskTbl := query.MinionTask
 	mts, _ := taskTbl.WithContext(ctx).Where(taskTbl.MinionID.Eq(mid)).Find()
 
 	taskMap := make(map[string]*model.MinionTask, len(mts))

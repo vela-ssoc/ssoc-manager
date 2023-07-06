@@ -2,6 +2,7 @@ package mgtapi
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
@@ -55,39 +56,40 @@ type eventREST struct {
 	table dynsql.Table
 }
 
-func (evt *eventREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/event/cond").Data(route.Ignore()).GET(evt.Cond)
-	bearer.Route("/events").Data(route.Ignore()).GET(evt.Page)
+func (rest *eventREST) Route(nona, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/event/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/events").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/event/confirm").
-		Data(route.Named("忽略事件")).DELETE(evt.Confirm)
+		Data(route.Named("忽略事件")).DELETE(rest.Confirm)
 	bearer.Route("/event").
-		Data(route.Named("批量删除事件")).DELETE(evt.Delete)
+		Data(route.Named("批量删除事件")).DELETE(rest.Delete)
+	nona.Route("/event").Data(route.Ignore()).GET(rest.HTML)
 }
 
-func (evt *eventREST) Cond(c *ship.Context) error {
-	res := evt.table.Schema()
+func (rest *eventREST) Cond(c *ship.Context) error {
+	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (evt *eventREST) Page(c *ship.Context) error {
+func (rest *eventREST) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
-	scope, err := evt.table.Inter(req.Input)
+	scope, err := rest.table.Inter(req.Input)
 	if err != nil {
 		return ship.ErrBadRequest.New(err)
 	}
 	page := req.Pager()
 	ctx := c.Request().Context()
 
-	count, dats := evt.svc.Page(ctx, page, scope)
+	count, dats := rest.svc.Page(ctx, page, scope)
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func (evt *eventREST) Confirm(c *ship.Context) error {
+func (rest *eventREST) Confirm(c *ship.Context) error {
 	var req param.OptionalIDs
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -95,10 +97,10 @@ func (evt *eventREST) Confirm(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return evt.svc.Confirm(ctx, req.ID)
+	return rest.svc.Confirm(ctx, req.ID)
 }
 
-func (evt *eventREST) Delete(c *ship.Context) error {
+func (rest *eventREST) Delete(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -106,11 +108,24 @@ func (evt *eventREST) Delete(c *ship.Context) error {
 	if len(req.Filters) == 0 {
 		return errcode.ErrRequiredFilter
 	}
-	scope, err := evt.table.Inter(req)
+	scope, err := rest.table.Inter(req)
 	if err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
 
-	return evt.svc.Delete(ctx, scope)
+	return rest.svc.Delete(ctx, scope)
+}
+
+func (rest *eventREST) HTML(c *ship.Context) error {
+	var req param.EventHTML
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	buf := rest.svc.HTML(ctx, req.ID, req.Secret)
+	size := strconv.FormatInt(int64(buf.Len()), 10)
+	c.SetRespHeader(ship.HeaderContentLength, size)
+
+	return c.Stream(http.StatusOK, ship.MIMETextHTMLCharsetUTF8, buf)
 }

@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"text/template"
+	"io/fs"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/stegano"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-common-mba/definition"
+	"github.com/vela-ssoc/vela-manager/app/internal/ciphertext"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
@@ -22,7 +26,7 @@ type DeployService interface {
 	OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error)
 }
 
-func Deploy(store StoreService, gfs gridfs.FS) DeployService {
+func Deploy(store storage.Storer, gfs gridfs.FS) DeployService {
 	return &deployService{
 		store: store,
 		gfs:   gfs,
@@ -30,17 +34,13 @@ func Deploy(store StoreService, gfs gridfs.FS) DeployService {
 }
 
 type deployService struct {
-	store StoreService
+	store storage.Storer
 	gfs   gridfs.FS
 }
 
 func (biz *deployService) LAN(ctx context.Context) string {
-	const key = "global.local.addr"
-	if st, _ := biz.store.FindID(ctx, key); st != nil {
-		return string(st.Value)
-	}
-
-	return ""
+	addr, _ := biz.store.LocalAddr(ctx)
+	return addr
 }
 
 func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error) {
@@ -51,6 +51,7 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		return nil, err
 	}
 	// 查询客户端二进制信息
+	var old bool
 	tbl := query.MinionBin
 	var bin *model.MinionBin
 	if req.ID > 0 {
@@ -59,8 +60,11 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		dao := tbl.WithContext(ctx).
 			Where(tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
 			Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
-		if req.Version != "" {
-			dao.Where(tbl.Semver.Eq(string(req.Version)))
+		if ver := string(req.Version); ver != "" {
+			old = strings.HasPrefix(ver, "0.") ||
+				strings.HasPrefix(ver, "1.") ||
+				strings.HasPrefix(ver, "2.")
+			dao.Where(tbl.Semver.Eq(ver))
 		}
 		bin, err = dao.First()
 	}
@@ -83,29 +87,95 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		Tags:       req.Tags,
 		DownloadAt: time.Now(),
 	}
-	file, err := stegano.AppendStream(inf, hide)
-	if err != nil {
-		return nil, err
+
+	if old {
+		dat, exx := ciphertext.EncryptPayload(hide)
+		if exx != nil {
+			_ = inf.Close()
+			return nil, exx
+		}
+		size := len(dat)
+
+		file := &oldFile{
+			size: inf.Size() + int64(size),
+			inf:  inf,
+			rd:   io.MultiReader(inf, bytes.NewReader(dat)),
+		}
+
+		return file, nil
 	}
 
-	return file, nil
+	if file, exx := stegano.AppendStream(inf, hide); exx != nil {
+		_ = inf.Close()
+		return nil, exx
+	} else {
+		return file, nil
+	}
 }
 
 func (biz *deployService) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
-	id := "global.deploy." + goos + ".tmpl"
-	st, err := biz.store.FindID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	tpl, err := template.New(id).Parse(string(st.Value))
-	if err != nil {
-		return nil, err
-	}
-
-	buf := new(bytes.Buffer)
-	if err = tpl.Execute(buf, data); err != nil {
-		return nil, err
-	}
-
+	buf := biz.store.Deploy(ctx, goos, data)
 	return buf, nil
+}
+
+type oldFile struct {
+	size int64
+	inf  gridfs.File
+	rd   io.Reader
+}
+
+func (o *oldFile) Stat() (fs.FileInfo, error) {
+	return o.inf.Stat()
+}
+
+func (o *oldFile) Read(p []byte) (int, error) {
+	return o.rd.Read(p)
+}
+
+func (o *oldFile) Close() error {
+	return o.inf.Close()
+}
+
+func (o *oldFile) Name() string {
+	return o.inf.Name()
+}
+
+func (o *oldFile) Size() int64 {
+	return o.size
+}
+
+func (o *oldFile) Mode() fs.FileMode {
+	return o.inf.Mode()
+}
+
+func (o *oldFile) ModTime() time.Time {
+	return o.inf.ModTime()
+}
+
+func (o *oldFile) IsDir() bool {
+	return o.inf.IsDir()
+}
+
+func (o *oldFile) Sys() any {
+	return o.inf.Sys()
+}
+
+func (o *oldFile) ID() int64 {
+	return o.inf.ID()
+}
+
+func (o *oldFile) MD5() string {
+	return ""
+}
+
+func (o *oldFile) ContentType() string {
+	return o.inf.ContentType()
+}
+
+func (o *oldFile) ContentLength() string {
+	return strconv.FormatInt(o.size, 10)
+}
+
+func (o *oldFile) Disposition() string {
+	return o.inf.Disposition()
 }

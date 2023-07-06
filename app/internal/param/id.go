@@ -9,6 +9,10 @@ type IntID struct {
 	ID int64 `json:"id,string" form:"id" query:"id" validate:"required,gt=0"`
 }
 
+type OptionalID struct {
+	ID int64 `json:"id,string" form:"id" query:"id"`
+}
+
 type OptionalIDs struct {
 	ID Int64s `json:"id" form:"id" query:"id"`
 }

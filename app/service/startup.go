@@ -5,6 +5,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -14,7 +15,7 @@ type StartupService interface {
 	Update(ctx context.Context, req *model.Startup) error
 }
 
-func Startup(store StoreService, pusher push.Pusher) StartupService {
+func Startup(store storage.Storer, pusher push.Pusher) StartupService {
 	return &startupService{
 		store:  store,
 		pusher: pusher,
@@ -22,7 +23,7 @@ func Startup(store StoreService, pusher push.Pusher) StartupService {
 }
 
 type startupService struct {
-	store  StoreService
+	store  storage.Storer
 	pusher push.Pusher
 }
 
@@ -33,10 +34,9 @@ func (biz *startupService) Detail(ctx context.Context, id int64) (*model.Startup
 		return dat, nil
 	}
 	// 查询全局配置
-	const key = "global.startup.param"
-	ret := new(model.Startup)
-	if err = biz.store.FindJSON(ctx, key, ret); err != nil {
-		return nil, err
+	ret, exx := biz.store.Startup(ctx)
+	if exx != nil {
+		return nil, exx
 	}
 	ret.ID = id
 	ret.Node.ID = id
@@ -57,7 +57,6 @@ func (biz *startupService) Update(ctx context.Context, req *model.Startup) error
 	if mon.Status == model.MSDelete {
 		return errcode.ErrNodeStatus
 	}
-	req.Node.ID = req.ID
 
 	// 更新 startup
 	tbl := query.Startup

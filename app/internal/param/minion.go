@@ -15,20 +15,23 @@ type MinionCreate struct {
 }
 
 type MinionSummary struct {
-	ID        int64              `json:"id,string"`
-	Inet      string             `json:"inet"`
-	Goos      string             `json:"goos"`
-	Edition   string             `json:"edition"`
-	Status    model.MinionStatus `json:"status"`
-	CPUCore   int                `json:"cpu_core"`
-	MemTotal  int                `json:"mem_total"`
-	MemFree   int                `json:"mem_free"`
-	DiskTotal int                `json:"disk_total"`
-	DiskFree  int                `json:"disk_free"`
-	IDC       string             `json:"idc"`
-	IBu       string             `json:"ibu"`
-	Comment   string             `json:"comment"`
-	Tags      []string           `json:"tags"`
+	ID         int64              `json:"id,string"`
+	Inet       string             `json:"inet"`
+	Goos       string             `json:"goos"`
+	Edition    string             `json:"edition"`
+	Status     model.MinionStatus `json:"status"`
+	CPUCore    int                `json:"cpu_core"`
+	MemTotal   int                `json:"mem_total"`
+	MemFree    int                `json:"mem_free"`
+	DiskTotal  int                `json:"disk_total"`
+	DiskFree   int                `json:"disk_free"`
+	IDC        string             `json:"idc"`
+	IBu        string             `json:"ibu"`
+	Comment    string             `json:"comment"`
+	BrokerName string             `json:"broker_name"`
+	Unload     bool               `json:"unload"` // 是否不加载配置模式
+	Uptime     time.Time          `json:"uptime"` // 最近一次上线时间
+	Tags       []string           `json:"tags"`
 }
 
 type MinionDetail struct {
@@ -73,10 +76,39 @@ type MinionDetail struct {
 	KernelVersion string             `json:"kernel_version" gorm:"column:kernel_version"`
 	AgentTotal    int64              `json:"agent_total"    gorm:"column:agent_total"`
 	AgentAlloc    int64              `json:"agent_alloc"    gorm:"column:agent_alloc"`
+	Unload        bool               `json:"unload"         gorm:"column:unload"`
 	Tags          model.MinionTags   `json:"tags"           gorm:"-"`
 }
 
 type MinionBatchRequest struct {
-	Cmd string `json:"cmd" validate:"oneof=resync restart upgrade offline"`
 	dynsql.Input
+	Cmd     string `json:"cmd"     query:"cmd"     validate:"oneof=resync restart upgrade offline"`
+	Keyword string `json:"keyword" query:"keyword"`
+}
+
+type MinionCommandRequest struct {
+	IntID
+	Command string `json:"command" validate:"oneof=resync restart upgrade offline"`
+}
+
+type MinionUnloadRequest struct {
+	IntID
+	Unload bool `json:"unload"`
+}
+
+type MinionDeleteRequest struct {
+	dynsql.Input
+	Keyword string `json:"keyword" query:"keyword" form:"keyword"`
+}
+
+func (k MinionDeleteRequest) Like() string {
+	if k.Keyword == "" {
+		return ""
+	}
+	return "%" + k.Keyword + "%"
+}
+
+type MinionUpgradeRequest struct {
+	IntID
+	Semver model.Semver `json:"semver" validate:"omitempty,semver"`
 }

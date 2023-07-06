@@ -65,25 +65,32 @@ func (biz *notifierService) Create(ctx context.Context, req *param.NotifierCreat
 }
 
 func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdate) error {
-	dat := &model.Notifier{
-		ID:        req.ID,
-		Name:      req.Name,
-		Events:    req.Events,
-		Risks:     req.Risks,
-		Ways:      req.Ways,
-		Dong:      req.Dong,
-		Email:     req.Email,
-		Mobile:    req.Mobile,
-		EventCode: req.EventCode,
-		RiskCode:  req.RiskCode,
-	}
 	tbl := query.Notifier
-	_, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).Updates(dat)
-	if err == nil {
-		biz.pusher.NotifierReset(ctx)
+	dat, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(req.ID)).
+		First()
+	if err != nil {
+		return err
 	}
 
-	return err
+	dat.Name = req.Name
+	dat.Events = req.Events
+	dat.Risks = req.Risks
+	dat.Ways = req.Ways
+	dat.Dong = req.Dong
+	dat.Email = req.Email
+	dat.Mobile = req.Mobile
+	dat.EventCode = req.EventCode
+	dat.RiskCode = req.RiskCode
+
+	if err = tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(req.ID)).
+		Save(dat); err != nil {
+		return err
+	}
+	biz.pusher.NotifierReset(ctx)
+
+	return nil
 }
 
 func (biz *notifierService) Delete(ctx context.Context, id int64) error {

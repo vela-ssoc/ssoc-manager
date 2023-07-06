@@ -10,8 +10,8 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
-	"github.com/vela-ssoc/vela-common-mb/integration/formwork"
 	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -32,8 +32,8 @@ type VerifyService interface {
 	Submit(ctx context.Context, uname, captID, dongCode string) error
 }
 
-func Verify(minute int, dcli dong.Client, tmpl formwork.Render, slog logback.Logger) VerifyService {
-	capt := captcha.GetCaptcha()
+func Verify(minute int, dcli dong.Client, store storage.Storer, slog logback.Logger) VerifyService {
+	capt := captcha.NewCaptcha()
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if minute < 1 || minute > 10 {
 		minute = 3
@@ -43,7 +43,7 @@ func Verify(minute int, dcli dong.Client, tmpl formwork.Render, slog logback.Log
 		slog:   slog,
 		minute: minute,
 		dcli:   dcli,
-		tmpl:   tmpl,
+		store:  store,
 		capt:   capt,
 		random: random,
 		expire: time.Duration(minute) * time.Minute,
@@ -55,7 +55,7 @@ type verifyService struct {
 	slog   logback.Logger
 	minute int // 验证码有效分钟
 	dcli   dong.Client
-	tmpl   formwork.Render
+	store  storage.Storer
 	capt   *captcha.Captcha
 	random *rand.Rand
 	expire time.Duration // 验证码有效期
@@ -75,14 +75,14 @@ func (vs *verifyService) Picture(ctx context.Context, uname string) (*param.Auth
 	}
 
 	tbl := query.User
-	user, err := tbl.WithContext(ctx).
+	user, _ := tbl.WithContext(ctx).
 		Select(tbl.Dong).
 		Where(tbl.Enable.Is(true)).
 		Where(tbl.Username.Eq(uname)).
 		First()
 	factor := true
-	if err == nil && user != nil {
-		factor = user.Dong != "" && vs.dcli != nil
+	if user != nil {
+		factor = user.Dong != ""
 	}
 
 	vs.storeValidInfo(points, uname, captID, factor)
@@ -132,7 +132,7 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 		return nil
 	}
 
-	title, body := vs.tmpl.LoginDong(ctx, "", view)
+	title, body := vs.store.LoginDong(ctx, view)
 	if err = vs.dcli.Send(ctx, []string{user.Dong}, nil, title, body); err != nil {
 		vs.slog.Warnf("发送咚咚验证码错误：%s", err)
 	}

@@ -96,7 +96,13 @@ func (rest *substanceREST) Update(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 	ctx := c.Request().Context()
 
-	return rest.svc.Update(ctx, &req, cu.ID)
+	tid, err := rest.svc.Update(ctx, &req, cu.ID)
+	if err != nil {
+		return err
+	}
+	res := &param.IntID{ID: tid}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (rest *substanceREST) Delete(c *ship.Context) error {

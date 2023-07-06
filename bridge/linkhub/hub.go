@@ -14,10 +14,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/taskpool"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/vela-ssoc/vela-common-mba/spdy"
+	"github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
 	"github.com/vela-ssoc/vela-manager/infra/config"
 )
@@ -34,13 +34,13 @@ type Huber interface {
 
 	ResetDB() error
 
-	Oneway(id int64, path string, req any) error
+	Oneway(ctx context.Context, id int64, path string, req any) error
 
-	Unicast(id int64, path string, req, resp any) error
+	Unicast(ctx context.Context, id int64, path string, req, resp any) error
 
-	Multicast(bids []int64, path string, req any) <-chan *ErrorFuture
+	Multicast(ctx context.Context, bids []int64, path string, req any) <-chan *ErrorFuture
 
-	Broadcast(path string, req any) <-chan *ErrorFuture
+	Broadcast(ctx context.Context, path string, req any) <-chan *ErrorFuture
 
 	// Stream 向 broker 节点建立 websocket 连接
 	Stream(ctx context.Context, bid int64, path string, header http.Header) (*websocket.Conn, *http.Response, error)
@@ -49,7 +49,7 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(handler http.Handler, pool taskpool.Executor, cfg config.Config) Huber {
+func New(handler http.Handler, pool gopool.Executor, cfg config.Config) Huber {
 	hub := &brokerHub{
 		name:     "manager",
 		handler:  handler,
@@ -74,7 +74,7 @@ type brokerHub struct {
 	client   netutil.HTTPClient
 	forward  netutil.Forwarder
 	streamer netutil.Streamer
-	pool     taskpool.Executor
+	pool     gopool.Executor
 	mutex    sync.RWMutex
 	connects map[string]*spdyServerConn
 	random   *rand.Rand
@@ -158,7 +158,7 @@ func (hub *brokerHub) ResetDB() error {
 	return err
 }
 
-func (hub *brokerHub) Oneway(id int64, path string, req any) error {
+func (hub *brokerHub) Oneway(ctx context.Context, id int64, path string, req any) error {
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 
@@ -174,7 +174,7 @@ func (hub *brokerHub) Oneway(id int64, path string, req any) error {
 	return tsk.Wait()
 }
 
-func (hub *brokerHub) Unicast(id int64, path string, req, resp any) error {
+func (hub *brokerHub) Unicast(ctx context.Context, id int64, path string, req, resp any) error {
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 
@@ -193,7 +193,7 @@ func (hub *brokerHub) Unicast(id int64, path string, req, resp any) error {
 	return err
 }
 
-func (hub *brokerHub) Multicast(bids []int64, path string, req any) <-chan *ErrorFuture {
+func (hub *brokerHub) Multicast(ctx context.Context, bids []int64, path string, req any) <-chan *ErrorFuture {
 	size := len(bids)
 	ret := make(chan *ErrorFuture, size)
 	if size == 0 {
@@ -205,9 +205,9 @@ func (hub *brokerHub) Multicast(bids []int64, path string, req any) <-chan *Erro
 	return ret
 }
 
-func (hub *brokerHub) Broadcast(path string, req any) <-chan *ErrorFuture {
+func (hub *brokerHub) Broadcast(ctx context.Context, path string, req any) <-chan *ErrorFuture {
 	bids := hub.keys() // 获取在线的 broker
-	return hub.Multicast(bids, path, req)
+	return hub.Multicast(ctx, bids, path, req)
 }
 
 func (hub *brokerHub) Forward(bid int64, w http.ResponseWriter, r *http.Request) {
@@ -244,21 +244,37 @@ func (hub *brokerHub) multicast(bids []int64, path string, req any, ret chan *Er
 }
 
 // silentJSON 发送 JSON 请求但不关心返回的 Body，只关注是否有错。
-func (hub *brokerHub) silentJSON(id int64, path string, req any) error {
+func (hub *brokerHub) silentJSON(ctx context.Context, id int64, path string, req any) error {
 	addr := hub.httpURL(id, path)
+
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+	}
+
 	return hub.client.SilentJSON(nil, http.MethodPost, addr, req, nil)
 }
 
 // sendJSON 发送 JSON 请求响应 JSON 数据
-func (hub *brokerHub) sendJSON(id int64, path string, req, resp any) error {
+func (hub *brokerHub) sendJSON(ctx context.Context, id int64, path string, req, resp any) error {
 	addr := hub.httpURL(id, path)
-	return hub.client.JSON(nil, http.MethodPost, addr, req, resp, nil)
+
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+	}
+
+	return hub.client.JSON(ctx, http.MethodPost, addr, req, resp, nil)
 }
 
 func (hub *brokerHub) newConn(tran net.Conn, ident blink.Ident, issue blink.Issue) *spdyServerConn {
 	id := ident.ID
 	sid := strconv.FormatInt(id, 10)
-	muxer := spdy.Server(tran, spdy.WithEncrypt(issue.Passwd))
+	cfg := smux.DefaultConfig()
+	cfg.KeepAliveDisabled = true
+	muxer := smux.Server(tran, cfg)
 
 	return &spdyServerConn{
 		id:    id,
@@ -321,7 +337,11 @@ func (hub *brokerHub) dialContext(_ context.Context, _, addr string) (net.Conn, 
 	}
 
 	if conn := hub.getConn(id); conn != nil {
-		return conn.muxer.Dial()
+		if stream, exx := conn.muxer.OpenStream(); exx != nil {
+			return nil, exx
+		} else {
+			return stream, nil
+		}
 	}
 
 	return nil, ErrBrokerOffline

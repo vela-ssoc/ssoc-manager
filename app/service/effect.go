@@ -18,12 +18,14 @@ type EffectService interface {
 	Create(ctx context.Context, ec *param.EffectCreate, userID int64) (int64, error)
 	Update(ctx context.Context, eu *param.EffectUpdate, userID int64) (int64, error)
 	Delete(ctx context.Context, submitID int64) (int64, error)
+	Progress(ctx context.Context, tid int64) *param.EffectProgress
+	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
 }
 
 func Effect(pusher push.Pusher, seq SequenceService) EffectService {
 	return &effectService{
 		pusher:  pusher,
-		timeout: time.Hour,
+		timeout: 10 * time.Minute,
 		seq:     seq,
 	}
 }
@@ -68,10 +70,7 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 
 	subIDs := make([]int64, 0, 20)
 	subMap := make(map[int64]struct{}, 20)
-	comIDs := make([]int64, 0, 20)
-	comMap := make(map[int64]struct{}, 20)
 	effSubMap := make(map[int64]map[int64]struct{}, 16)
-	effComMap := make(map[int64]map[int64]struct{}, 16)
 
 	for _, e := range effs {
 		id, tag, eid := e.SubmitID, e.Tag, e.EffectID
@@ -97,47 +96,24 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 			tagMap[id][tag] = struct{}{}
 			sm.Tags = append(sm.Tags, tag)
 		}
-		if e.Compound {
-			if effComMap[id] == nil {
-				effComMap[id] = make(map[int64]struct{}, 8)
-			}
-			if _, exist := effComMap[id][eid]; !exist {
-				effComMap[id][eid] = struct{}{}
-				sm.Compounds = append(sm.Compounds, &param.IDName{ID: eid})
-			}
 
-			if _, exist := comMap[eid]; !exist {
-				comMap[eid] = struct{}{}
-				comIDs = append(comIDs, eid)
-			}
-		} else {
-			if effSubMap[id] == nil {
-				effSubMap[id] = make(map[int64]struct{}, 8)
-			}
-			if _, exist := effSubMap[id][eid]; !exist {
-				effSubMap[id][eid] = struct{}{}
-				sm.Substances = append(sm.Substances, &param.IDName{ID: eid})
-			}
+		if effSubMap[id] == nil {
+			effSubMap[id] = make(map[int64]struct{}, 8)
+		}
+		if _, exist := effSubMap[id][eid]; !exist {
+			effSubMap[id][eid] = struct{}{}
+			sm.Substances = append(sm.Substances, &param.IDName{ID: eid})
+		}
 
-			if _, exist := subMap[eid]; !exist {
-				subMap[eid] = struct{}{}
-				subIDs = append(subIDs, eid)
-			}
+		if _, exist := subMap[eid]; !exist {
+			subMap[eid] = struct{}{}
+			subIDs = append(subIDs, eid)
 		}
 	}
 
 	comKV := make(map[int64]string, 16)
 	subKV := make(map[int64]string, 16)
-	if len(comIDs) != 0 {
-		comTbl := query.Compound
-		compounds, _ := comTbl.WithContext(ctx).
-			Select(comTbl.ID, comTbl.Name).
-			Where(comTbl.ID.In(comIDs...)).
-			Find()
-		for _, c := range compounds {
-			comKV[c.ID] = c.Name
-		}
-	}
+
 	if len(subIDs) != 0 {
 		subTbl := query.Substance
 		subs, _ := subTbl.WithContext(ctx).
@@ -184,22 +160,19 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 	effects := ec.Expand(submitID, userID)
 	// 插入数据库
 	if err = tbl.WithContext(ctx).
-		CreateInBatches(effects, 200); err != nil {
+		CreateInBatches(effects, 200); err != nil || !ec.Enable {
 		return 0, err
 	}
 
-	var taskID int64
-	if ec.Enable {
-		taskID = eff.seq.Generate()
-		brokerIDs, err := transact.EffectTaskTx(ctx, taskID, ec.Tags)
-		if err != nil {
-			return 0, err
-		}
-		eff.taskID = taskID
+	taskID := eff.seq.Generate()
+	eff.taskID = taskID
 
-		// 推送任务
-		eff.pusher.TaskTable(ctx, brokerIDs, taskID)
-	}
+	go func() {
+		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, ec.Tags)
+		if exx == nil {
+			eff.pusher.TaskTable(ctx, brkIDs, taskID)
+		}
+	}()
 
 	return taskID, nil
 }
@@ -208,6 +181,11 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
+	// 查询任务
+	if eff.existTask(ctx) {
+		return 0, errcode.ErrTaskBusy
+	}
+
 	// 查询原有数据
 	subID, version := eu.ID, eu.Version
 	tbl := query.Effect
@@ -215,8 +193,8 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		Where(tbl.SubmitID.Eq(subID)).
 		Where(tbl.Version.Eq(version)).
 		Find()
-	if err != nil {
-		return 0, err
+	if err != nil || len(effs) == 0 {
+		return 0, errcode.ErrVersion
 	}
 	reduce := model.Effects(effs).Reduce()
 
@@ -234,7 +212,6 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 	task := eu.Enable != reduce.Enable ||
 		!eff.equalsStrings(eu.Tags, reduce.Tags) ||
 		!eff.equalsInt64s(eu.Substances, reduce.Substances) ||
-		!eff.equalsInt64s(eu.Compounds, reduce.Compounds) ||
 		!eff.equalsStrings(eu.Tags, reduce.Tags)
 	if task && eff.existTask(ctx) {
 		return 0, errcode.ErrTaskBusy
@@ -252,23 +229,20 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		}
 		return dao.CreateInBatches(effects, 200)
 	})
-	if err != nil {
+	if err != nil || !task {
 		return 0, err
 	}
 
-	var taskID int64
-	if task {
-		allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
-		taskID = eff.seq.Generate()
-		brokerIDs, err := transact.EffectTaskTx(ctx, taskID, allTags)
-		if err != nil {
-			return 0, err
-		}
-		eff.taskID = taskID
+	taskID := eff.seq.Generate()
+	eff.taskID = taskID
+	allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
 
-		// 推送任务
-		eff.pusher.TaskTable(ctx, brokerIDs, taskID)
-	}
+	go func() {
+		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, allTags)
+		if exx == nil {
+			eff.pusher.TaskTable(ctx, brkIDs, taskID)
+		}
+	}()
 
 	return taskID, nil
 }
@@ -278,8 +252,10 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 	defer eff.mutex.Unlock()
 
 	tbl := query.Effect
-	effs, err := tbl.WithContext(ctx).Where(tbl.SubmitID.Eq(submitID)).Find()
-	if err != nil {
+	effs, err := tbl.WithContext(ctx).
+		Where(tbl.SubmitID.Eq(submitID)).
+		Find()
+	if err != nil || len(effs) == 0 {
 		return 0, err
 	}
 
@@ -288,46 +264,94 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 	}
 
 	reduce := model.Effects(effs).Reduce()
-	if _, err = tbl.WithContext(ctx).Where(tbl.SubmitID.Eq(submitID)).Delete(); err != nil {
+	if _, err = tbl.WithContext(ctx).
+		Where(tbl.SubmitID.Eq(submitID)).
+		Delete(); err != nil || !reduce.Enable {
+		// 未启用的配置就是未下发的，删除后可以不通知节点
 		return 0, err
 	}
 
-	var taskID int64
-	if reduce.Enable {
-		taskID = eff.seq.Generate()
-		brkIDs, err := transact.EffectTaskTx(ctx, taskID, reduce.Tags)
-		if err != nil {
-			return 0, err
-		}
-		eff.taskID = taskID
+	taskID := eff.seq.Generate()
+	eff.taskID = taskID
 
-		// 推送任务
-		eff.pusher.TaskTable(ctx, brkIDs, taskID)
-	}
+	go func() {
+		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, reduce.Tags)
+		if exx == nil {
+			eff.pusher.TaskTable(ctx, brkIDs, taskID)
+		}
+	}()
 
 	return taskID, nil
 }
 
-// Progress 获取当前最后一次运行的任务信息
-func (eff *effectService) Progress(ctx context.Context) {
-	// 查询当前任务
+// Progress 任务进度
+func (eff *effectService) Progress(ctx context.Context, tid int64) *param.EffectProgress {
+	if tid == 0 { // task == 0 就查询当前任务
+		eff.mutex.Lock()
+		tid = eff.taskID
+		eff.mutex.Unlock()
+	}
+
+	ret := &param.EffectProgress{ID: tid}
+	if tid == 0 {
+		return ret
+	}
+
+	rawSQL := "SELECT COUNT(*)                      AS count, " +
+		"COUNT(IF(executed, TRUE, NULL))            AS executed, " +
+		"COUNT(IF(executed AND failed, TRUE, NULL)) AS failed " +
+		"FROM substance_task " +
+		"WHERE task_id = ?"
+	db := query.SubstanceTask.
+		WithContext(ctx).
+		UnderlyingDB()
+	db.Raw(rawSQL).Scan(ret)
+
+	return ret
+}
+
+// Progresses 获取当前最后一次运行的任务信息
+func (eff *effectService) Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask) {
+	if tid == 0 { // task == 0 就查询当前任务
+		eff.mutex.Lock()
+		tid = eff.taskID
+		eff.mutex.Unlock()
+	}
+	if tid == 0 {
+		return 0, nil
+	}
+
+	tbl := query.SubstanceTask
+	dao := tbl.WithContext(ctx).
+		Where(tbl.TaskID.Eq(tid))
+	if kw := page.Keyword(); kw != "" {
+		dao.Where(dao.Or(tbl.Inet.Like(kw), tbl.BrokerName.Like(kw), tbl.Reason.Like(kw)))
+	}
+	count, _ := dao.Count()
+	if count == 0 {
+		return 0, nil
+	}
+	dats, _ := dao.Scopes(page.Scope(count)).Find()
+
+	return count, dats
 }
 
 // hasRunning 是否有正在运行的任务
 func (eff *effectService) existTask(ctx context.Context) bool {
-	if eff.taskID == 0 {
+	tid := eff.taskID
+	if tid == 0 {
 		return false
 	}
 
 	before := time.Now().Add(-eff.timeout)
 	tbl := query.SubstanceTask
-	count, err := tbl.WithContext(ctx).
-		Where(tbl.TaskID.Eq(eff.taskID)).
+	count, _ := tbl.WithContext(ctx).
+		Where(tbl.TaskID.Eq(tid)).
 		Where(tbl.Executed.Is(false)).
 		Where(tbl.CreatedAt.Gte(before)).
 		Count()
 
-	return err == nil && count != 0
+	return count != 0
 }
 
 func (*effectService) equalsStrings(as, bs []string) bool {

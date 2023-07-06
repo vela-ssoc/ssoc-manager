@@ -12,18 +12,21 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/sheet"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"gorm.io/gen"
 	"gorm.io/gen/field"
 )
 
 type MinionService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionSummary)
+	Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary)
 	Detail(ctx context.Context, id int64) (*param.MinionDetail, error)
 	Drop(ctx context.Context, id int64) error
 	Create(ctx context.Context, mc *param.MinionCreate) error
-	Delete(ctx context.Context, scope dynsql.Scope) error
-	Activate(ctx context.Context, id []int64) error
+	Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
 	CSV(ctx context.Context) sheet.CSVStreamer
-	Upgrade(ctx context.Context, id int64) error
+	Upgrade(ctx context.Context, id int64, semver model.Semver) error
+	Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
+	Command(ctx context.Context, mid int64, cmd string) error
+	Unload(ctx context.Context, mid int64, unload bool) error
 }
 
 func Minion(cmdbw cmdb.Client, pusher push.Pusher) MinionService {
@@ -38,16 +41,20 @@ type minionService struct {
 	pusher push.Pusher
 }
 
-func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionSummary) {
+func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary) {
 	tagTbl := query.MinionTag
 	monTbl := query.Minion
-
-	db := monTbl.WithContext(ctx).
+	dao := monTbl.WithContext(ctx).
 		Distinct(monTbl.ID).
 		LeftJoin(tagTbl, monTbl.ID.EqCol(tagTbl.MinionID)).
-		Order(monTbl.ID).
-		UnderlyingDB().
-		Scopes(scope.Where)
+		Order(monTbl.ID)
+	if len(likes) != 0 {
+		for i, like := range likes {
+			likes[i] = dao.Or(like)
+		}
+		dao.Where(likes...)
+	}
+	db := dao.UnderlyingDB().Scopes(scope.Where)
 	var count int64
 	if db.Count(&count); count == 0 {
 		return 0, nil
@@ -58,7 +65,9 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 		return 0, nil
 	}
 	// 查询数据
-	minions, err := monTbl.WithContext(ctx).Where(monTbl.ID.In(monIDs...)).Find()
+	minions, err := monTbl.WithContext(ctx).
+		Where(monTbl.ID.In(monIDs...)).
+		Find()
 	if err != nil {
 		return 0, nil
 	}
@@ -80,15 +89,18 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 	for _, m := range minions {
 		id := m.ID
 		ms := &param.MinionSummary{
-			ID:      id,
-			Inet:    m.Inet,
-			Goos:    m.Goos,
-			Edition: m.Edition,
-			Status:  m.Status,
-			IDC:     m.IDC,
-			IBu:     m.IBu,
-			Comment: m.Comment,
-			Tags:    tagMap[id],
+			ID:         id,
+			Inet:       m.Inet,
+			Goos:       m.Goos,
+			Edition:    m.Edition,
+			Status:     m.Status,
+			IDC:        m.IDC,
+			IBu:        m.IBu,
+			Comment:    m.Comment,
+			BrokerName: m.BrokerName,
+			Unload:     m.Unload,
+			Uptime:     m.Uptime.Time,
+			Tags:       tagMap[id],
 		}
 		if ms.Tags == nil {
 			ms.Tags = []string{}
@@ -264,23 +276,28 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 	return nil
 }
 
-func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope) error {
-	tbl := query.Minion
-	tagTbl := query.MinionTag
-
+func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
+	tbl, tagTbl := query.Minion, query.MinionTag
 	deleted := uint8(model.MSDelete)
-	db := tbl.WithContext(ctx).
+	dao := tbl.WithContext(ctx).
 		Distinct(tbl.ID).
+		LeftJoin(tagTbl, tagTbl.MinionID.EqCol(tbl.ID)).
 		Where(tbl.Status.Neq(deleted)).
-		LeftJoin(tagTbl, tbl.ID.EqCol(tagTbl.MinionID)).
-		Order(tbl.ID).
-		UnderlyingDB().
+		Order(tbl.ID)
+	if len(likes) != 0 {
+		for i, like := range likes {
+			likes[i] = dao.Or(like)
+		}
+		dao.Where(likes...)
+	}
+
+	db := dao.UnderlyingDB().
 		Scopes(scope.Where).
 		Limit(100)
 
 	var round int
 	var err error
-	for round < 10 {
+	for round < 100 {
 		round++
 		var mids []int64
 		if err = db.Scan(&mids).Error; err != nil || len(mids) == 0 {
@@ -289,18 +306,10 @@ func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope) error 
 		_, _ = tbl.WithContext(ctx).
 			Where(tbl.Status.Neq(deleted), tbl.ID.In(mids...)).
 			UpdateColumnSimple(tbl.Status.Value(deleted))
-		// 通知 broker 节点下线
+		// TODO 通知 broker 节点下线
+		// biz.pusher.Offline(ctx)
 	}
 
-	return err
-}
-
-func (biz *minionService) Activate(ctx context.Context, id []int64) error {
-	inactive, offline := uint8(model.MSInactive), uint8(model.MSOffline)
-	tbl := query.Minion
-	_, err := tbl.WithContext(ctx).
-		Where(tbl.Status.Eq(inactive)).
-		UpdateColumnSimple(tbl.Status.Value(offline))
 	return err
 }
 
@@ -309,7 +318,7 @@ func (biz *minionService) CSV(ctx context.Context) sheet.CSVStreamer {
 	return sheet.NewCSV(read)
 }
 
-func (biz *minionService) Upgrade(ctx context.Context, mid int64) error {
+func (biz *minionService) Upgrade(ctx context.Context, mid int64, semver model.Semver) error {
 	// 查询节点信息
 	tbl := query.Minion
 	mon, err := tbl.WithContext(ctx).
@@ -323,7 +332,58 @@ func (biz *minionService) Upgrade(ctx context.Context, mid int64) error {
 	}
 
 	// 通知 agent 升级
-	biz.pusher.Upgrade(ctx, mon.BrokerID, mon.ID)
+	biz.pusher.Upgrade(ctx, mon.BrokerID, mon.ID, string(semver))
 
 	return nil
+}
+
+func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
+	return nil
+}
+
+func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) error {
+	tbl := query.Minion
+	mon, err := tbl.WithContext(ctx).
+		Select(tbl.Status, tbl.BrokerID).
+		Where(tbl.ID.Eq(mid)).
+		First()
+	if err != nil {
+		return err
+	}
+	status := mon.Status
+	if status == model.MSDelete || status == model.MSInactive {
+		return errcode.ErrNodeStatus
+	}
+
+	biz.pusher.Command(ctx, mon.BrokerID, mid, cmd)
+
+	return nil
+}
+
+func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) error {
+	// 查询节点信息
+	tbl := query.Minion
+	mon, err := tbl.WithContext(ctx).
+		Select(tbl.ID, tbl.Status, tbl.BrokerID, tbl.Unload, tbl.Inet).
+		Where(tbl.ID.Eq(mid)).
+		First()
+	if err != nil {
+		return err
+	}
+	status := mon.Status
+	if status == model.MSDelete || status == model.MSInactive {
+		return errcode.ErrNodeStatus
+	}
+	if unload == mon.Unload {
+		return nil
+	}
+
+	_, err = tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(mid)).
+		UpdateColumnSimple(tbl.Unload.Value(unload))
+	if err == nil {
+		biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+	}
+
+	return err
 }

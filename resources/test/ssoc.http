@@ -1,37 +1,15 @@
-### es
-GET http://localhost:8089/api/v1/oplogs?current=1&size=3&filters={"col":"nickname","op":"like","val":"兆"}
-Authorization: 62492104347275264.32653363373139636565356638353565393163646362613436376266396532373331323338353662306137316638376538393131323137383864666533306430
-
-### es-create
-POST http://localhost:8089/api/v1/elastic
-Authorization: 62492104347275264.csf6w5965265.9a4ecc780a687f055d08be52f488fbcd92af7dba87401ceed67227ebfe11d8be
+### call 61.129.249.67 alert.eastmoney.com
+POST http://61.129.249.67/api/v0.1/alerts
+Host: alert.eastmoney.com
 Content-Type: application/json
 
 {
-  "host": "http://10.36.32.31:9092",
-  "enable": true
+    "origin_name": "test001",
+    "alert_type": "System",
+    "alert_object": "cpu",
+    "alert_attribute": "load",
+    "severity": "middle",
+    "subject": "这是一个测试",
+    "tags": "hostname=localhost,a=b,c=d",
+    "notifier": "[{\"name\":\"张三\",\"mobile\":\"15927458888\",\"email\":\"zhangsan@eastmoney.com\",\"serial_number\":\"160001\",\"notify_methods\":\"weixin,sms\"}]"
 }
-
-
-### effect
-POST http://localhost:8089/api/v1/effect
-Content-Type: application/json
-Authorization: 62492104347275264.cspwnalfawfq.60dcf6e7e92768cb34007a49640b79ba1a423b3f8b63905e06ae9f79ebe5fe32
-
-{
-  "name": "121-test",
-  "tags": [
-    "windows"
-  ],
-  "enable": true,
-  "substances": ["62840592096481280"],
-  "compounds": [],
-  "exclusion": ["172.31.66.22"]
-}
-
-### effects
-POST http://172.31.61.168:8081/api/v1/arr/agent/task/status?node=172.31.61.150&authorization=28522648801388888.cstiudsn659z.14fc55595a06ab065d9566e6f76896ded34678d1a566e4aabacf50858614cacb
-
-
-### go
-GET https://goproxy.io
