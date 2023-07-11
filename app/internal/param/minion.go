@@ -86,9 +86,12 @@ type MinionBatchRequest struct {
 	Keyword string `json:"keyword" query:"keyword"`
 }
 
-type MinionCommandRequest struct {
-	IntID
-	Command string `json:"command" validate:"oneof=resync restart upgrade offline"`
+func (r MinionBatchRequest) Like() string {
+	key := r.Keyword
+	if key == "" {
+		return ""
+	}
+	return "%" + key + "%"
 }
 
 type MinionUnloadRequest struct {
@@ -111,4 +114,18 @@ func (k MinionDeleteRequest) Like() string {
 type MinionUpgradeRequest struct {
 	IntID
 	Semver model.Semver `json:"semver" validate:"omitempty,semver"`
+}
+
+type MinionTagRequest struct {
+	dynsql.Input
+	Keyword string   `json:"keyword" query:"keyword" form:"keyword"`
+	Deletes []string `json:"deletes" validate:"lte=10,dive,tag"`
+	Creates []string `json:"creates" validate:"lte=10,dive,tag"`
+}
+
+func (k MinionTagRequest) Like() string {
+	if k.Keyword == "" {
+		return ""
+	}
+	return "%" + k.Keyword + "%"
 }

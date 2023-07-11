@@ -14,6 +14,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
+	"gorm.io/gorm/clause"
 )
 
 type MinionService interface {
@@ -24,9 +25,10 @@ type MinionService interface {
 	Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
 	CSV(ctx context.Context) sheet.CSVStreamer
 	Upgrade(ctx context.Context, id int64, semver model.Semver) error
-	Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
+	Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error
 	Command(ctx context.Context, mid int64, cmd string) error
 	Unload(ctx context.Context, mid int64, unload bool) error
+	BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error
 }
 
 func Minion(cmdbw cmdb.Client, pusher push.Pusher) MinionService {
@@ -277,38 +279,18 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 }
 
 func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
-	tbl, tagTbl := query.Minion, query.MinionTag
-	deleted := uint8(model.MSDelete)
-	dao := tbl.WithContext(ctx).
-		Distinct(tbl.ID).
-		LeftJoin(tagTbl, tagTbl.MinionID.EqCol(tbl.ID)).
-		Where(tbl.Status.Neq(deleted)).
-		Order(tbl.ID)
-	if len(likes) != 0 {
-		for i, like := range likes {
-			likes[i] = dao.Or(like)
-		}
-		dao.Where(likes...)
-	}
-
-	db := dao.UnderlyingDB().
-		Scopes(scope.Where).
-		Limit(100)
-
-	var round int
-	var err error
-	for round < 100 {
-		round++
-		var mids []int64
-		if err = db.Scan(&mids).Error; err != nil || len(mids) == 0 {
-			break
-		}
+	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
+		tbl := query.Minion
+		deleted := uint8(model.MSDelete)
 		_, _ = tbl.WithContext(ctx).
 			Where(tbl.Status.Neq(deleted), tbl.ID.In(mids...)).
 			UpdateColumnSimple(tbl.Status.Value(deleted))
-		// TODO 通知 broker 节点下线
-		// biz.pusher.Offline(ctx)
+		// 通知 broker 节点下线
+		biz.pusher.Offline(ctx, bid, mids)
+		return nil
 	}
+
+	err := biz.batchFunc(ctx, scope, likes, cbFunc)
 
 	return err
 }
@@ -337,8 +319,15 @@ func (biz *minionService) Upgrade(ctx context.Context, mid int64, semver model.S
 	return nil
 }
 
-func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
-	return nil
+func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error {
+	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
+		biz.pusher.Command(ctx, bid, mids, cmd)
+		return nil
+	}
+
+	err := biz.batchFunc(ctx, scope, likes, cbFunc)
+
+	return err
 }
 
 func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) error {
@@ -355,7 +344,7 @@ func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) er
 		return errcode.ErrNodeStatus
 	}
 
-	biz.pusher.Command(ctx, mon.BrokerID, mid, cmd)
+	biz.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
 
 	return nil
 }
@@ -382,7 +371,106 @@ func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) er
 		Where(tbl.ID.Eq(mid)).
 		UpdateColumnSimple(tbl.Unload.Value(unload))
 	if err == nil {
-		biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+		biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+	}
+
+	return err
+}
+
+func (biz *minionService) BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error {
+	fn := func(ctx context.Context, bid int64, mids []int64) error {
+		err := query.Q.Transaction(func(tx *query.Query) error {
+			ll := int8(model.TkLifelong)
+			tbl := tx.MinionTag
+			dao := tbl.WithContext(ctx)
+			for _, mid := range mids {
+				if len(deletes) != 0 {
+					_, _ = dao.Where(tbl.MinionID.Eq(mid), tbl.Kind.Neq(ll), tbl.Tag.In(deletes...)).Delete()
+				}
+				if size := len(creates); size != 0 {
+					dats := make([]*model.MinionTag, 0, size)
+					for _, tag := range creates {
+						dats = append(dats, &model.MinionTag{Tag: tag, MinionID: mid, Kind: model.TkManual})
+					}
+					_ = dao.Clauses(clause.OnConflict{DoNothing: true}).Create(dats...)
+				}
+			}
+
+			biz.pusher.TaskSync(ctx, bid, mids)
+
+			return nil
+		})
+
+		return err
+	}
+
+	return biz.batchFunc(ctx, scope, likes, fn)
+}
+
+func (biz *minionService) batchFunc(
+	ctx context.Context,
+	scope dynsql.Scope,
+	likes []gen.Condition,
+	cb func(ctx context.Context, bid int64, mids []int64) error,
+) error {
+	tbl, tagTbl := query.Minion, query.MinionTag
+	deleted := uint8(model.MSDelete)
+	dao := tbl.WithContext(ctx).
+		Distinct(tbl.ID).
+		LeftJoin(tagTbl, tagTbl.MinionID.EqCol(tbl.ID)).
+		Order(tbl.ID)
+	if len(likes) != 0 {
+		for i, like := range likes {
+			likes[i] = dao.Or(like)
+		}
+		dao.Where(likes...)
+	}
+
+	limit := 200
+	var offsetID int64
+	db := dao.UnderlyingDB().
+		Where(tbl.Status.Neq(deleted)).
+		Scopes(scope.Where).
+		Limit(limit)
+
+	var round int // 兜底
+	var err error
+	for round < 200 && err == nil {
+		round++
+		var mids []int64
+		err = db.Where(tbl.ID.Gt(offsetID)).Scan(&mids).Error
+		size := len(mids)
+		if err != nil || size == 0 {
+			break
+		}
+		offsetID = mids[size-1]
+
+		dats, exx := tbl.WithContext(ctx).
+			Select(tbl.ID, tbl.Status, tbl.BrokerID).
+			Where(tbl.ID.In(mids...)).
+			Find()
+		if exx != nil || len(dats) == 0 {
+			err = exx
+			break
+		}
+
+		hm := make(map[int64][]int64, 16)
+		for _, dat := range dats {
+			bid := dat.BrokerID
+			if dat.Status == model.MSDelete || bid == 0 {
+				continue
+			}
+			hm[bid] = append(hm[bid], dat.ID)
+		}
+
+		for bid, ids := range hm {
+			if err = cb(ctx, bid, ids); err != nil {
+				break
+			}
+		}
+		if size < limit {
+			break
+		}
 	}
 
 	return err

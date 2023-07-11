@@ -2,6 +2,7 @@ package push
 
 import (
 	"context"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -11,7 +12,7 @@ import (
 
 type Pusher interface {
 	TaskTable(ctx context.Context, bids []int64, tid int64)
-	TaskSync(ctx context.Context, bid, mid int64, inet string)
+	TaskSync(ctx context.Context, bid int64, mids []int64)
 	TaskDiff(ctx context.Context, bid, mid, sid int64, inet string)
 	ThirdUpdate(ctx context.Context, name string)
 	ThirdDelete(ctx context.Context, name string)
@@ -21,8 +22,8 @@ type Pusher interface {
 	NotifierReset(ctx context.Context)
 	Startup(ctx context.Context, bid, mid int64)
 	Upgrade(ctx context.Context, bid, mid int64, semver string)
-	Command(ctx context.Context, bid, mid int64, cmd string)
-	Offline(ctx context.Context, bid, mid int64)
+	Command(ctx context.Context, bid int64, mids []int64, cmd string)
+	Offline(ctx context.Context, bid int64, mids []int64)
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -33,7 +34,10 @@ type pushImpl struct {
 	hub linkhub.Huber
 }
 
-func (pi *pushImpl) TaskTable(ctx context.Context, bids []int64, tid int64) {
+func (pi *pushImpl) TaskTable(_ context.Context, bids []int64, tid int64) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
 	req := &accord.TaskTable{TaskID: tid}
 	ret := pi.hub.Multicast(nil, bids, accord.FPTaskTable, req)
 	tbl := query.SubstanceTask
@@ -55,11 +59,11 @@ func (pi *pushImpl) TaskTable(ctx context.Context, bids []int64, tid int64) {
 	}
 }
 
-func (pi *pushImpl) TaskSync(ctx context.Context, bid, mid int64, inet string) {
-	if bid == 0 || mid == 0 || inet == "" {
+func (pi *pushImpl) TaskSync(_ context.Context, bid int64, mids []int64) {
+	if bid == 0 || len(mids) == 0 {
 		return
 	}
-	req := &accord.TaskSyncRequest{MinionID: mid, Inet: inet}
+	req := &accord.IDs{ID: mids}
 	_ = pi.hub.Oneway(nil, bid, accord.FPTaskSync, req)
 }
 
@@ -106,12 +110,14 @@ func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mid int64, semver st
 	_ = pi.hub.Oneway(nil, bid, accord.FPUpgrade, req)
 }
 
-func (pi *pushImpl) Command(ctx context.Context, bid int64, mid int64, cmd string) {
-	req := accord.Command{ID: mid, Cmd: cmd}
+func (pi *pushImpl) Command(ctx context.Context, bid int64, mids []int64, cmd string) {
+	req := accord.Command{ID: mids, Cmd: cmd}
 	_ = pi.hub.Oneway(nil, bid, accord.FPCommand, req)
 }
 
-func (pi *pushImpl) Offline(ctx context.Context, bid, mid int64) {
+func (pi *pushImpl) Offline(ctx context.Context, bid int64, mids []int64) {
+	req := &accord.IDs{ID: mids}
+	_ = pi.hub.Oneway(nil, bid, accord.FPOffline, req)
 }
 
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {

@@ -42,6 +42,8 @@ func (rest *minionLogonREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/logon/attack").Data(route.Ignore()).POST(rest.Attack)
 	bearer.Route("/logon/recent").Data(route.Ignore()).GET(rest.Recent)
 	bearer.Route("/logon/history").Data(route.Ignore()).GET(rest.History)
+	bearer.Route("/logon/ignore").Data(route.Ignore()).PATCH(rest.Ignore)
+	bearer.Route("/logon/alert").Data(route.Ignore()).PATCH(rest.Alert)
 }
 
 func (rest *minionLogonREST) Cond(c *ship.Context) error {
@@ -110,4 +112,17 @@ func (rest *minionLogonREST) History(c *ship.Context) error {
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *minionLogonREST) Alert(*ship.Context) error {
+	return nil
+}
+
+func (rest *minionLogonREST) Ignore(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	return rest.svc.Ignore(ctx, req.ID)
 }

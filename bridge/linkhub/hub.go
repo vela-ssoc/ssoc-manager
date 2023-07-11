@@ -112,7 +112,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 	_, _ = hub.random.Read(passwd)
 
 	issue.Name, issue.Passwd = brk.Name, passwd
-	issue.Listen = blink.Listen{Addr: ":8082"}
+	issue.Listen = blink.Listen{Addr: brk.Bind}
 	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
 
 	return issue, nil, nil
@@ -127,11 +127,20 @@ func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) 
 	defer hub.delConn(sid)
 
 	tbl := query.Broker
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	_, _ = tbl.WithContext(ctx).Where(tbl.ID.Eq(ident.ID)).UpdateColumn(tbl.Status, true)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	info, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(ident.ID), tbl.Status.Is(false)).
+		UpdateColumn(tbl.Status, true)
 	cancel()
+	if err != nil {
+		return err
+	}
+	if info.RowsAffected == 0 {
+		return ErrBrokerOffline
+	}
+
 	defer func() {
-		ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 		_, _ = tbl.WithContext(ctx).
 			Where(tbl.ID.Eq(ident.ID)).
 			Where(tbl.Status.Is(true)).
@@ -145,14 +154,16 @@ func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) 
 			return context.WithValue(context.Background(), brokerCtxKey, conn)
 		},
 	}
-	_ = srv.Serve(conn.muxer) // 此处会阻塞，一旦执行结束说明连接断开
 
-	return nil
+	return srv.Serve(conn.muxer) // 此处会阻塞，一旦执行结束说明连接断开
 }
 
 func (hub *brokerHub) ResetDB() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	brk := query.Broker
-	_, err := brk.WithContext(context.Background()).
+	_, err := brk.WithContext(ctx).
 		Where(brk.Status.Is(true)).
 		UpdateColumn(brk.Status, false)
 	return err

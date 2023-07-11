@@ -113,6 +113,7 @@ func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/minion/upgrade").Data(route.Named("节点检查更新")).PATCH(rest.Upgrade)
 	bearer.Route("/minion/batch").Data(route.Named("批量操作")).PATCH(rest.Batch)
 	bearer.Route("/minion/unload").Data(route.Named("静默模式开关")).PATCH(rest.Unload)
+	bearer.Route("/minion/batch/tag").Data(route.Named("批量标签管理")).PATCH(rest.BatchTag)
 }
 
 func (rest *minionREST) Cond(c *ship.Context) error {
@@ -214,12 +215,20 @@ func (rest *minionREST) Batch(c *ship.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	//scope, err := rest.table.Inter(req.Input)
-	//if err != nil {
-	//	return err
-	//}
+	keyword := req.Like()
+	ctx := c.Request().Context()
+	if len(req.Filters) == 0 && keyword == "" {
+		return errcode.ErrRequiredFilter
+	}
 
-	return nil
+	scope, err := rest.table.Inter(req.Input)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+
+	likes := rest.keywordSQL(req.Input, req.Like())
+
+	return rest.svc.Batch(ctx, scope, likes, req.Cmd)
 }
 
 func (rest *minionREST) Delete(c *ship.Context) error {
@@ -242,6 +251,29 @@ func (rest *minionREST) Delete(c *ship.Context) error {
 	likes := rest.keywordSQL(req.Input, req.Like())
 
 	return rest.svc.Delete(ctx, scope, likes)
+}
+
+func (rest *minionREST) BatchTag(c *ship.Context) error {
+	var req param.MinionTagRequest
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	keyword := req.Like()
+	ctx := c.Request().Context()
+	if len(req.Filters) == 0 && keyword == "" {
+		return errcode.ErrRequiredFilter
+	}
+	scope, err := rest.table.Inter(req.Input)
+	if err != nil {
+		return ship.ErrBadRequest.New(err)
+	}
+	if len(req.Deletes) == 0 && len(req.Creates) == 0 {
+		return nil
+	}
+	likes := rest.keywordSQL(req.Input, req.Like())
+
+	return rest.svc.BatchTag(ctx, scope, likes, req.Creates, req.Deletes)
 }
 
 func (rest *minionREST) keywordSQL(input dynsql.Input, keyword string) []gen.Condition {

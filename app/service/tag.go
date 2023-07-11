@@ -78,7 +78,7 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 
 	// 标签发生修改，则意味着关联的配置发生了修改
 	if err == nil {
-		biz.pusher.TaskSync(ctx, mon.BrokerID, id, mon.Inet)
+		biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{id})
 	}
 
 	return err

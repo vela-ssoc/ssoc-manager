@@ -14,6 +14,7 @@ type MinionLogonService interface {
 	Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionLogonAttack)
 	Recent(ctx context.Context, days int) param.MinionRecent
 	History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon)
+	Ignore(ctx context.Context, id int64) error
 }
 
 func MinionLogon() MinionLogonService {
@@ -23,7 +24,11 @@ func MinionLogon() MinionLogonService {
 type minionLogonService struct{}
 
 func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon) {
-	db := query.MinionLogon.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
+	tbl := query.MinionLogon
+	db := tbl.WithContext(ctx).
+		Where(tbl.Ignore.Is(false)).
+		UnderlyingDB().
+		Scopes(scope.Where)
 	var count int64
 	if db.Count(&count); count == 0 {
 		return 0, nil
@@ -95,4 +100,13 @@ func (biz *minionLogonService) History(ctx context.Context, page param.Pager, mi
 	dats, _ := dao.Scopes(page.Scope(count)).Find()
 
 	return count, dats
+}
+
+func (biz *minionLogonService) Ignore(ctx context.Context, id int64) error {
+	tbl := query.MinionLogon
+	_, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(id), tbl.Ignore.Is(false)).
+		UpdateSimple(tbl.Ignore.Value(true))
+
+	return err
 }

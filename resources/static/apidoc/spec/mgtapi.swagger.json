@@ -23625,6 +23625,106 @@
         ],
         "x-extension-1": null
       }
+    },
+    "/minion/batch/tag": {
+      "patch": {
+        "summary": "批量处理标签",
+        "operationId": "patch-minion-batch-tag",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "minion"
+        ],
+        "description": "批量处理标签",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "x-examples": {
+                  "Example 1": {
+                    "fileters": [
+                      {
+                        "key": "minion_tag.tag",
+                        "operator": "like",
+                        "value": "122"
+                      }
+                    ],
+                    "keyword": "test",
+                    "creates": [
+                      "honey-pot",
+                      "linux-6.x"
+                    ],
+                    "deletes": [
+                      "ubuntu"
+                    ]
+                  }
+                },
+                "properties": {
+                  "fileters": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "operator": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "keyword": {
+                    "type": "string"
+                  },
+                  "creates": {
+                    "type": "array",
+                    "description": "新增的标签",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "deletes": {
+                    "type": "array",
+                    "description": "删除的标签",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "fileters": [
+                      {
+                        "key": "minion_tag.tag",
+                        "operator": "like",
+                        "value": "122"
+                      }
+                    ],
+                    "keyword": "test",
+                    "creates": [
+                      "honey-pot",
+                      "linux-6.x"
+                    ],
+                    "deletes": [
+                      "ubuntu"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

@@ -47,4 +47,5 @@ func (f formatError) Fmt(a ...any) error {
 const (
 	FmtErrNameExist = formatError("名字 %s 已经存在")
 	FmtErrInetExist = formatError("inet %s 已经存在")
+	FmtErrTaskBusy  = formatError("任务繁忙：%d")
 )

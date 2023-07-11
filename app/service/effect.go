@@ -3,12 +3,10 @@ package service
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/app/internal/transact"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -22,20 +20,19 @@ type EffectService interface {
 	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
 }
 
-func Effect(pusher push.Pusher, seq SequenceService) EffectService {
+func Effect(pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
 	return &effectService{
-		pusher:  pusher,
-		timeout: 10 * time.Minute,
-		seq:     seq,
+		pusher: pusher,
+		seq:    seq,
+		task:   task,
 	}
 }
 
 type effectService struct {
-	pusher  push.Pusher
-	seq     SequenceService
-	timeout time.Duration
-	taskID  int64
-	mutex   sync.RWMutex
+	pusher push.Pusher
+	seq    SequenceService
+	task   SubstanceTaskService
+	mutex  sync.RWMutex
 }
 
 func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []*param.EffectSummary) {
@@ -152,8 +149,10 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 	if err = ec.Check(ctx); err != nil {
 		return 0, err
 	}
-	if ec.Enable && eff.existTask(ctx) {
-		return 0, errcode.ErrTaskBusy
+	if ec.Enable {
+		if err = eff.task.BusyError(ctx); err != nil {
+			return 0, err
+		}
 	}
 
 	submitID := eff.seq.Generate()
@@ -164,27 +163,12 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 		return 0, err
 	}
 
-	taskID := eff.seq.Generate()
-	eff.taskID = taskID
-
-	go func() {
-		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, ec.Tags)
-		if exx == nil {
-			eff.pusher.TaskTable(ctx, brkIDs, taskID)
-		}
-	}()
-
-	return taskID, nil
+	return eff.task.AsyncTags(ctx, ec.Tags)
 }
 
 func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, userID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
-
-	// 查询任务
-	if eff.existTask(ctx) {
-		return 0, errcode.ErrTaskBusy
-	}
 
 	// 查询原有数据
 	subID, version := eu.ID, eu.Version
@@ -209,12 +193,17 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		return 0, err
 	}
 
-	task := eu.Enable != reduce.Enable ||
+	// 分为重量级更新与轻量级更新。
+	// 只有排除节点（Exclusion）发生修改是轻量级更新，
+	// 其它参数任意一个发生修改就算重量级更新（其它参数：Tags、Substances、Enable）。
+	heavy := eu.Enable != reduce.Enable ||
 		!eff.equalsStrings(eu.Tags, reduce.Tags) ||
-		!eff.equalsInt64s(eu.Substances, reduce.Substances) ||
-		!eff.equalsStrings(eu.Tags, reduce.Tags)
-	if task && eff.existTask(ctx) {
-		return 0, errcode.ErrTaskBusy
+		!eff.equalsInt64s(eu.Substances, reduce.Substances)
+	light := !heavy && !eff.equalsStrings(eu.Exclusion, reduce.Exclusion)
+	if heavy || light { // 无论轻量级还是重量级的修改都要加锁
+		if err = eff.task.BusyError(ctx); err != nil {
+			return 0, err
+		}
 	}
 
 	effects := eu.Expand(reduce, userID)
@@ -229,22 +218,17 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		}
 		return dao.CreateInBatches(effects, 200)
 	})
-	if err != nil || !task {
+	if err != nil || (!heavy && !light) {
 		return 0, err
 	}
 
-	taskID := eff.seq.Generate()
-	eff.taskID = taskID
-	allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
+	if heavy { // 重量级更新就更新全部相关标签
+		allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
+		return eff.task.AsyncTags(ctx, allTags)
+	}
+	diffs := eff.diff(eu.Exclusion, reduce.Exclusion)
 
-	go func() {
-		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, allTags)
-		if exx == nil {
-			eff.pusher.TaskTable(ctx, brkIDs, taskID)
-		}
-	}()
-
-	return taskID, nil
+	return eff.task.AsyncInets(ctx, diffs)
 }
 
 func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, error) {
@@ -259,8 +243,8 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 		return 0, err
 	}
 
-	if eff.existTask(ctx) {
-		return 0, errcode.ErrTaskBusy
+	if err = eff.task.BusyError(ctx); err != nil {
+		return 0, err
 	}
 
 	reduce := model.Effects(effs).Reduce()
@@ -271,87 +255,17 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 		return 0, err
 	}
 
-	taskID := eff.seq.Generate()
-	eff.taskID = taskID
-
-	go func() {
-		brkIDs, exx := transact.EffectTaskTx(ctx, taskID, reduce.Tags)
-		if exx == nil {
-			eff.pusher.TaskTable(ctx, brkIDs, taskID)
-		}
-	}()
-
-	return taskID, nil
+	return eff.task.AsyncTags(ctx, reduce.Tags)
 }
 
 // Progress 任务进度
 func (eff *effectService) Progress(ctx context.Context, tid int64) *param.EffectProgress {
-	if tid == 0 { // task == 0 就查询当前任务
-		eff.mutex.Lock()
-		tid = eff.taskID
-		eff.mutex.Unlock()
-	}
-
-	ret := &param.EffectProgress{ID: tid}
-	if tid == 0 {
-		return ret
-	}
-
-	rawSQL := "SELECT COUNT(*)                      AS count, " +
-		"COUNT(IF(executed, TRUE, NULL))            AS executed, " +
-		"COUNT(IF(executed AND failed, TRUE, NULL)) AS failed " +
-		"FROM substance_task " +
-		"WHERE task_id = ?"
-	db := query.SubstanceTask.
-		WithContext(ctx).
-		UnderlyingDB()
-	db.Raw(rawSQL).Scan(ret)
-
-	return ret
+	return eff.task.Progress(ctx, tid)
 }
 
 // Progresses 获取当前最后一次运行的任务信息
 func (eff *effectService) Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask) {
-	if tid == 0 { // task == 0 就查询当前任务
-		eff.mutex.Lock()
-		tid = eff.taskID
-		eff.mutex.Unlock()
-	}
-	if tid == 0 {
-		return 0, nil
-	}
-
-	tbl := query.SubstanceTask
-	dao := tbl.WithContext(ctx).
-		Where(tbl.TaskID.Eq(tid))
-	if kw := page.Keyword(); kw != "" {
-		dao.Where(dao.Or(tbl.Inet.Like(kw), tbl.BrokerName.Like(kw), tbl.Reason.Like(kw)))
-	}
-	count, _ := dao.Count()
-	if count == 0 {
-		return 0, nil
-	}
-	dats, _ := dao.Scopes(page.Scope(count)).Find()
-
-	return count, dats
-}
-
-// hasRunning 是否有正在运行的任务
-func (eff *effectService) existTask(ctx context.Context) bool {
-	tid := eff.taskID
-	if tid == 0 {
-		return false
-	}
-
-	before := time.Now().Add(-eff.timeout)
-	tbl := query.SubstanceTask
-	count, _ := tbl.WithContext(ctx).
-		Where(tbl.TaskID.Eq(tid)).
-		Where(tbl.Executed.Is(false)).
-		Where(tbl.CreatedAt.Gte(before)).
-		Count()
-
-	return count != 0
+	return eff.task.Progresses(ctx, tid, page)
 }
 
 func (*effectService) equalsStrings(as, bs []string) bool {
@@ -408,6 +322,27 @@ func (*effectService) mergeStrings(as, bs []string) []string {
 			hm[s] = struct{}{}
 			ret = append(ret, s)
 		}
+	}
+
+	return ret
+}
+
+func (*effectService) diff(as, bs []string) []string {
+	hm := make(map[string]struct{}, len(as))
+	for _, s := range as {
+		hm[s] = struct{}{}
+	}
+
+	ret := make([]string, 0, 16)
+	for _, s := range bs {
+		if _, ok := hm[s]; ok {
+			delete(hm, s)
+		} else {
+			ret = append(ret, s)
+		}
+	}
+	for s := range hm {
+		ret = append(ret, s)
 	}
 
 	return ret

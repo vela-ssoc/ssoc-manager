@@ -100,7 +100,7 @@ func (eff *effectREST) Delete(c *ship.Context) error {
 
 func (eff *effectREST) Progress(c *ship.Context) error {
 	var req param.OptionalID
-	if err := c.Bind(&req); err != nil {
+	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
 

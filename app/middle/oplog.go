@@ -114,7 +114,7 @@ type limitCopy struct {
 
 func (lc *limitCopy) Read(p []byte) (int, error) {
 	n, err := lc.body.Read(p)
-	if n > 0 && lc.max > lc.pos {
+	if n != 0 && lc.max > lc.pos {
 		num := copy(lc.data[lc.pos:], p[:n])
 		lc.pos += num
 	}

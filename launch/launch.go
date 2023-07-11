@@ -144,12 +144,14 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	tagREST := mgtapi.Tag(tagService)
 	tagREST.Route(anon, bearer, basic)
 
+	substanceTaskService := service.SubstanceTask(sequenceService, pusher)
+
 	// -----[ 配置与发布 ]-----
-	substanceService := service.Substance(pusher, digestService, sequenceService)
+	substanceService := service.Substance(pusher, digestService, substanceTaskService)
 	substanceREST := mgtapi.Substance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
 
-	effectService := service.Effect(pusher, sequenceService)
+	effectService := service.Effect(pusher, sequenceService, substanceTaskService)
 	effectREST := mgtapi.Effect(effectService)
 	effectREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----

@@ -8,7 +8,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/app/internal/transact"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -25,20 +24,19 @@ type SubstanceService interface {
 	Command(ctx context.Context, mid int64, cmd string) error
 }
 
-func Substance(pusher push.Pusher, digest DigestService, sequence SequenceService) SubstanceService {
+func Substance(pusher push.Pusher, digest DigestService, task SubstanceTaskService) SubstanceService {
 	return &substanceService{
-		pusher:   pusher,
-		digest:   digest,
-		sequence: sequence,
+		pusher: pusher,
+		digest: digest,
+		task:   task,
 	}
 }
 
 type substanceService struct {
-	mutex    sync.Mutex
-	taskID   int64
-	pusher   push.Pusher
-	digest   DigestService
-	sequence SequenceService
+	mutex  sync.Mutex
+	pusher push.Pusher
+	digest DigestService
+	task   SubstanceTaskService
 }
 
 func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*param.IDName {
@@ -108,7 +106,6 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	name, mid := sc.Name, sc.MinionID
 
 	var bid int64
-	var inet string
 	tbl := query.Substance
 	if mid != 0 {
 		// 检查节点
@@ -133,7 +130,6 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 		}
 
 		bid = mon.BrokerID
-		inet = mon.Inet
 	} else { // 公有配置检查名字是否重复
 		if count, err := tbl.WithContext(ctx).
 			Where(tbl.Name.Eq(name)).
@@ -162,7 +158,7 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	}
 
 	if mid != 0 { // 推送
-		biz.pusher.TaskSync(ctx, bid, mid, inet)
+		biz.pusher.TaskSync(ctx, bid, []int64{mid})
 	}
 
 	return nil
@@ -185,10 +181,6 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		return 0, errcode.ErrVersion
 	}
 
-	if biz.existTask(ctx) {
-		return 0, errcode.ErrTaskBusy
-	}
-
 	sum := biz.digest.SumMD5(su.Chunk)
 	change := sum != sub.Hash
 
@@ -199,29 +191,33 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	sub.UpdatedID = userID
 	sub.Version = version + 1
 
-	if _, err = tbl.WithContext(ctx).
-		Where(tbl.Version.Eq(version)).
-		Updates(sub); err != nil || !change {
-		return 0, err
-	}
-
 	if mid := sub.MinionID; mid != 0 {
+		if _, err = tbl.WithContext(ctx).
+			Where(tbl.Version.Eq(version)).
+			Updates(sub); err != nil || !change {
+			return 0, err
+		}
 		monTbl := query.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+			biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 		return 0, nil
 	}
 
-	// 查询所有相关 tag
-	// SELECT DISTINCT tag
-	// FROM effect
-	// WHERE effect_id = ? AND compound = FALSE
-	//   OR (compound = TRUE AND effect_id IN (SELECT id FROM compound WHERE JSON_CONTAINS(substances, JSON_ARRAY(?))))
+	if err = biz.task.BusyError(ctx); err != nil {
+		return 0, err
+	}
+
+	if _, err = tbl.WithContext(ctx).
+		Where(tbl.Version.Eq(version)).
+		Updates(sub); err != nil || !change {
+		return 0, err
+	}
+
 	effTbl := query.Effect
 	var tags []string
 	err = effTbl.WithContext(ctx).
@@ -233,17 +229,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		return 0, err
 	}
 
-	taskID := biz.sequence.Generate()
-	biz.taskID = taskID
-
-	go func() {
-		bids, err := transact.EffectTaskTx(ctx, taskID, tags)
-		if err == nil && len(bids) != 0 {
-			biz.pusher.TaskTable(ctx, bids, taskID)
-		}
-	}()
-
-	return taskID, nil
+	return biz.task.AsyncTags(ctx, tags)
 }
 
 func (biz *substanceService) Delete(ctx context.Context, id int64) error {
@@ -282,7 +268,7 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+			biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 	}
 
@@ -340,7 +326,7 @@ func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
 		return errcode.ErrNodeStatus
 	}
 
-	biz.pusher.TaskSync(ctx, mon.BrokerID, mid, mon.Inet)
+	biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 
 	return nil
 }
@@ -361,25 +347,7 @@ func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string)
 		return errcode.ErrNodeStatus
 	}
 
-	biz.pusher.Command(ctx, mon.BrokerID, mid, cmd)
+	biz.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
 
 	return nil
-}
-
-// existTask 是否有正在运行的任务
-func (biz *substanceService) existTask(ctx context.Context) bool {
-	tid := biz.taskID
-	if tid == 0 {
-		return false
-	}
-
-	before := time.Now().Add(-10 * time.Minute)
-	tbl := query.SubstanceTask
-	count, _ := tbl.WithContext(ctx).
-		Where(tbl.TaskID.Eq(tid)).
-		Where(tbl.Executed.Is(false)).
-		Where(tbl.CreatedAt.Gte(before)).
-		Count()
-
-	return count != 0
 }
