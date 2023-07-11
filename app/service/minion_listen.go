@@ -22,6 +22,7 @@ type minionListenService struct{}
 func (biz *minionListenService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen) {
 	tbl := query.MinionListen
 	db := tbl.WithContext(ctx).
+		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
 

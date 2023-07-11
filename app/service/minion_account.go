@@ -20,13 +20,14 @@ type minionAccountService struct{}
 
 func (biz *minionAccountService) Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount) {
 	tbl := query.MinionAccount
-	dao := tbl.WithContext(ctx)
+	dao := tbl.WithContext(ctx).
+		Order(tbl.ID.Desc())
 	if mid != 0 {
-		dao = dao.Where(tbl.MinionID.Eq(mid))
+		dao.Where(tbl.MinionID.Eq(mid))
 	}
 	if name != "" {
 		like := "%" + name + "%"
-		dao = dao.Where(tbl.Name.Like(like))
+		dao.Where(tbl.Name.Like(like))
 	}
 
 	count, err := dao.Count()

@@ -27,6 +27,7 @@ func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope
 	tbl := query.MinionLogon
 	db := tbl.WithContext(ctx).
 		Where(tbl.Ignore.Is(false)).
+		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
 	var count int64

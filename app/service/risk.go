@@ -29,6 +29,7 @@ type riskService struct{}
 func (rsk *riskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk) {
 	tbl := query.Risk
 	db := tbl.WithContext(ctx).
+		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
 	var count int64
