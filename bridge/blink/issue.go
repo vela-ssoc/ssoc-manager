@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/vela-ssoc/vela-common-mb/dbms"
-	"github.com/vela-ssoc/vela-common-mba/encipher"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-manager/infra/config"
 )
 
@@ -25,7 +25,7 @@ func (iss Issue) String() string {
 
 // encrypt 将 Issue 加密
 func (iss Issue) encrypt() ([]byte, error) {
-	return encipher.EncryptJSON(iss)
+	return ciphertext.EncryptJSON(iss)
 }
 
 // Listen 监听信息

@@ -1,12 +1,10 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"io/fs"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -15,7 +13,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/stegano"
 	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-common-mba/definition"
-	"github.com/vela-ssoc/vela-manager/app/internal/ciphertext"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
@@ -51,7 +48,6 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		return nil, err
 	}
 	// 查询客户端二进制信息
-	var old bool
 	tbl := query.MinionBin
 	var bin *model.MinionBin
 	if req.ID > 0 {
@@ -61,9 +57,6 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 			Where(tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
 			Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
 		if ver := string(req.Version); ver != "" {
-			old = strings.HasPrefix(ver, "0.") ||
-				strings.HasPrefix(ver, "1.") ||
-				strings.HasPrefix(ver, "2.")
 			dao.Where(tbl.Semver.Eq(ver))
 		}
 		bin, err = dao.First()
@@ -87,24 +80,6 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		Tags:       req.Tags,
 		DownloadAt: time.Now(),
 	}
-
-	if old {
-		dat, exx := ciphertext.EncryptPayload(hide)
-		if exx != nil {
-			_ = inf.Close()
-			return nil, exx
-		}
-		size := len(dat)
-
-		file := &oldFile{
-			size: inf.Size() + int64(size),
-			inf:  inf,
-			rd:   io.MultiReader(inf, bytes.NewReader(dat)),
-		}
-
-		return file, nil
-	}
-
 	if file, exx := stegano.AppendStream(inf, hide); exx != nil {
 		_ = inf.Close()
 		return nil, exx

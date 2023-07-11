@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mba/encipher"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 )
 
 // Ident broker 节点的认证信息
@@ -34,5 +34,5 @@ func (ide Ident) String() string {
 
 // decrypt 将数据解密至 Ident
 func (ide *Ident) decrypt(enc []byte) error {
-	return encipher.DecryptJSON(enc, ide)
+	return ciphertext.DecryptJSON(enc, ide)
 }
