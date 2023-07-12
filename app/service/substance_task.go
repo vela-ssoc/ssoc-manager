@@ -48,7 +48,7 @@ func (biz *substanceTaskService) AsyncTags(ctx context.Context, tags []string) (
 	}
 
 	tid := biz.seq.Generate()
-	go biz.createTask(tid, tags)
+	go biz.insertTagTask(tid, tags)
 
 	return tid, nil
 }
@@ -65,6 +65,7 @@ func (biz *substanceTaskService) AsyncInets(ctx context.Context, inets []string)
 	}
 
 	tid := biz.seq.Generate()
+	go biz.insertInetTasks(tid, inets)
 
 	return tid, nil
 }
@@ -143,7 +144,7 @@ func (biz *substanceTaskService) currentTaskID(ctx context.Context) int64 {
 	return 0
 }
 
-func (biz *substanceTaskService) createTask(tid int64, tags []string) {
+func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), biz.timeout)
 	defer cancel()
 
