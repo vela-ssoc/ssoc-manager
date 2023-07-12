@@ -66,6 +66,11 @@ func (rest *deployREST) Script(c *ship.Context) error {
 	if c.IsTLS() {
 		scheme = "https"
 	}
+	// 如果 TLS 证书挂在了 WAF 上
+	proto := c.GetReqHeader(ship.HeaderXForwardedProto)
+	if proto == "http" || proto == "https" {
+		scheme = proto
+	}
 
 	path := reqURL.Path + "/download"
 	downURL := &url.URL{
