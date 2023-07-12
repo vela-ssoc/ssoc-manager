@@ -94,8 +94,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 	// 查询 broker
 	brkTbl := query.Broker
 	brk, err := brkTbl.WithContext(ctx).
-		Where(brkTbl.ID.Eq(id)).
-		Where(brkTbl.Secret.Eq(secret)).
+		Where(brkTbl.ID.Eq(id), brkTbl.Secret.Eq(secret)).
 		First()
 	if err != nil {
 		return issue, nil, ErrBrokerNotFound

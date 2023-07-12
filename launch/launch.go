@@ -276,6 +276,9 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	davREST := mgtapi.DavFS(base)
 	davREST.Route(anon, bearer, basic)
 
+	pprofREST := mgtapi.Pprof()
+	pprofREST.Route(anon, bearer, basic)
+
 	app := &application{
 		cfg:     cfg,
 		handler: sh,

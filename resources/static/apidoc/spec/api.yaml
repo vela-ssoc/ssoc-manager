@@ -1,0 +1,652 @@
+openapi: 3.1.0
+x-stoplight:
+  id: c9vjkvk4f45fu
+info:
+  title: Agent 与 Broker 节点对接文档
+  version: '1.0'
+  description: |-
+    ## 安全管理平台节点接口对接文档
+
+    Agent 与 Broker 节点对接文档
+  contact:
+    name: ssoc
+    url: 'https://github.com/vela-ssoc'
+  termsOfService: 'https://github.com/vela-ssoc'
+  summary: Agent 与 Broker 节点对接文档
+  x-logo:
+    url: logo.ico
+tags:
+  - name: Agent
+    description: Agent 需要提供的接口
+  - name: Broker
+    description: Broker 需要提供的接口
+  - name: Stream
+    description: 流式传输
+  - name: Collect
+    description: Agent 节点信息收集上报
+servers:
+  - url: /api/v1
+    description: 基础路径
+paths:
+  /agent/startup:
+    post:
+      summary: startup 配置推送回调
+      operationId: post-agent-startup
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agent
+      description: |-
+        startup 配置更新时会将该配置推送给对应的节点
+
+        ### startup 结构体示例
+
+        ```go
+        type Startup struct {
+          Node    Node      `json:"node"`
+          Logger  Logger    `json:"logger"`
+          Console Console   `json:"console"`
+          Extends []*Extend `json:"extends"`
+        }
+
+        type Node struct {
+          DNS    string `json:"dns"`
+          Prefix string `json:"prefix"`
+        }
+
+        type Logger struct {
+          Level    string `json:"level"`    // 日志级别 debug/info/error
+          Filename string `json:"filename"`
+          Console  bool   `json:"console"`
+          Format   string `json:"format"` // 日志格式 text/json
+          Caller   bool   `json:"caller"` // 是否打印调用函数名字
+          Skip     int    `json:"skip"`
+        }
+
+        type Console struct {
+          Enable  bool   `json:"enable"`
+          Network string `json:"network"`
+          Address string `json:"address"`
+          Script  string `json:"script"`
+        }
+
+        type Extend struct {
+          Name  string `json:"name"`
+          Type  string `json:"type"`  // number bool string ref string_readonly
+          Value string `json:"value"`
+        }
+        ```
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+        description: json 报文如上 struct 所示。
+  /agent/task/diff:
+    post:
+      summary: 配置变更回调
+      operationId: post-agent-task-diff
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskReport'
+              examples:
+                示例:
+                  value:
+                    tasks:
+                      - id: 1133847578322
+                        name: kafka
+                        dialect: true
+                        hash: 28f35476af08ba7d170529ec46484b98
+                        uptime: '2023-05-23T02:42:26.968Z'
+                        from: tunnel
+                        runners:
+                          - name: kafka.sub
+                            type: kafka
+                            status: running
+      tags:
+        - Agent
+      description: 当中心端配置变更时，会调用 agent 的该接口
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskDiff'
+            examples:
+              示例:
+                value:
+                  removes:
+                    - 3415465343438593
+                  updates:
+                    - id: 45863228455684120
+                      name: kafka
+                      dialect: true
+                      hash: 28f35476af08ba7d170529ec46484b98
+                      chunk: cHJpbnQoIkhlbGxvIik=
+  /agent/task/status:
+    post:
+      summary: 抓取 agent 上配置运行状态
+      operationId: post-agent-task-status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskReport'
+              examples:
+                示例:
+                  value:
+                    tasks:
+                      - id: 1133847578322
+                        name: kafka
+                        dialect: true
+                        hash: 28f35476af08ba7d170529ec46484b98
+                        uptime: '2023-05-23T02:42:26.968Z'
+                        from: tunnel
+                        runners:
+                          - name: kafka.sub
+                            type: kafka
+                            status: running
+      tags:
+        - Agent
+      description: 抓取 agent 上配置运行状态
+  /agent/third/diff:
+    post:
+      summary: 三方文件变更回调
+      operationId: post-agent-third-diff
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agent
+      description: |
+        `name`：代表哪个文件发生了变化，文件名唯一不会重复。
+        `event`：变化类型，`delete` 代表文件删除；`update` 代表文件更新。
+
+        当接受到文件变化通知时，agent 要自行判断是否用到了该文件，如果未用到该文件可忽略该通知。
+        如果用到了该文件，可删除
+
+        当文件发生修改时，中心端会通知 agent 哪个文件发生了修改。agent 收到通知时要先自行判断是否用到了该文件。如果没有用到可忽略该通知。如果用到了该文件，请中心端自行 [获取最新的三方文件](/operations/get-broker-third) 。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 发生变更的文件名
+                event:
+                  type: string
+                  description: 事件类型 delete update
+                  enum:
+                    - delete
+                    - update
+              required:
+                - name
+                - event
+            examples:
+              示例:
+                value:
+                  name: ip2region.db
+                  event: update
+  /broker/third:
+    get:
+      summary: 下载三方文件
+      tags:
+        - Broker
+      responses:
+        '200':
+          description: Body 就是文件流
+          content:
+            application/octet-stream:
+              schema:
+                type: object
+                properties: {}
+        '304':
+          description: 文件未改变
+        '404':
+          description: 文件不存在
+      operationId: get-broker-third
+      description: |
+        下载三方文件
+
+        ### 调用示例
+
+        ```go
+        tun.Attachment(ctx, "/api/v1/broker/third?name=hello.db&hash=8d1aefb3da150aef7151f061772a88de")
+        ```
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: name
+          required: true
+          description: 三方文件名字
+        - schema:
+            type: string
+          in: query
+          name: hash
+          description: 文件 MD5
+  /broker/stream/tunnel:
+    get:
+      summary: 【流式接口】TCP 代理通道
+      tags:
+        - Broker
+        - Stream
+      responses:
+        '101':
+          description: 底层基于 websocket，所以接入成功返回的状态码是 `101`。
+        '400':
+          description: 包含错误原因
+      operationId: get-broker-stream-tunnel
+      description: |
+        TCP over websocket 流式代理通道。
+
+        `address` 支持 `tcp` `udp` `http` `https` 协议，例如：
+        - tcp://eaxmple.com:8888
+        - udp://example.com:9999
+        - http://example.com
+        - https://example.com:8443
+
+        > `tcp` `udp` 协议必须指明端口号。`http` 与 `https` 可以省略端口号。`http` 默认 `80`，`https` 默认 `443`
+
+
+        ### 调用
+
+        ```go
+        stm, err := tun.Stream(ctx, "/api/v1/broker/stream/tunnel?address=http://example.com:8080", nil)
+        ```
+      parameters:
+        - schema:
+            type: string
+            example: '172.31.61.168:9090'
+          in: query
+          name: address
+          required: true
+          description: 地址
+  /broker/collect/agent/sysinfo:
+    post:
+      summary: Agent 上报系统信息
+      operationId: post-broker-collect-agent-sysinfo
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+        - Collect
+      description: "报文 JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tHostID      string `json:\"host_id\"`\n\tHostname    string `json:\"hostname\"`\n\tRelease     string `json:\"release\"`\n\tFamily      string `json:\"family\"`\n\tUptime      int64  `json:\"uptime\"`\n\tBootAt      int64  `json:\"boot_at\"`\n\tVirtual     string `json:\"virtual\"`\n\tVirtualRole string `json:\"virtual_role\"`\n\tProcNumber  int    `json:\"proc_number\"`\n\tMemTotal    int    `json:\"mem_total\"`\n\tMemFree     int    `json:\"mem_free\"`\n\tSwapTotal   int    `json:\"swap_total\"`\n\tSwapFree    int    `json:\"swap_free\"`\n\tCPUCore     int    `json:\"cpu_core\"`\n\tCPUModel    string `json:\"cpu_model\"`\n\tAgentTotal  int    `json:\"agent_total\"`\n\tAgentAlloc  int    `json:\"agent_alloc\"`\n\tVersion     string `json:\"version\"`\n}\n```"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+  /broker/collect/agent/process:
+    post:
+      summary: Agent 上报进程信息
+      operationId: post-broker-collect-agent-process
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+        - Collect
+      description: "报文 JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tCreates []*process `json:\"creates\"` // 新增的进程\n\tUpdates []*process `json:\"updates\"` // 更新的进程\n\tDeletes []int      `json:\"deletes\"` // 删除的 PID\n}\n\ntype process struct {\n\tName         string    `json:\"name\"`\n\tState        string    `json:\"state\"`\n\tPid          int       `json:\"pid\"`\n\tPpid         int       `json:\"ppid\"`\n\tPgid         uint32    `json:\"pgid\"`\n\tCmdline      string    `json:\"cmdline\"`\n\tUsername     string    `json:\"username\"`\n\tCwd          string    `json:\"cwd\"`\n\tExecutable   string    `json:\"executable\"` // linux\n\tArgs         []string  `json:\"args\"`\n\tUserTicks    uint64    `json:\"user_ticks\"`\n\tTotalPct     float64   `json:\"total_pct\"`\n\tTotalNormPct float64   `json:\"total_norm_pct\"`\n\tSystemTicks  uint64    `json:\"system_ticks\"`\n\tTotalTicks   uint64    `json:\"total_ticks\"`\n\tStartTime    string    `json:\"start_time\"`\n\tMemSize      uint64    `json:\"mem_size\"`\n\tRssBytes     uint64    `json:\"rss_bytes\"`\n\tRssPct       float64   `json:\"rss_pct\"`\n\tShare        uint64    `json:\"share\"`\n\tChecksum     string    `json:\"checksum\"`\n\tModifyTime   time.Time `json:\"modify_time\"`\n\tCreateTime   time.Time `json:\"create_time\"`\n}\n```"
+  /broker/collect/agent/logon:
+    post:
+      summary: Agent 上报登录信息
+      operationId: post-broker-collect-agent-logon
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+        - Collect
+      description: "报文 JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tUser    string    `json:\"user\"  validate:\"required,lte=255\"`\n\tAddr    string    `json:\"addr\"  validate:\"omitempty,lte=100\"`\n\tClass   string    `json:\"class\" validate:\"omitempty,lte=255\"`\n\tTime    time.Time `json:\"time\"`\n\tType    string    `json:\"type\"`\n\tPID     int       `json:\"pid\"`\n\tDevice  string    `json:\"device\"`\n\tProcess string    `json:\"process\"`\n}\n```"
+  /broker/collect/agent/listen:
+    post:
+      summary: Agent 上报端口监听信息
+      operationId: post-broker-collect-agent-listen
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+        - Collect
+      description: "JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tCreates []*listen `json:\"creates\"` // 新增的 Listen\n\tUpdates []*listen `json:\"updates\"` // 更新的 Listen\n\tDeletes []string  `json:\"deletes\"` // 删除的 Listen RecordID\n}\n\ntype listen struct {\n\tRecordID  string `json:\"record_id\"`\n\tPID       uint32 `json:\"pid\"`\n\tFD        int    `json:\"fd\"`\n\tFamily    uint8  `json:\"family\"`\n\tProtocol  uint8  `json:\"protocol\"`\n\tLocalIP   string `json:\"local_ip\"`\n\tLocalPort int    `json:\"local_port\"`\n\tPath      string `json:\"path\"`\n\tState     string `json:\"state\"`\n\tProcess   string `json:\"process\"`\n\tUsername  string `json:\"username\"`\n}\n```"
+  /broker/collect/agent/account:
+    post:
+      summary: Agent 上报账户信息
+      operationId: post-broker-collect-agent-account
+      responses:
+        '200':
+          description: OK
+      description: "JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tCreates []*account `json:\"creates\"` // 新增的账户\n\tUpdates []*account `json:\"updates\"` // 更新的账户\n\tDeletes []string   `json:\"deletes\"` // 删除的账户名\n}\n\ntype account struct {\n\tName        string `json:\"name\"`\n\tLoginName   string `json:\"login_name\"`\n\tUID         string `json:\"uid\"`\n\tGID         string `json:\"gid\"`\n\tHomeDir     string `json:\"home_dir\"`\n\tDescription string `json:\"description\"`\n\tStatus      string `json:\"status\"`\n\tRaw         string `json:\"raw\"`\n}\n```"
+      tags:
+        - Broker
+        - Collect
+  /broker/collect/agent/group:
+    post:
+      summary: Agent 上报用户组信息
+      operationId: post-broker-collect-agent-group
+      responses:
+        '200':
+          description: OK
+      description: "JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tCreates []*group `json:\"creates\"` // 新增的账户\n\tUpdates []*group `json:\"updates\"` // 更新的账户\n\tDeletes []string `json:\"deletes\"` // 删除的账户名\n}\n\ntype group struct {\n\tName        string `json:\"name\"`\n\tGID         string `json:\"gid\"`\n\tDescription string `json:\"description\"`\n}\n```"
+      tags:
+        - Broker
+        - Collect
+  /broker/collect/agent/sbom:
+    post:
+      summary: Agent 上报软件供应链信息
+      operationId: post-broker-collect-agent-sbom
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+        - Collect
+      description: "JSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tFilename  string    `json:\"filename\"`\n\tAlgorithm string    `json:\"algorithm\"`\n\tChecksum  string    `json:\"checksum\"`\n\tModifyAt  time.Time `json:\"modify_time\"`\n\tSize      int64     `json:\"size\"`\n\tProcess   procExt   `json:\"process\"`\n\tSDKs      []*sdk    `json:\"packages\"`\n}\n\ntype sdk struct {\n\tPurl      string   `json:\"purl\"`\n\tName      string   `json:\"name\"`\n\tVersion   string   `json:\"version\"`\n\tLanguage  string   `json:\"language\"`\n\tAlgorithm string   `json:\"algorithm\"`\n\tChecksum  string   `json:\"checksum\"`\n\tLicenses  []string `json:\"licenses\"`\n}\n\ntype procExt struct {\n\tPID      int    `json:\"pid\"`\n\tExe      string `json:\"exe\"`\n\tUsername string `json:\"username\"`\n}\n```"
+  /broker/operate/tag:
+    post:
+      summary: Agent 修改自身标签
+      operationId: post-broker-operate-tag
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+      description: "Agent 可以通过该接口新增或删除 `tag`。\n\n- 新增：只可以新增不存在的 `tag`。\n\n- 删除：只可以删除 Agent 新增的 `tag`，web 界面添加的标签不可被 Agent 删除。\n\nJSON 格式如 struct 所示：\n\n```go\ntype Request struct {\n\tAdd []string `json:\"add\" validate:\"lte=50,unique,dive,tag\"`\n\tDel []string `json:\"del\" validate:\"lte=50,unique,dive,tag\"`\n}\n```"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add:
+                  type: array
+                  items:
+                    type: string
+                del:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - add
+                - del
+            examples:
+              示例:
+                value:
+                  add:
+                    - centos7
+                    - devops
+                  del:
+                    - guba
+  /broker/audit/event:
+    post:
+      summary: Event 事件上报
+      operationId: post-broker-audit-event
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+      description: "```go\ntype Request struct {\n\tSubject    string    `json:\"subject\"`     // 主题\n\tRemoteAddr string    `json:\"remote_addr\"` // 远程地址\n\tRemotePort int       `json:\"remote_port\"` // 远程端口\n\tFromCode   string    `json:\"from_code\"`   // 来源模块\n\tTypeof     string    `json:\"typeof\"`      // 模块类型\n\tUser       string    `json:\"user\"`        // 用户信息\n\tAuth       string    `json:\"auth\"`        // 认证信息\n\tMsg        string    `json:\"msg\"`         // 上报消息\n\tError      string    `json:\"error\"`       // 错误信息\n\tRegion     string    `json:\"region\"`      // IP 定位\n\tLevel      string    `json:\"level\"`       // 告警级别 紧急 重要 次要 普通\n\tSendAlert  bool      `json:\"send_alert\"`  // 是否需要发送告警\n\tOccurAt    time.Time `json:\"occur_at\"`    // 事件发生的时间\n\tCreatedAt  time.Time `json:\"created_at\"`  // 创建时间\n}\n```"
+  /broker/audit/risk:
+    post:
+      summary: Risk 风险事件上报
+      operationId: post-broker-audit-risk
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+      description: "```go\ntype Request struct {\n\t// Class 风险类型\n\t// [\"暴力破解\", \"病毒事件\", \"弱口令\", \"数据爬虫\", \"蜜罐应用\", \"web 攻击\", \"监控事件\", \"登录事件\"]\n\tClass      string    `json:\"class\"`\n\tInet       string    `json:\"inet\"`        // 节点 IPv4\n\tLevel      string    `json:\"level\"`       // 风险级别 紧急 高危 中危 低危\n\tPayload    string    `json:\"payload\"`     // 攻击载荷\n\tSubject    string    `json:\"subject\"`     // 风险事件主题\n\tLocalIP    string    `json:\"local_ip\"`    // 本地 IP\n\tLocalPort  int       `json:\"local_port\"`  // 本地端口\n\tRemoteIP   string    `json:\"remote_ip\"`   // 远程 IP\n\tRemotePort int       `json:\"remote_port\"` // 远程端口\n\tFromCode   string    `json:\"from_code\"`   // 来源模块\n\tRegion     string    `json:\"region\"`      // IP 归属地\n\tReference  string    `json:\"reference\"`   // 参考引用\n\tAlert      bool      `json:\"alert\"`       // 是否需要发送告警\n\tTime       time.Time `json:\"time\"`        // 风险产生的时间\n}\n```"
+  /broker/forward/elastic:
+    post:
+      summary: ES 代理
+      operationId: post-broker-forward-elastic
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+      description: '目前仅只支持 [bulk](https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-bulk.html) 操作。agent 要遵循 elastic bulk 的报文规则。'
+  /agent/notice/upgrade:
+    post:
+      summary: 升级通知回调
+      operationId: post-agent-notice-upgrade
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agent
+      description: |-
+        有新版本更新时，会通过该接口回调通知 `agent` 节点。
+        收到该通知后 `agent` 可调用 [检查更新接口](/operations/get-broker-upgrade-download) 来检查是否有新的更新包。
+        该通知只是告诉 `agent` 执行检查更新，不代表一定有了新版本发布。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+                  description: 需要升级到的版本号
+                  example: 1.2.3
+        description: '`version` 为空时代表升级检查到最新版。不为空代表升级到指定版本（可能降级时会用到）'
+  /broker/upgrade/download:
+    get:
+      summary: 检查更新客户端
+      tags:
+        - Broker
+      responses: {}
+      operationId: get-broker-upgrade-download
+      description: |-
+        请求参数中的 `tags` 是可以为空，元素不可重复，不能大于 16 个标签。这些标签会被隐写在二进制文件中。
+
+        `version` 代表要升级到哪个版本，空代表升级到最新版。
+
+        ```go
+        q := url.Vaules{"version": []string{"1.2.3"}, "tags": []strings{"aaa", "bbb", "ccc"}}
+        addr := "/api/v1/broker/upgrade/download?" + q.Encode()
+        att, err := tun.Attachment(ctx, addr)
+        ```
+      parameters:
+        - schema:
+            type: array
+          in: query
+          name: tags
+          description: 隐写标签
+        - schema:
+            type: string
+            example: 0.1.0
+          in: query
+          name: version
+          description: 指定版本号，不填写则升级到最新版
+  '/broker/proxy/elastic/{path}':
+    parameters:
+      - schema:
+          type: string
+        name: path
+        in: path
+        required: true
+    get:
+      summary: ES 正向代理
+      tags:
+        - Broker
+      responses: {}
+      operationId: get-broker-proxy-elastic-path
+      description: |-
+        ```go
+        // "github.com/olivere/elastic/v7"
+        doer := tun.Doer("/api/v1/broker/proxy/elastic")
+        cli, err := elastic.NewClient(elastic.SetHttpClient(doer))
+        ```
+    post:
+      summary: ES 正向代理
+      operationId: post-broker-proxy-elastic-path
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Broker
+      description: |-
+        ```go
+        // "github.com/olivere/elastic/v7"
+        doer := tun.Doer("/api/v1/broker/proxy/elastic")
+        cli, err := elastic.NewClient(elastic.SetHttpClient(doer))
+        ```
+  /agent/notice/command:
+    post:
+      summary: 命令回调
+      operationId: post-agent-notice-command
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agent
+      description: |-
+        命令回调
+
+        `cmd` ：
+        - `offline` 节点重启
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cmd:
+                  type: string
+              required:
+                - cmd
+components:
+  schemas:
+    TaskDiff:
+      title: TaskDiff
+      x-stoplight:
+        id: ztigrtssizk6y
+      type: object
+      description: '中心端比对后返回的差异信息，请c[Go struct 定义]'
+      properties:
+        removes:
+          type: array
+          items:
+            type: integer
+        updates:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskChunk'
+      examples:
+        - removes:
+            - 89655745887242450000
+          updates:
+            - id: 789665585552788
+              name: kafka
+              dialect: true
+              hash: 28f35476af08ba7d170529ec46484b98
+              chunk: cHJpbnQoIkhlbGxvIik=
+    TaskChunk:
+      title: TaskChunk
+      x-stoplight:
+        id: ma43hfagscnvy
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        dialect:
+          type: boolean
+        hash:
+          type: string
+        chunk:
+          type: string
+      examples:
+        - id: 7895536473673485
+          name: kafka
+          dialect: true
+          hash: 28f35476af08ba7d170529ec46484b98
+          chunk: cHJpbnQoIkhlbGxvIik=
+    TaskRunner:
+      title: TaskRunner
+      x-stoplight:
+        id: w11u8tn7n60xh
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+      examples:
+        - name: kafka.sub
+          type: kafka
+          status: running
+    TaskStatus:
+      title: TaskStatus
+      x-stoplight:
+        id: mv0o6vtb7qsqy
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        dialect:
+          type: boolean
+        hash:
+          type: string
+        uptime:
+          type: string
+        from:
+          type: string
+        runners:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskRunner'
+      examples:
+        - id: 1133847578322
+          name: kafka
+          dialect: true
+          hash: 28f35476af08ba7d170529ec46484b98
+          uptime: '2023-05-23T02:42:26.968Z'
+          from: tunnel
+          runners:
+            - name: kafka.sub
+              type: kafka
+              status: running
+    TaskReport:
+      title: TaskReport
+      x-stoplight:
+        id: dvqomtdddc6j7
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskStatus'
+      examples:
+        - tasks:
+            - id: 1133847578322
+              name: kafka
+              dialect: true
+              hash: 28f35476af08ba7d170529ec46484b98
+              uptime: '2023-05-23T02:42:26.968Z'
+              from: tunnel
+              runners:
+                - name: kafka.sub
+                  type: kafka
+                  status: running
