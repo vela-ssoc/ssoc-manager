@@ -193,7 +193,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		return 0, err
 	}
 
-	// 根据前端提交的数据，分为一下三种情况：
+	// 根据前端提交的数据，分为以下三种情况：
 	// 一、无需下发任务更新通知：
 	// 		1. Exclusion、Tags、Substances、Enable 这四个字段均未修改。
 	//		2. 修改前是关闭状态，提交的还是关闭状态，无论修改其它什么字段，都不会下发更新任务。
