@@ -193,14 +193,25 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		return 0, err
 	}
 
-	// 分为重量级更新与轻量级更新。
-	// 只有排除节点（Exclusion）发生修改是轻量级更新，
-	// 其它参数任意一个发生修改就算重量级更新（其它参数：Tags、Substances、Enable）。
-	heavy := eu.Enable != reduce.Enable ||
-		!eff.equalsStrings(eu.Tags, reduce.Tags) ||
-		!eff.equalsInt64s(eu.Substances, reduce.Substances)
-	light := !heavy && !eff.equalsStrings(eu.Exclusion, reduce.Exclusion)
-	if heavy || light { // 无论轻量级还是重量级的修改都要加锁
+	// 根据前端提交的数据，分为一下三种情况：
+	// 一、无需下发任务更新通知：
+	// 		1. Exclusion、Tags、Substances、Enable 这四个字段均未修改。
+	//		2. 修改前是关闭状态，提交的还是关闭状态，无论修改其它什么字段，都不会下发更新任务。
+	// 二、轻量级更新：
+	// 		1. 本次提交只修改了 Exclusion 字段，并且提交前和本次提交的 Enable 都是 true。
+	// 三、全量更新：
+	// 		1. 修改 Tags、Substances、Enable 这几个字段的任意一个值就需要全量更新。
+	var heavy, light bool
+	nothing := !eu.Enable && !reduce.Enable
+	if !nothing {
+		heavy = !eff.equalsStrings(eu.Tags, reduce.Tags) ||
+			!eff.equalsInt64s(eu.Substances, reduce.Substances)
+		if !heavy {
+			light = !heavy && !eff.equalsStrings(eu.Exclusion, reduce.Exclusion)
+		}
+	}
+
+	if !nothing { // 无论轻量级还是重量级的修改都要加锁
 		if err = eff.task.BusyError(ctx); err != nil {
 			return 0, err
 		}
@@ -218,17 +229,17 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		}
 		return dao.CreateInBatches(effects, 200)
 	})
-	if err != nil || (!heavy && !light) {
+	if err != nil || nothing {
 		return 0, err
 	}
 
-	if heavy { // 重量级更新就更新全部相关标签
-		allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
-		return eff.task.AsyncTags(ctx, allTags)
+	if light {
+		diffs := eff.diff(eu.Exclusion, reduce.Exclusion)
+		return eff.task.AsyncInets(ctx, diffs)
 	}
-	diffs := eff.diff(eu.Exclusion, reduce.Exclusion)
 
-	return eff.task.AsyncInets(ctx, diffs)
+	allTags := eff.mergeStrings(eu.Tags, reduce.Tags)
+	return eff.task.AsyncTags(ctx, allTags)
 }
 
 func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, error) {
