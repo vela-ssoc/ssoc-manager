@@ -217,8 +217,11 @@ func (rest *minionREST) Batch(c *ship.Context) error {
 	}
 	keyword := req.Like()
 	ctx := c.Request().Context()
-	if len(req.Filters) == 0 && keyword == "" {
-		return errcode.ErrRequiredFilter
+
+	if req.Cmd != "resync" {
+		if len(req.Filters) == 0 && keyword == "" {
+			return errcode.ErrRequiredFilter
+		}
 	}
 
 	scope, err := rest.table.Inter(req.Input)

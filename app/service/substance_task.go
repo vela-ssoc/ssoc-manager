@@ -159,7 +159,7 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 		Delete()
 
 	// 查询相关节点
-	limit := 200
+	limit := 500
 	var offsetID int64
 	tagTbl := query.MinionTag
 	monTbl := query.Minion
@@ -170,6 +170,7 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 		err := tagTbl.WithContext(ctx).
 			Distinct(tagTbl.MinionID).
 			Where(tagTbl.MinionID.Gt(offsetID), tagTbl.Tag.In(tags...)).
+			Order(tagTbl.MinionID).
 			Limit(limit).
 			Scan(&minionIDs)
 		qsz := len(minionIDs)
@@ -208,10 +209,7 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 		if len(tasks) == 0 {
 			continue
 		}
-
-		if err = tbl.WithContext(ctx).Create(tasks...); err != nil {
-			break
-		}
+		_ = tbl.WithContext(ctx).Create(tasks...)
 	}
 
 	bids := make([]int64, 0, 16)

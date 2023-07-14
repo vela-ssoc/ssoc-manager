@@ -29,6 +29,8 @@ func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/monbin").
 		Data(route.Named("上传 agent 客户端")).POST(rest.Create).
 		Data(route.Named("删除 agent 客户端")).DELETE(rest.Delete)
+	bearer.Route("/monbin/release").
+		Data(route.Named("推送升级")).PATCH(rest.Release)
 }
 
 func (rest *minionBinaryREST) Page(c *ship.Context) error {
@@ -81,4 +83,15 @@ func (rest *minionBinaryREST) Create(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.Create(ctx, &req)
+}
+
+func (rest *minionBinaryREST) Release(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Release(ctx, req.ID)
 }

@@ -286,7 +286,7 @@ func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes 
 			Where(tbl.Status.Neq(deleted), tbl.ID.In(mids...)).
 			UpdateColumnSimple(tbl.Status.Value(deleted))
 		// 通知 broker 节点下线
-		biz.pusher.Offline(ctx, bid, mids)
+		biz.pusher.Command(ctx, bid, mids, "offline")
 		return nil
 	}
 
@@ -314,20 +314,21 @@ func (biz *minionService) Upgrade(ctx context.Context, mid int64, semver model.S
 	}
 
 	// 通知 agent 升级
-	biz.pusher.Upgrade(ctx, mon.BrokerID, mon.ID, string(semver))
+	biz.pusher.Upgrade(ctx, mon.BrokerID, []int64{mon.ID}, string(semver))
 
 	return nil
 }
 
 func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error {
 	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
+		// resync restart upgrade offline
 		biz.pusher.Command(ctx, bid, mids, cmd)
 		return nil
 	}
 
-	err := biz.batchFunc(ctx, scope, likes, cbFunc)
+	go biz.batchFunc(ctx, scope, likes, cbFunc)
 
-	return err
+	return nil
 }
 
 func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) error {

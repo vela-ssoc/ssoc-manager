@@ -46,7 +46,7 @@ type riskREST struct {
 	table dynsql.Table
 }
 
-func (rest *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *riskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rest.Attack)
 	bearer.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
@@ -56,6 +56,7 @@ func (rest *riskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rest.Pie)
 	bearer.Route("/risk").
 		Data(route.Named("批量删除风险事件")).DELETE(rest.Delete)
+	anon.Route("/risk").Data(route.Ignore()).GET(rest.HTML)
 	bearer.Route("/risk/ignore").
 		Data(route.Named("批量忽略风险事件")).PATCH(rest.Ignore)
 	bearer.Route("/risk/process").
@@ -226,4 +227,17 @@ func (rest *riskREST) Process(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.Process(ctx, scope)
+}
+
+func (rest *riskREST) HTML(c *ship.Context) error {
+	var req param.EventHTML
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	buf := rest.svc.HTML(ctx, req.ID, req.Secret)
+	size := strconv.FormatInt(int64(buf.Len()), 10)
+	c.SetRespHeader(ship.HeaderContentLength, size)
+
+	return c.Stream(http.StatusOK, ship.MIMETextHTMLCharsetUTF8, buf)
 }

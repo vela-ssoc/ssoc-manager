@@ -186,7 +186,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	minionLogonREST := mgtapi.MinionLogon(minionLogonService)
 	minionLogonREST.Route(anon, bearer, basic)
 
-	riskService := service.Risk()
+	riskService := service.Risk(store)
 	riskREST := mgtapi.Risk(riskService)
 	riskREST.Route(anon, bearer, basic)
 
@@ -241,7 +241,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
-	minionBinaryService := service.MinionBinary(gfs)
+	minionBinaryService := service.MinionBinary(pusher, gfs)
 	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)
 	minionBinaryREST.Route(anon, bearer, basic)
 

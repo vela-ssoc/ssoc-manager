@@ -1,11 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/storage"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -18,15 +20,20 @@ type RiskService interface {
 	Delete(ctx context.Context, scope dynsql.Scope) error
 	Ignore(ctx context.Context, scope dynsql.Scope) error
 	Process(ctx context.Context, scope dynsql.Scope) error
+	HTML(ctx context.Context, id int64, secret string) *bytes.Buffer
 }
 
-func Risk() RiskService {
-	return &riskService{}
+func Risk(store storage.Storer) RiskService {
+	return &riskService{
+		store: store,
+	}
 }
 
-type riskService struct{}
+type riskService struct {
+	store storage.Storer
+}
 
-func (rsk *riskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk) {
+func (biz *riskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk) {
 	tbl := query.Risk
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).
@@ -43,7 +50,7 @@ func (rsk *riskService) Page(ctx context.Context, page param.Pager, scope dynsql
 	return count, ret
 }
 
-func (rsk *riskService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack) {
+func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack) {
 	db := query.Risk.WithContext(ctx).UnderlyingDB().
 		Scopes(scope.Where).
 		Group("remote_ip, subject")
@@ -62,7 +69,7 @@ func (rsk *riskService) Attack(ctx context.Context, page param.Pager, scope dyns
 	return count, dats
 }
 
-func (rsk *riskService) Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount) {
+func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount) {
 	groupBy := scope.GroupColumn()
 	db := query.Risk.WithContext(ctx).UnderlyingDB()
 
@@ -82,7 +89,7 @@ func (rsk *riskService) Group(ctx context.Context, page param.Pager, scope dynsq
 	return count, dats
 }
 
-func (rsk *riskService) Recent(ctx context.Context, day int) *param.RecentCharts {
+func (biz *riskService) Recent(ctx context.Context, day int) *param.RecentCharts {
 	rawSQL := "SELECT a.date, a.risk_type, COUNT(*) AS count " +
 		"FROM (SELECT DATE_FORMAT(occur_at, '%m-%d') AS date, risk_type " +
 		"FROM risk " +
@@ -98,7 +105,7 @@ func (rsk *riskService) Recent(ctx context.Context, day int) *param.RecentCharts
 	return temps.Charts(day)
 }
 
-func (rsk *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
+func (biz *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
 	ret := query.Risk.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where).
@@ -109,7 +116,7 @@ func (rsk *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
 	return errcode.ErrDeleteFailed
 }
 
-func (rsk *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
+func (biz *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
 	tbl := query.Risk
 	col := tbl.Status.ColumnName().String()
 	tbl.WithContext(ctx).
@@ -119,7 +126,7 @@ func (rsk *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
 	return nil
 }
 
-func (rsk *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
+func (biz *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
 	tbl := query.Risk
 	col := tbl.Status.ColumnName().String()
 	tbl.WithContext(ctx).
@@ -127,4 +134,16 @@ func (rsk *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
 		Scopes(scope.Where).
 		UpdateColumn(col, model.RSProcessed)
 	return nil
+}
+
+func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *bytes.Buffer {
+	tbl := query.Risk
+	rsk, _ := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(id), tbl.Secret.Eq(secret), tbl.SendAlert.Is(true)).
+		First()
+	if rsk == nil {
+		rsk = new(model.Risk)
+	}
+
+	return biz.store.EventHTML(ctx, rsk)
 }

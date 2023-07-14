@@ -21,9 +21,8 @@ type Pusher interface {
 	StoreReset(ctx context.Context, id string)
 	NotifierReset(ctx context.Context)
 	Startup(ctx context.Context, bid, mid int64)
-	Upgrade(ctx context.Context, bid, mid int64, semver string)
+	Upgrade(ctx context.Context, bid int64, mid []int64, semver string)
 	Command(ctx context.Context, bid int64, mids []int64, cmd string)
-	Offline(ctx context.Context, bid int64, mids []int64)
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -105,19 +104,14 @@ func (pi *pushImpl) Startup(ctx context.Context, bid int64, mid int64) {
 	_ = pi.hub.Oneway(nil, bid, accord.FPStartup, req)
 }
 
-func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mid int64, semver string) {
-	req := accord.Upgrade{ID: mid, Semver: semver}
+func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mids []int64, semver string) {
+	req := accord.Upgrade{ID: mids, Semver: semver}
 	_ = pi.hub.Oneway(nil, bid, accord.FPUpgrade, req)
 }
 
 func (pi *pushImpl) Command(ctx context.Context, bid int64, mids []int64, cmd string) {
 	req := accord.Command{ID: mids, Cmd: cmd}
 	_ = pi.hub.Oneway(nil, bid, accord.FPCommand, req)
-}
-
-func (pi *pushImpl) Offline(ctx context.Context, bid int64, mids []int64) {
-	req := &accord.IDs{ID: mids}
-	_ = pi.hub.Oneway(nil, bid, accord.FPOffline, req)
 }
 
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {

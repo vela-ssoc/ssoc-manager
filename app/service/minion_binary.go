@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
@@ -15,16 +17,19 @@ type MinionBinaryService interface {
 	Deprecate(ctx context.Context, id int64) error
 	Delete(ctx context.Context, id int64) error
 	Create(ctx context.Context, req *param.NodeBinaryCreate) error
+	Release(ctx context.Context, id int64) error
 }
 
-func MinionBinary(gfs gridfs.FS) MinionBinaryService {
+func MinionBinary(pusher push.Pusher, gfs gridfs.FS) MinionBinaryService {
 	return &minionBinaryService{
-		gfs: gfs,
+		pusher: pusher,
+		gfs:    gfs,
 	}
 }
 
 type minionBinaryService struct {
-	gfs gridfs.FS
+	pusher push.Pusher
+	gfs    gridfs.FS
 }
 
 func (biz *minionBinaryService) Page(ctx context.Context, page param.Pager) (int64, []*model.MinionBin) {
@@ -126,4 +131,60 @@ func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	}
 
 	return err
+}
+
+func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
+	tbl := query.MinionBin
+	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
+	if err != nil {
+		return err
+	}
+	if bin.Deprecated {
+		return errcode.ErrDeprecated
+	}
+
+	go biz.sendRelease(bin.Goos, bin.Arch, string(bin.Semver))
+
+	return nil
+}
+
+func (biz *minionBinaryService) sendRelease(goos, arch, semver string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+
+	deleted := uint8(model.MSDelete)
+	tbl := query.Minion
+	dao := tbl.WithContext(ctx).
+		Select(tbl.ID, tbl.BrokerID).
+		Where(
+			tbl.Goos.Eq(goos),
+			tbl.Arch.Eq(arch),
+			tbl.Edition.Neq(semver),
+			tbl.Status.Neq(deleted),
+		).
+		Order(tbl.ID).
+		Limit(200)
+
+	var lastID int64
+	for {
+		minions, err := dao.Where(tbl.ID.Gt(lastID)).Find()
+		size := len(minions)
+		if err != nil || size == 0 {
+			break
+		}
+		lastID = minions[size-1].ID
+		hm := biz.reduce(minions)
+		for bid, mids := range hm {
+			biz.pusher.Upgrade(ctx, bid, mids, semver)
+		}
+	}
+}
+
+func (biz *minionBinaryService) reduce(minions []*model.Minion) map[int64][]int64 {
+	hm := make(map[int64][]int64, 16)
+	for _, m := range minions {
+		mid, bid := m.ID, m.BrokerID
+		hm[bid] = append(hm[bid], mid)
+	}
+	return hm
 }
