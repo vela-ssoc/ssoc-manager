@@ -14,12 +14,12 @@ func Pprof() route.Router {
 type pprofREST struct{}
 
 func (rest *pprofREST) Route(_, _, basic *ship.RouteGroupBuilder) {
-	basic.Route("/brr/debug/pprof").Data(route.Named("pprof-index")).GET(rest.Index)
-	basic.Route("/brr/debug/cmdline").Data(route.Named("pprof-cmdline")).GET(rest.Cmdline)
-	basic.Route("/brr/debug/profile").Data(route.Named("pprof-profile")).GET(rest.Profile)
-	basic.Route("/brr/debug/symbol").Data(route.Named("pprof-symbol")).GET(rest.Symbol)
-	basic.Route("/brr/debug/trace").Data(route.Named("pprof-trace")).GET(rest.Trace)
-	basic.Route("/brr/debug/*path").Data(route.Named("pprof-path")).GET(rest.Path)
+	basic.Route("/arr/debug/pprof").Data(route.Named("pprof-index")).GET(rest.Index)
+	basic.Route("/arr/debug/cmdline").Data(route.Named("pprof-cmdline")).GET(rest.Cmdline)
+	basic.Route("/arr/debug/profile").Data(route.Named("pprof-profile")).GET(rest.Profile)
+	basic.Route("/arr/debug/symbol").Data(route.Named("pprof-symbol")).GET(rest.Symbol)
+	basic.Route("/arr/debug/trace").Data(route.Named("pprof-trace")).GET(rest.Trace)
+	basic.Route("/arr/debug/*path").Data(route.Named("pprof-path")).GET(rest.Path)
 }
 
 func (rest *pprofREST) Index(c *ship.Context) error {

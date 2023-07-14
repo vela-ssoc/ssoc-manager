@@ -61,7 +61,7 @@ func DBSess(interval time.Duration) Session {
 
 	return &sessDB{
 		interval: interval,
-		timeout:  3 * time.Second,
+		timeout:  10 * time.Second,
 	}
 }
 
