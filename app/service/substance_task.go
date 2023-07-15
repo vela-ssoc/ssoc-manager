@@ -25,7 +25,7 @@ func SubstanceTask(seq SequenceService, pusher push.Pusher) SubstanceTaskService
 	return &substanceTaskService{
 		seq:     seq,
 		pusher:  pusher,
-		timeout: 10 * time.Minute,
+		timeout: time.Hour,
 	}
 }
 
