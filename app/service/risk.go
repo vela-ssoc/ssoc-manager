@@ -145,5 +145,5 @@ func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *byte
 		rsk = new(model.Risk)
 	}
 
-	return biz.store.EventHTML(ctx, rsk)
+	return biz.store.RiskHTML(ctx, rsk)
 }

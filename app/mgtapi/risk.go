@@ -230,7 +230,7 @@ func (rest *riskREST) Process(c *ship.Context) error {
 }
 
 func (rest *riskREST) HTML(c *ship.Context) error {
-	var req param.EventHTML
+	var req param.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

@@ -118,7 +118,7 @@ func (rest *eventREST) Delete(c *ship.Context) error {
 }
 
 func (rest *eventREST) HTML(c *ship.Context) error {
-	var req param.EventHTML
+	var req param.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

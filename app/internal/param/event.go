@@ -1,6 +1,6 @@
 package param
 
-type EventHTML struct {
+type ViewHTML struct {
 	IntID
 	Secret string `json:"secret" query:"secret" validate:"required,lte=255"`
 }
