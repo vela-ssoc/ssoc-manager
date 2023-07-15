@@ -92,7 +92,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	basic := anon.Clone().Use(auth.Basic)
 
 	// 初始化协程池
-	pool := gopool.New(1024, 1024, 10*time.Minute)
+	pool := gopool.New(512, 1024, 10*time.Minute)
 
 	// ==========[ broker begin ] ==========
 	huber := linkhub.New(http.NewServeMux(), pool, cfg) // 将连接中心注入到 broker 接入网关中
