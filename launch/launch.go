@@ -59,7 +59,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 		return nil, err
 	}
 	query.SetDefault(db)
-	gfs := gridfs.NewCDN(sdb, "", 60*1024)
+	secCfg := cfg.Section
+	gfs := gridfs.NewCDN(sdb, secCfg.CDN, 60*1024)
 
 	const name = "manager"
 	const headerKey = ship.HeaderAuthorization
@@ -68,7 +69,6 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	routeRecord := route.NewRecord()
 	recordMid := middle.Oplog(routeRecord)
 
-	secCfg := cfg.Section
 	prob := problem.NewHandle(name)
 	sess := session.DBSess(secCfg.Sess)
 	valid := validate.New()
@@ -154,11 +154,14 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	effectService := service.Effect(pusher, sequenceService, substanceTaskService)
 	effectREST := mgtapi.Effect(effectService)
 	effectREST.Route(anon, bearer, basic)
+
+	substanceTaskREST := mgtapi.SubstanceTask(substanceTaskService)
+	substanceTaskREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----
 
 	esForwardCfg := elastic.NewConfigure(name)
 	esForward := elastic.NewSearch(esForwardCfg, client)
-	elasticService := service.Elastic(pusher, esForward, esForwardCfg)
+	elasticService := service.Elastic(pusher, esForward, esForwardCfg, client)
 	elasticREST := mgtapi.Elastic(elasticService, headerKey, queryKey)
 	elasticREST.Route(anon, bearer, basic)
 

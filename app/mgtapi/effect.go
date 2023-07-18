@@ -22,8 +22,6 @@ func (eff *effectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/effects").Data(route.Ignore()).GET(eff.Page)
 	bearer.Route("/effect/progress").
 		Data(route.Ignore()).GET(eff.Progress)
-	bearer.Route("/effect/progresses").
-		Data(route.Ignore()).GET(eff.Progresses)
 	bearer.Route("/effect").
 		Data(route.Named("创建配置发布")).POST(eff.Create).
 		Data(route.Named("更新配置发布")).PUT(eff.Update).

@@ -7,6 +7,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -19,6 +20,9 @@ type SubstanceTaskService interface {
 	Progress(ctx context.Context, tid int64) *param.EffectProgress
 	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
 	BusyError(ctx context.Context) error
+
+	Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
+	Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
 }
 
 func SubstanceTask(seq SequenceService, pusher push.Pusher) SubstanceTaskService {
@@ -34,6 +38,48 @@ type substanceTaskService struct {
 	pusher  push.Pusher
 	timeout time.Duration
 	mutex   sync.Mutex
+}
+
+func (biz *substanceTaskService) Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+	if id == 0 {
+		id = biz.currentTaskID(ctx)
+	}
+	if id == 0 {
+		return 0, nil
+	}
+
+	return biz.page(ctx, id, page, scope, likes)
+}
+
+func (biz *substanceTaskService) Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+	return biz.page(ctx, 0, page, scope, likes)
+}
+
+func (biz *substanceTaskService) page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+	tbl := query.SubstanceTask
+	dao := tbl.WithContext(ctx).
+		Order(tbl.TaskID.Desc(), tbl.ID)
+	if id != 0 {
+		dao.Where(tbl.TaskID.Eq(id))
+	}
+
+	if len(likes) != 0 {
+		for i, like := range likes {
+			likes[i] = dao.Or(like)
+		}
+		dao.Where(likes...)
+	}
+	db := dao.UnderlyingDB().Scopes(scope.Where)
+
+	var count int64
+	if db.Count(&count); count == 0 {
+		return 0, nil
+	}
+
+	var dats []*model.SubstanceTask
+	db.Scopes(page.DBScope(count)).Find(&dats)
+
+	return count, dats
 }
 
 func (biz *substanceTaskService) AsyncTags(ctx context.Context, tags []string) (int64, error) {

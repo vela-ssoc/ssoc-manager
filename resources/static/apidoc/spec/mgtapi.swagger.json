@@ -5313,14 +5313,14 @@
           }
         },
         "tags": [
-          "elastic"
+          "elastic",
+          "最近修改"
         ],
-        "description": "添加 es 配置",
+        "description": "## 2023-07-18\n请求报文删除 `host` 字段，新增 `hosts` 字段。\n",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "description": "",
                 "type": "object",
                 "x-examples": {
                   "example-1": {
@@ -5332,10 +5332,6 @@
                   }
                 },
                 "properties": {
-                  "host": {
-                    "type": "string",
-                    "minLength": 1
-                  },
                   "username": {
                     "type": "string",
                     "minLength": 1
@@ -5350,20 +5346,30 @@
                   },
                   "enable": {
                     "type": "boolean"
+                  },
+                  "hosts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "required": [
-                  "host",
-                  "enable"
+                  "enable",
+                  "hosts"
                 ]
               },
               "examples": {
-                "example-1": {
+                "示例": {
                   "value": {
                     "host": "http://172.31.218.51:9200",
                     "username": "elastic",
-                    "password": "mQxsr27Tok9lyYAHU9j3",
-                    "desc": "测试环境",
+                    "password": "xxx@passwd142.#",
+                    "hosts": [
+                      "http://172.31.218.51:9200",
+                      "http://172.31.218.52:9200"
+                    ],
+                    "desc": "办公网测试",
                     "enable": true
                   }
                 }
@@ -5380,12 +5386,11 @@
             "description": "OK"
           }
         },
-        "description": "修改 es 配置",
+        "description": "## 2023-07-18\n请求报文删除 `host` 字段，新增 `hosts` 字段。",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "description": "",
                 "type": "object",
                 "x-examples": {
                   "example-1": {
@@ -5402,10 +5407,6 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "host": {
-                    "type": "string",
-                    "minLength": 1
-                  },
                   "username": {
                     "type": "string",
                     "minLength": 1
@@ -5413,6 +5414,12 @@
                   "password": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "hosts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "desc": {
                     "type": "string",
@@ -5424,18 +5431,22 @@
                 },
                 "required": [
                   "id",
-                  "host",
+                  "hosts",
                   "enable"
                 ]
               },
               "examples": {
-                "example-1": {
+                "示例": {
                   "value": {
                     "id": "5289625269977018",
                     "host": "http://172.31.218.51:9200",
                     "username": "elastic",
-                    "password": "mQxsr27Tok9lyYAHU9j3",
-                    "desc": "测试环境",
+                    "password": "xxx@passwd142.#",
+                    "hosts": [
+                      "http://172.31.218.51:9200",
+                      "http://172.31.218.52:9200"
+                    ],
+                    "desc": "办公网测试",
                     "enable": true
                   }
                 }
@@ -5444,7 +5455,8 @@
           }
         },
         "tags": [
-          "elastic"
+          "elastic",
+          "最近修改"
         ]
       },
       "delete": {
@@ -23724,6 +23736,30 @@
             }
           }
         }
+      }
+    },
+    "/effect/progress/cond": {
+      "get": {
+        "summary": "进度条件",
+        "tags": [
+          "最近修改",
+          "effect"
+        ],
+        "responses": {},
+        "operationId": "get-effect-progress-cond",
+        "description": "进度条件"
+      }
+    },
+    "/effect/progress/histories": {
+      "get": {
+        "summary": "查询进度历史",
+        "tags": [
+          "effect",
+          "最近修改"
+        ],
+        "responses": {},
+        "operationId": "get-effect-progress-histories",
+        "description": ""
       }
     }
   },

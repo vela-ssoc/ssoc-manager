@@ -13,3 +13,17 @@ Content-Type: application/json
     "tags": "hostname=localhost,a=b,c=d",
     "notifier": "[{\"name\":\"张三\",\"mobile\":\"15927458888\",\"email\":\"zhangsan@eastmoney.com\",\"serial_number\":\"160001\",\"notify_methods\":\"weixin,sms\"}]"
 }
+
+### ES https://www.elastic.co/guide/en/elasticsearch/reference/8.8/cat-nodes.html
+GET http://172.16.88.58:9200/_cat/nodes?format=json&h=http,name
+
+### detect
+POST http://127.0.0.1:8081/api/v1/elastic/detect
+Authorization: 62492104347275264.cu0o9db71cfy.ed7ae9eee270c79e63a6232787f937d517e544053006b9723c6d89c92499fffe
+Content-Type: application/json
+
+{
+  "host": "http://172.31.218.51:9200",
+  "username": "elastic",
+  "password": "mQxsr27Tok9lyYAHU9j3"
+}

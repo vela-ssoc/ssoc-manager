@@ -31,6 +31,8 @@ func (ela *elasticREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("新增 es 服务器")).POST(ela.Create).
 		Data(route.Named("修改 es 服务器")).PUT(ela.Update).
 		Data(route.Named("删除 es 服务器")).DELETE(ela.Delete)
+	bearer.Route("/elastic/detect").
+		Data(route.Named("探测 es 集群节点")).POST(ela.Detect)
 }
 
 func (ela *elasticREST) Forward(c *ship.Context) error {
@@ -89,6 +91,18 @@ func (ela *elasticREST) Delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return ela.svc.Delete(ctx, req.ID)
+}
+
+func (ela *elasticREST) Detect(c *ship.Context) error {
+	var req param.ElasticDetect
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	res := ela.svc.Detect(ctx, req.Host, req.Username, req.Password)
+
+	return c.JSON(http.StatusOK, res)
 }
 
 // desensitization 对代理转发的请求脱敏，前端用户请求携带的认证信息不应该带到后面的节点请求中。

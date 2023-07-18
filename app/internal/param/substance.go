@@ -39,3 +39,8 @@ type SubstanceCommand struct {
 	IntID
 	Cmd string `json:"cmd" validate:"oneof=resync offline"`
 }
+
+type IDPageSQL struct {
+	OptionalID
+	PageSQL
+}
