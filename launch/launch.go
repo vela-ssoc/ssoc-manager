@@ -268,7 +268,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskIPREST := mgtapi.RiskIP(riskIPService)
 	riskIPREST.Route(anon, bearer, basic)
 
-	emailService := service.Email()
+	emailService := service.Email(pusher)
 	emailREST := mgtapi.Email(emailService)
 	emailREST.Route(anon, bearer, basic)
 

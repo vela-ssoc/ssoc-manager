@@ -18,6 +18,7 @@ type Pusher interface {
 	ThirdDelete(ctx context.Context, name string)
 	ElasticReset(ctx context.Context)
 	EmcReset(ctx context.Context)
+	EmailReset(ctx context.Context)
 	StoreReset(ctx context.Context, id string)
 	NotifierReset(ctx context.Context)
 	Startup(ctx context.Context, bid, mid int64)
@@ -88,6 +89,10 @@ func (pi *pushImpl) ElasticReset(ctx context.Context) {
 
 func (pi *pushImpl) EmcReset(ctx context.Context) {
 	pi.hub.Broadcast(nil, accord.FPEmcReset, nil)
+}
+
+func (pi *pushImpl) EmailReset(ctx context.Context) {
+	pi.hub.Broadcast(nil, accord.FPEmailReset, nil)
 }
 
 func (pi *pushImpl) StoreReset(ctx context.Context, id string) {

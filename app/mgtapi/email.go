@@ -21,6 +21,10 @@ type emailREST struct {
 
 func (rest *emailREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/emails").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/email").
+		Data(route.Named("新增邮箱配置")).POST(rest.Create).
+		Data(route.Named("修改邮箱配置")).PUT(rest.Update).
+		Data(route.Named("删除邮箱配置")).DELETE(rest.Delete)
 }
 
 func (rest *emailREST) Page(c *ship.Context) error {
@@ -35,4 +39,40 @@ func (rest *emailREST) Page(c *ship.Context) error {
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *emailREST) Create(c *ship.Context) error {
+	var req param.EmailCreate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.Create(ctx, &req)
+
+	return err
+}
+
+func (rest *emailREST) Update(c *ship.Context) error {
+	var req param.EmailUpdate
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.Update(ctx, &req)
+
+	return err
+}
+
+func (rest *emailREST) Delete(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.Delete(ctx, req.ID)
+
+	return err
 }
