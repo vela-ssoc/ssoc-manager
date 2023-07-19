@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -290,7 +291,7 @@ func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes 
 		return nil
 	}
 
-	err := biz.batchFunc(ctx, scope, likes, cbFunc)
+	err := biz.batchFunc(scope, likes, cbFunc)
 
 	return err
 }
@@ -326,7 +327,7 @@ func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes [
 		return nil
 	}
 
-	go biz.batchFunc(ctx, scope, likes, cbFunc)
+	go biz.batchFunc(scope, likes, cbFunc)
 
 	return nil
 }
@@ -405,15 +406,17 @@ func (biz *minionService) BatchTag(ctx context.Context, scope dynsql.Scope, like
 		return err
 	}
 
-	return biz.batchFunc(ctx, scope, likes, fn)
+	return biz.batchFunc(scope, likes, fn)
 }
 
 func (biz *minionService) batchFunc(
-	ctx context.Context,
 	scope dynsql.Scope,
 	likes []gen.Condition,
 	cb func(ctx context.Context, bid int64, mids []int64) error,
 ) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+
 	tbl, tagTbl := query.Minion, query.MinionTag
 	deleted := uint8(model.MSDelete)
 	dao := tbl.WithContext(ctx).
@@ -427,24 +430,21 @@ func (biz *minionService) batchFunc(
 		dao.Where(likes...)
 	}
 
-	limit := 200
-	var offsetID int64
+	limit, offset := 200, 0
 	db := dao.UnderlyingDB().
 		Where(tbl.Status.Neq(deleted)).
 		Scopes(scope.Where).
 		Limit(limit)
 
-	var round int // 兜底
 	var err error
-	for round < 200 && err == nil {
-		round++
+	for err == nil {
 		var mids []int64
-		err = db.Where(tbl.ID.Gt(offsetID)).Scan(&mids).Error
+		err = db.Offset(offset).Limit(limit).Scan(&mids).Error
 		size := len(mids)
 		if err != nil || size == 0 {
 			break
 		}
-		offsetID = mids[size-1]
+		offset += size
 
 		dats, exx := tbl.WithContext(ctx).
 			Select(tbl.ID, tbl.Status, tbl.BrokerID).
