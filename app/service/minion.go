@@ -14,7 +14,6 @@ import (
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen"
-	"gorm.io/gen/field"
 	"gorm.io/gorm/clause"
 )
 
@@ -120,15 +119,11 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 }
 
 func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDetail, error) {
-	monTbl := query.Minion
-	infoTbl := query.SysInfo
+	tbl := query.Minion
 	dat := new(param.MinionDetail)
-	err := monTbl.WithContext(ctx).
-		Select(field.ALL).
-		LeftJoin(infoTbl, infoTbl.ID.EqCol(monTbl.ID)).
-		Where(monTbl.ID.Eq(id)).
-		Scan(&dat)
-	if err != nil {
+	if err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(id)).
+		Scan(dat); err != nil {
 		return nil, err
 	}
 
@@ -136,6 +131,27 @@ func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDe
 	dat.Tags, _ = tagTbl.WithContext(ctx).Where(tagTbl.MinionID.Eq(id)).Find()
 	if dat.Tags == nil {
 		dat.Tags = []*model.MinionTag{}
+	}
+
+	infoTbl := query.SysInfo
+	info, _ := infoTbl.WithContext(ctx).Where(infoTbl.ID.Eq(id)).First()
+	if info != nil {
+		dat.Release = info.Release
+		dat.CPUCore = info.CPUCore
+		dat.MemTotal = info.MemTotal
+		dat.MemFree = info.MemFree
+		dat.SwapTotal = info.SwapTotal
+		dat.SwapFree = info.SwapFree
+		dat.HostID = info.HostID
+		dat.Family = info.Family
+		dat.BootAt = info.BootAt
+		dat.VirtualSys = info.Virtual
+		dat.VirtualRole = info.VirtualRole
+		dat.ProcNumber = info.ProcNumber
+		dat.Hostname = info.Hostname
+		dat.KernelVersion = info.KernelVersion
+		dat.AgentTotal = info.AgentTotal
+		dat.AgentAlloc = info.AgentAlloc
 	}
 
 	return dat, nil

@@ -13,7 +13,7 @@ import (
 )
 
 type BrokerService interface {
-	Page(ctx context.Context, page param.Pager) (int64, []*model.Broker)
+	Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries)
 	Indices(ctx context.Context, idx param.Indexer) []*model.Broker
 	Create(ctx context.Context, req *param.BrokerCreate) error
 	Update(ctx context.Context, req *param.BrokerUpdate) error
@@ -32,7 +32,7 @@ type brokerService struct {
 	random *rand.Rand
 }
 
-func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, []*model.Broker) {
+func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries) {
 	tbl := query.Broker
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
@@ -44,14 +44,32 @@ func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, []
 		return 0, nil
 	}
 
-	dats, _ := dao.Scopes(page.Scope(count)).Find()
+	var ret param.BrokerSummaries
+	_ = dao.Scopes(page.Scope(count)).Scan(&ret)
+	certIDs, certMap := ret.CertMap()
+	if len(certIDs) == 0 || len(certMap) == 0 {
+		return count, ret
+	}
 
-	return count, dats
+	certTbl := query.Certificate
+	certs, _ := certTbl.WithContext(ctx).
+		Omit(certTbl.Certificate, certTbl.PrivateKey).
+		Where(certTbl.ID.In(certIDs...)).
+		Find()
+	for _, cert := range certs {
+		certID := cert.ID
+		summaries := certMap[certID]
+		for _, sm := range summaries {
+			sm.Certificate = cert
+		}
+	}
+
+	return count, ret
 }
 
 func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*model.Broker {
 	tbl := query.Broker
-	dao := tbl.WithContext(ctx)
+	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if kw := idx.Keyword(); kw != "" {
 		dao.Or(tbl.Name.Like(kw), tbl.Servername.Like(kw))
 	}
@@ -62,18 +80,26 @@ func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*mod
 }
 
 func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) error {
+	if certID := req.CertID; certID != 0 {
+		tbl := query.Certificate
+		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
+		if err != nil || count == 0 {
+			return errcode.ErrCertificate
+		}
+	}
+
 	buf := make([]byte, 20)
 	biz.random.Read(buf)
 	secret := hex.EncodeToString(buf)
 
 	now := time.Now()
 	brk := &model.Broker{
-		ID:          0,
 		Name:        req.Name,
 		Servername:  req.Servername,
 		LAN:         req.LAN,
 		VIP:         req.VIP,
 		Secret:      secret,
+		CertID:      req.CertID,
 		Bind:        req.Bind,
 		HeartbeatAt: now,
 		CreatedAt:   now,
@@ -86,6 +112,14 @@ func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) e
 }
 
 func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) error {
+	if certID := req.CertID; certID != 0 {
+		tbl := query.Certificate
+		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
+		if err != nil || count == 0 {
+			return errcode.ErrCertificate
+		}
+	}
+
 	tbl := query.Broker
 	brk, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
@@ -98,6 +132,7 @@ func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) e
 	brk.Servername = req.Servername
 	brk.LAN = req.LAN
 	brk.VIP = req.VIP
+	brk.CertID = req.CertID
 
 	return tbl.WithContext(ctx).
 		Save(brk)

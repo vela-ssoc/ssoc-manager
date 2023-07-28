@@ -24256,6 +24256,134 @@
         ],
         "description": ""
       }
+    },
+    "/brkbins": {
+      "get": {
+        "summary": "broker 节点二进制发布",
+        "tags": [
+          "binary"
+        ],
+        "responses": {},
+        "operationId": "get-brkbins",
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageCurrent"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/Keyword"
+          }
+        ],
+        "description": "broker 节点二进制发布"
+      }
+    },
+    "/brkbin": {
+      "post": {
+        "summary": "上传 broker 二进制",
+        "operationId": "post-brkbin",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "description": "上传 broker 二进制",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "名字"
+                  },
+                  "goos": {
+                    "type": "string",
+                    "description": "操作系统",
+                    "enum": [
+                      "linux",
+                      "windows",
+                      "darwin"
+                    ]
+                  },
+                  "arch": {
+                    "type": "string",
+                    "description": "GOARCH",
+                    "enum": [
+                      "amd64",
+                      "386",
+                      "arm64",
+                      "arm"
+                    ]
+                  },
+                  "semver": {
+                    "type": "string",
+                    "description": "版本号"
+                  },
+                  "changelog": {
+                    "type": "string",
+                    "description": "更新日志"
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "二进制文件",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "name",
+                  "goos",
+                  "arch",
+                  "semver"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除 broker 二进制",
+        "operationId": "delete-brkbin",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "description": "删除 broker 二进制",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "id": "55384021388471216"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

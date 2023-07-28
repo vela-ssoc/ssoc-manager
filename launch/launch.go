@@ -3,6 +3,8 @@ package launch
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -60,7 +62,17 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	}
 	query.SetDefault(db)
 	secCfg := cfg.Section
-	gfs := gridfs.NewCDN(sdb, secCfg.CDN, 60*1024)
+
+	var gfs gridfs.FS
+	if dir := secCfg.CDN; dir == "" {
+		gfs = gridfs.NewFS(sdb)
+	} else {
+		cdn := filepath.Clean(dir)
+		if err = os.MkdirAll(cdn, os.ModePerm); err != nil {
+			return nil, err
+		}
+		gfs = gridfs.NewCDN(sdb, cdn, 60*1024)
+	}
 
 	const name = "manager"
 	const headerKey = ship.HeaderAuthorization
@@ -243,6 +255,14 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brokerService := service.Broker()
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
+
+	brokerBinaryService := service.BrokerBinary(gfs)
+	brokerBinaryREST := mgtapi.BrokerBinary(brokerBinaryService)
+	brokerBinaryREST.Route(anon, bearer, basic)
+
+	certService := service.Cert()
+	certREST := mgtapi.Cert(certService)
+	certREST.Route(anon, bearer, basic)
 
 	minionBinaryService := service.MinionBinary(pusher, gfs)
 	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)

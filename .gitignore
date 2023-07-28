@@ -20,6 +20,9 @@
 resources/config/*
 !resources/config/manager.example.yaml
 
+resources/cdn/*
+resources/test/*
+
 resources/log/*
 !resources/log/.gitkeep
 

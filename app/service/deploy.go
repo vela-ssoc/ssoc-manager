@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"io"
-	"io/fs"
-	"strconv"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -47,20 +45,10 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 	if err != nil {
 		return nil, err
 	}
+
 	// 查询客户端二进制信息
-	tbl := query.MinionBin
-	var bin *model.MinionBin
-	if req.ID > 0 {
-		bin, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).First()
-	} else {
-		dao := tbl.WithContext(ctx).
-			Where(tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
-			Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
-		if ver := string(req.Version); ver != "" {
-			dao.Where(tbl.Semver.Eq(ver))
-		}
-		bin, err = dao.First()
-	}
+	version := string(req.Version)
+	bin, err := biz.suitableMinion(ctx, req.ID, req.Goos, req.Arch, version)
 	if err != nil {
 		return nil, err
 	}
@@ -93,64 +81,29 @@ func (biz *deployService) Script(ctx context.Context, goos string, data *modview
 	return buf, nil
 }
 
-type oldFile struct {
-	size int64
-	inf  gridfs.File
-	rd   io.Reader
-}
+func (biz *deployService) suitableMinion(ctx context.Context, id int64, goos, arch, version string) (*model.MinionBin, error) {
+	tbl := query.MinionBin
+	dao := tbl.WithContext(ctx).
+		Where(tbl.Deprecated.Is(false)).
+		Order(tbl.Semver.Desc(), tbl.UpdatedAt.Desc())
+	if id != 0 {
+		return dao.Where(tbl.ID.Eq(id)).First()
+	}
 
-func (o *oldFile) Stat() (fs.FileInfo, error) {
-	return o.inf.Stat()
-}
+	if version != "" {
+		return dao.Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch), tbl.Semver.Eq(version)).First()
+	}
 
-func (o *oldFile) Read(p []byte) (int, error) {
-	return o.rd.Read(p)
-}
+	// 版本号包含 - + 的权重会下降，例如：
+	// 0.0.1-debug < 0.0.1
+	// 0.0.1+20230720 < 0.0.1
+	stmt := dao.Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch))
+	bin, err := stmt.WithContext(ctx).
+		Where(tbl.Semver.NotLike("%-%"), tbl.Semver.NotLike("%+%")).
+		First()
+	if err == nil {
+		return bin, nil
+	}
 
-func (o *oldFile) Close() error {
-	return o.inf.Close()
-}
-
-func (o *oldFile) Name() string {
-	return o.inf.Name()
-}
-
-func (o *oldFile) Size() int64 {
-	return o.size
-}
-
-func (o *oldFile) Mode() fs.FileMode {
-	return o.inf.Mode()
-}
-
-func (o *oldFile) ModTime() time.Time {
-	return o.inf.ModTime()
-}
-
-func (o *oldFile) IsDir() bool {
-	return o.inf.IsDir()
-}
-
-func (o *oldFile) Sys() any {
-	return o.inf.Sys()
-}
-
-func (o *oldFile) ID() int64 {
-	return o.inf.ID()
-}
-
-func (o *oldFile) MD5() string {
-	return ""
-}
-
-func (o *oldFile) ContentType() string {
-	return o.inf.ContentType()
-}
-
-func (o *oldFile) ContentLength() string {
-	return strconv.FormatInt(o.size, 10)
-}
-
-func (o *oldFile) Disposition() string {
-	return o.inf.Disposition()
+	return stmt.First()
 }

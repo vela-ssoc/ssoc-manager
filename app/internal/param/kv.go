@@ -1,13 +1,13 @@
 package param
 
 type NameCount struct {
-	Name  string `json:"name"  group:"column:name"`
-	Count int    `json:"count" group:"column:count"`
+	Name  string `json:"name"  gorm:"column:name"`
+	Count int    `json:"count" gorm:"column:count"`
 }
 
 type IDName struct {
-	ID   int64  `json:"id,string"`
-	Name string `json:"name"`
+	ID   int64  `json:"id,string" gorm:"column:id"`
+	Name string `json:"name"      gorm:"column:name"`
 }
 
 type IDNames []*IDName
