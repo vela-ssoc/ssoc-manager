@@ -3,13 +3,13 @@
   "info": {
     "title": "安全管理平台",
     "version": "1.0.0",
-    "description": "<details>\n<summary>简要说明</summary>\n\n![东方财富安全应急响应中心](banner.jpg)\n\n- 本文档由 [Stoplight Studio](https://stoplight.io/studio/) 编辑器编写 [GitHub](https://github.com/stoplightio/studio)\n\n- 本文档遵循 [OAS 3.0](https://swagger.io/specification/) 规范\n\n- [Swagger UI](https://swagger.io/tools/swagger-ui/) 演示/下载\n\n- 如果使用 [JetBrains](https://www.jetbrains.com) 系列自带的 [OpenAPI](https://plugins.jetbrains.com/plugin/14394-openapi-specifications) 工具开发调试，需要后端服务器开启 `CORS` 才可以请求成功。\n\n</details>\n",
+    "description": "<details>\n<summary>简要说明</summary>\n\n- 本文档由 [Stoplight Studio](https://stoplight.io/studio/) 编辑器编写 [GitHub](https://github.com/stoplightio/studio)\n\n- 本文档遵循 [OAS 3.0](https://swagger.io/specification/) 规范\n\n- [Swagger UI](https://swagger.io/tools/swagger-ui/) 演示/下载\n\n- 如果使用 [JetBrains](https://www.jetbrains.com) 系列自带的 [OpenAPI](https://plugins.jetbrains.com/plugin/14394-openapi-specifications) 工具开发调试，需要后端服务器开启 `CORS` 才可以请求成功。\n\n</details>\n",
     "contact": {
-      "email": "wangzhaoyun@eastmoney.com",
-      "url": "https://ssoc.eastmoney.com",
-      "name": "东方财富安全管理部"
+      "email": "ssoc@example.com",
+      "url": "https://example.com",
+      "name": "ssoc 安全平台"
     },
-    "termsOfService": "https://security.eastmoney.com"
+    "termsOfService": "https://example.com"
   },
   "servers": [
     {
@@ -33,6 +33,10 @@
     {
       "name": "minion",
       "description": "minion 节点"
+    },
+    {
+      "name": "cert",
+      "description": "证书模块"
     },
     {
       "name": "cmdb",
@@ -6193,12 +6197,11 @@
         "tags": [
           "broker"
         ],
-        "description": "添加代理节点",
+        "description": "## 20230727\n\n- 新增 `cert_id` 关联证书 ID。\n",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "description": "",
                 "type": "object",
                 "x-examples": {
                   "example-1": {
@@ -6232,6 +6235,10 @@
                   "bind": {
                     "type": "string",
                     "description": "监听地址"
+                  },
+                  "cert_id": {
+                    "type": "string",
+                    "description": "证书 ID"
                   }
                 },
                 "required": [
@@ -6246,6 +6253,7 @@
                   "value": {
                     "name": "测试环境",
                     "bind": "0.0.0.0:8080",
+                    "cert_id": "62833771294150656",
                     "servername": "vela-ssoc-brock-1.eastmoney.com",
                     "lan": [
                       "ws://172.31.61.168:8080"
@@ -6312,6 +6320,20 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "x-examples": {
+                  "Example 1": {
+                    "id": "789654235544123255",
+                    "name": "测试环境",
+                    "bind": "0.0.0.0:8080",
+                    "servername": "vela-ssoc-brock-1.eastmoney.com",
+                    "lan": [
+                      "ws://172.31.61.168:8080"
+                    ],
+                    "vip": [
+                      "ws://vela-ssoc-brock-1.eastmoney.com"
+                    ]
+                  }
+                },
                 "properties": {
                   "id": {
                     "type": "string"
@@ -6336,20 +6358,10 @@
                     "items": {
                       "type": "string"
                     }
-                  }
-                },
-                "x-examples": {
-                  "Example 1": {
-                    "id": "789654235544123255",
-                    "name": "测试环境",
-                    "bind": "0.0.0.0:8080",
-                    "servername": "vela-ssoc-brock-1.eastmoney.com",
-                    "lan": [
-                      "ws://172.31.61.168:8080"
-                    ],
-                    "vip": [
-                      "ws://vela-ssoc-brock-1.eastmoney.com"
-                    ]
+                  },
+                  "cert_id": {
+                    "type": "string",
+                    "description": "证书 ID"
                   }
                 }
               },
@@ -6359,6 +6371,7 @@
                     "id": "789654235544123255",
                     "name": "测试环境",
                     "bind": "0.0.0.0:8080",
+                    "cert_id": "62833771294150656",
                     "servername": "vela-ssoc-brock-1.eastmoney.com",
                     "lan": [
                       "ws://172.31.61.168:8080"
@@ -6372,7 +6385,7 @@
             }
           }
         },
-        "description": "修改代理节点信息",
+        "description": "## 20230727\n\n- 新增 `cert_id` 关联证书 ID。\n",
         "tags": [
           "broker",
           "最近修改"
@@ -23759,6 +23772,488 @@
         ],
         "responses": {},
         "operationId": "get-effect-progress-histories",
+        "description": ""
+      }
+    },
+    "/certs": {
+      "get": {
+        "summary": "查看证书列表",
+        "tags": [
+          "cert"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "x-examples": {
+                    "Example 1": {
+                      "total": 1,
+                      "current": 1,
+                      "size": 10,
+                      "records": [
+                        {
+                          "id": "195908195824582656",
+                          "name": "正式证书",
+                          "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLak",
+                          "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktrd2",
+                          "version": 3,
+                          "iss_country": [
+                            "US"
+                          ],
+                          "iss_province": [],
+                          "iss_org": [
+                            "DigiCert Inc"
+                          ],
+                          "iss_cn": "GeoTrust CN RSA CA G1",
+                          "iss_org_unit": [
+                            "www.digicert.com"
+                          ],
+                          "sub_country": [
+                            "CN"
+                          ],
+                          "sub_org": [
+                            "East Money Information Co., Ltd."
+                          ],
+                          "sub_province": [
+                            "Shanghai"
+                          ],
+                          "sub_cn": "*.eastmoney.com",
+                          "dns_names": [
+                            "*.eastmoney.com",
+                            "eastmoney.com",
+                            "*.push2.eastmoney.com",
+                            "*.newspush.eastmoney.com",
+                            "*.push2his.eastmoney.com",
+                            "*.push2fund.eastmoney.com",
+                            "*.push2delay.eastmoney.com"
+                          ],
+                          "ip_addresses": [],
+                          "email_addresses": [],
+                          "uris": [],
+                          "not_before": "2022-08-11T08:00:00+08:00",
+                          "not_after": "2023-09-12T07:59:59+08:00",
+                          "created_at": "2023-07-26T14:29:14+08:00",
+                          "updated_at": "2023-07-26T14:29:14+08:00"
+                        }
+                      ]
+                    }
+                  },
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "current": {
+                      "type": "integer"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "certificate": {
+                            "type": "string"
+                          },
+                          "private_key": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "iss_country": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "iss_province": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "iss_org": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "iss_cn": {
+                            "type": "string"
+                          },
+                          "iss_org_unit": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sub_country": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sub_org": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sub_province": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sub_cn": {
+                            "type": "string"
+                          },
+                          "dns_names": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "ip_addresses": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "email_addresses": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "uris": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "not_before": {
+                            "type": "string"
+                          },
+                          "not_after": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "total": 1,
+                      "current": 1,
+                      "size": 10,
+                      "records": [
+                        {
+                          "id": "195908195824582656",
+                          "name": "正式证书",
+                          "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLak",
+                          "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktrd2",
+                          "version": 3,
+                          "iss_country": [
+                            "US"
+                          ],
+                          "iss_province": [],
+                          "iss_org": [
+                            "DigiCert Inc"
+                          ],
+                          "iss_cn": "GeoTrust CN RSA CA G1",
+                          "iss_org_unit": [
+                            "www.digicert.com"
+                          ],
+                          "sub_country": [
+                            "CN"
+                          ],
+                          "sub_org": [
+                            "East Money Information Co., Ltd."
+                          ],
+                          "sub_province": [
+                            "Shanghai"
+                          ],
+                          "sub_cn": "*.eastmoney.com",
+                          "dns_names": [
+                            "*.eastmoney.com",
+                            "eastmoney.com",
+                            "*.push2.eastmoney.com",
+                            "*.newspush.eastmoney.com",
+                            "*.push2his.eastmoney.com",
+                            "*.push2fund.eastmoney.com",
+                            "*.push2delay.eastmoney.com"
+                          ],
+                          "ip_addresses": [],
+                          "email_addresses": [],
+                          "uris": [],
+                          "not_before": "2022-08-11T08:00:00+08:00",
+                          "not_after": "2023-09-12T07:59:59+08:00",
+                          "created_at": "2023-07-26T14:29:14+08:00",
+                          "updated_at": "2023-07-26T14:29:14+08:00"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-certs",
+        "description": "字段说明：\n```go\ntype Certificate struct {\n\tID             int64     `json:\"id,string\"       gorm:\"column:id;primaryKey\"`        // ID\n\tName           string    `json:\"name\"            gorm:\"column:name\"`                 // 名字\n\tCertificate    []byte    `json:\"certificate\"     gorm:\"column:certificate\"`          // 证书\n\tPrivateKey     []byte    `json:\"private_key\"     gorm:\"column:private_key\"`          // 私钥\n\tVersion        int       `json:\"version\"         gorm:\"column:version\"`              // 证书版本\n\tIssCountry     []string  `json:\"iss_country\"     gorm:\"column:iss_country;json\"`     // 颁发者国家\n\tIssProvince    []string  `json:\"iss_province\"    gorm:\"column:iss_province;json\"`    // 颁发者省份\n\tIssOrg         []string  `json:\"iss_org\"         gorm:\"column:iss_org;json\"`         // 颁发者组织\n\tIssCN          string    `json:\"iss_cn\"          gorm:\"column:iss_cn\"`               // 颁发者 Common Name\n\tIssOrgUnit     []string  `json:\"iss_org_unit\"    gorm:\"column:iss_org_unit;json\"`    // 颁发者组织单位\n\tSubCountry     []string  `json:\"sub_country\"     gorm:\"column:sub_country;json\"`     // 主题国家\n\tSubOrg         []string  `json:\"sub_org\"         gorm:\"column:sub_org;json\"`         // 主题组织\n\tSubProvince    []string  `json:\"sub_province\"    gorm:\"column:sub_province;json\"`    // 主题省份\n\tSubCN          string    `json:\"sub_cn\"          gorm:\"column:sub_cn\"`               // 主题 Common Name\n\tDNSNames       []string  `json:\"dns_names\"       gorm:\"column:dns_names;json\"`       // 证书 DNS Name\n\tIPAddresses    []string  `json:\"ip_addresses\"    gorm:\"column:ip_addresses;json\"`    // IP Addresses\n\tEmailAddresses []string  `json:\"email_addresses\" gorm:\"column:email_addresses;json\"` // Email Addresses\n\tURIs           []string  `json:\"uris\"            gorm:\"column:uris;json\"`            // URIs\n\tNotBefore      time.Time `json:\"not_before\"      gorm:\"column:not_before\"`           // 证书生效时间\n\tNotAfter       time.Time `json:\"not_after\"       gorm:\"column:not_after\"`            // 证书过期时间\n\tCreatedAt      time.Time `json:\"created_at\"      gorm:\"column:created_at\"`           // 创建时间\n\tUpdatedAt      time.Time `json:\"updated_at\"      gorm:\"column:updated_at\"`           // 更新时间\n}\n```",
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageCurrent"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/Keyword"
+          }
+        ]
+      }
+    },
+    "/cert": {
+      "post": {
+        "summary": "新增证书",
+        "operationId": "post-cert",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "cert"
+        ],
+        "description": "新增证书",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "x-examples": {
+                  "Example 1": {
+                    "name": "这是一张测试证书",
+                    "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLakNDQmhLZ0F3SUJBZ0lRQWN6TFNEaFBCOGFJbF",
+                    "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOX"
+                  }
+                },
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "证书名字"
+                  },
+                  "certificate": {
+                    "type": "string",
+                    "description": "证书 Base64"
+                  },
+                  "private_key": {
+                    "type": "string",
+                    "description": "私钥 Base64"
+                  }
+                },
+                "required": [
+                  "name",
+                  "certificate",
+                  "private_key"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "name": "这是一张测试证书",
+                    "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLakNDQmhLZ0F3SUJBZ0lRQWN6TFNEaFBCOGFJbF",
+                    "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOX"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "修改证书",
+        "operationId": "put-cert",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "x-examples": {
+                    "Example 1": {
+                      "id": "5289625269977018",
+                      "name": "这是一张测试证书",
+                      "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLakNDQmhLZ0F3SUJBZ0lRQWN6TFNEaFBCOGFJbF",
+                      "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOX"
+                    }
+                  },
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "证书名字"
+                    },
+                    "certificate": {
+                      "type": "string",
+                      "description": "证书 Base64"
+                    },
+                    "private_key": {
+                      "type": "string",
+                      "description": "私钥 Base64"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "certificate",
+                    "private_key"
+                  ]
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "id": "5289625269977018",
+                      "name": "这是一张测试证书",
+                      "certificate": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUhLakNDQmhLZ0F3SUJBZ0lRQWN6TFNEaFBCOGFJbF",
+                      "private_key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2d0lCQURBTkJna3Foa2lHOX"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cert"
+        ]
+      },
+      "delete": {
+        "summary": "删除证书",
+        "operationId": "delete-cert",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "cert"
+        ],
+        "description": "删除证书",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "id": "5289625269977018"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cert/indices": {
+      "get": {
+        "summary": "证书索引列表",
+        "tags": [
+          "cert"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "x-examples": {
+                    "Example 1": [
+                      {
+                        "id": "195908195824582656",
+                        "name": "正式证书"
+                      }
+                    ]
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "证书 ID"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "证书名字"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": [
+                      {
+                        "id": "195908195824582656",
+                        "name": "正式证书"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-cert-indices",
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageCurrent"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/Keyword"
+          }
+        ],
         "description": ""
       }
     }
