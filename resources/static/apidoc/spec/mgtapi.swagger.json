@@ -6214,31 +6214,35 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "description": "broker 节点名字"
                   },
                   "servername": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "description": "TLS 证书校验 servername（如：ssoc.example.com）"
                   },
                   "lan": {
                     "type": "array",
+                    "description": "内网访问地址（用于 agent 节点从内网上线连接，如：10.10.10.2:1443）",
                     "items": {
                       "type": "string"
                     }
                   },
                   "vip": {
                     "type": "array",
+                    "description": "外网连接地址（用于 agent 节点从外网上线连接，如：ssoc.example.com:1443）",
                     "items": {
                       "type": "string"
                     }
                   },
                   "bind": {
                     "type": "string",
-                    "description": "监听地址"
+                    "description": "broker 服务监听地址（如：0.0.0.0:8443）"
                   },
                   "cert_id": {
                     "type": "string",
-                    "description": "证书 ID"
+                    "description": "关联证书 ID"
                   }
                 },
                 "required": [

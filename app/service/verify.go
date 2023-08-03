@@ -11,7 +11,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-common-mb/storage"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -237,6 +237,10 @@ func (vi *validInfo) verified(captID string) bool {
 }
 
 func (vi *validInfo) submit(captID, dongCode string) bool {
+	if !vi.dong {
+		return true
+	}
+
 	now := time.Now()
 
 	vi.mutex.Lock()

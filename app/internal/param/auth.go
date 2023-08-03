@@ -22,7 +22,7 @@ type AuthVerify struct {
 type AuthLogin struct {
 	AuthBase
 	CaptchaID string `json:"captcha_id" validate:"required,lte=255"`
-	Code      string `json:"code" validate:"len=6,numeric"`
+	Code      string `json:"code"`
 }
 
 type AuthDong struct {

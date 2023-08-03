@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/storage"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -68,14 +69,17 @@ func (biz *storeService) Page(ctx context.Context, page param.Pager) (int64, []*
 
 func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) error {
 	id, val := req.ID, req.Value
-	if biz.store.Invalid(id, val) {
-		return errcode.ErrInvalidData
+	if err := biz.store.Validate(id, val); err != nil {
+		return err
 	}
+	//if biz.store.Validate(id, val) {
+	//	return errcode.ErrInvalidData
+	//}
 
 	tbl := query.Store
 	_, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
-		if err != gorm.ErrRecordNotFound {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
 
@@ -94,8 +98,7 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 	if err != nil {
 		return err
 	}
-	biz.store.Reset(id)
-	if biz.store.Shared(id) {
+	if biz.store.Forget(id) {
 		biz.pusher.StoreReset(ctx, id)
 	}
 
@@ -114,8 +117,7 @@ func (biz *storeService) Delete(ctx context.Context, id string) error {
 		return errcode.ErrDeleteFailed
 	}
 
-	biz.store.Reset(id)
-	if biz.store.Shared(id) {
+	if biz.store.Forget(id) {
 		biz.pusher.StoreReset(ctx, id)
 	}
 

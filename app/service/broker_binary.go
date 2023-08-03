@@ -32,7 +32,7 @@ func (biz *brokerBinaryService) Page(ctx context.Context, page param.Pager) (int
 	tbl := query.BrokerBin
 	dao := tbl.WithContext(ctx).Order(tbl.Semver.Desc(), tbl.UpdatedAt.Desc())
 	if kw := page.Keyword(); kw != "" {
-		dao.Or(tbl.Name.Like(kw), tbl.Changelog.Like(kw))
+		dao.Where(tbl.Name.Like(kw)).Or(tbl.Changelog.Like(kw))
 	}
 	count, _ := dao.Count()
 	if count == 0 {

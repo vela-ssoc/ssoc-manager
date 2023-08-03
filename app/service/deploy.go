@@ -9,7 +9,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/stegano"
-	"github.com/vela-ssoc/vela-common-mb/storage"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -77,7 +77,7 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 }
 
 func (biz *deployService) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
-	buf := biz.store.Deploy(ctx, goos, data)
+	buf := biz.store.DeployScript(ctx, goos, data)
 	return buf, nil
 }
 
