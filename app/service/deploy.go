@@ -8,8 +8,8 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/stegano"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -68,12 +68,15 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		Tags:       req.Tags,
 		DownloadAt: time.Now(),
 	}
-	if file, exx := stegano.AppendStream(inf, hide); exx != nil {
+	enc, exx := ciphertext.EncryptPayload(hide)
+	if exx != nil {
 		_ = inf.Close()
 		return nil, exx
-	} else {
-		return file, nil
 	}
+
+	file := gridfs.Merge(inf, enc)
+
+	return file, nil
 }
 
 func (biz *deployService) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
