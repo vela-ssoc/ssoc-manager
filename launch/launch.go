@@ -256,7 +256,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
-	brokerBinaryService := service.BrokerBinary(gfs)
+	brokerBinaryService := service.BrokerBinary(gfs, store)
 	brokerBinaryREST := mgtapi.BrokerBinary(brokerBinaryService)
 	brokerBinaryREST.Route(anon, bearer, basic)
 

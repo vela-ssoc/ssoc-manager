@@ -88,7 +88,7 @@ func (biz *deployService) suitableMinion(ctx context.Context, id int64, goos, ar
 	tbl := query.MinionBin
 	dao := tbl.WithContext(ctx).
 		Where(tbl.Deprecated.Is(false)).
-		Order(tbl.Semver.Desc(), tbl.UpdatedAt.Desc())
+		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
 	if id != 0 {
 		return dao.Where(tbl.ID.Eq(id)).First()
 	}

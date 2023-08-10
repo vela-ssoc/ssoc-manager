@@ -1,6 +1,7 @@
 package mgtapi
 
 import (
+	"net"
 	"net/http"
 
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -22,7 +23,7 @@ type brokerBinaryREST struct {
 func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brkbins").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/brkbin").
-		Data(route.Ignore()).POST(rest.Download).
+		Data(route.Ignore()).GET(rest.Download).
 		Data(route.Named("上传 broker 客户端")).POST(rest.Create).
 		Data(route.Named("删除 broker 客户端")).DELETE(rest.Delete)
 }
@@ -64,12 +65,30 @@ func (rest *brokerBinaryREST) Create(c *ship.Context) error {
 }
 
 func (rest *brokerBinaryREST) Download(c *ship.Context) error {
-	var req param.NodeBinaryCreate
-	if err := c.Bind(&req); err != nil {
+	var req param.BrokerDownload
+	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
 
+	// 获取内网地址
 	ctx := c.Request().Context()
 
-	return rest.svc.Create(ctx, &req)
+	var addr net.Addr
+	val := ctx.Value(http.LocalAddrContextKey)
+	if a, ok := val.(net.Addr); ok {
+		addr = a
+	}
+
+	file, err := rest.svc.Open(ctx, req.BrokerID, req.ID, addr)
+	if err != nil {
+		return err
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer file.Close()
+
+	// 此时的 Content-Length = 原始文件 + 隐藏文件
+	c.Header().Set(ship.HeaderContentLength, file.ContentLength())
+	c.Header().Set(ship.HeaderContentDisposition, file.Disposition())
+
+	return c.Stream(http.StatusOK, file.ContentType(), file)
 }

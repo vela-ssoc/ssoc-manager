@@ -2,11 +2,15 @@ package service
 
 import (
 	"context"
+	"net"
 	"sync/atomic"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/stegano"
+	"github.com/vela-ssoc/vela-common-mb/storage/v2"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -15,16 +19,19 @@ type BrokerBinaryService interface {
 	Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin)
 	Create(ctx context.Context, req *param.NodeBinaryCreate) error
 	Delete(ctx context.Context, id int64) error
+	Open(ctx context.Context, bid, fid int64, eth net.Addr) (gridfs.File, error)
 }
 
-func BrokerBinary(gfs gridfs.FS) BrokerBinaryService {
+func BrokerBinary(gfs gridfs.FS, store storage.Storer) BrokerBinaryService {
 	return &brokerBinaryService{
-		gfs: gfs,
+		gfs:   gfs,
+		store: store,
 	}
 }
 
 type brokerBinaryService struct {
 	gfs       gridfs.FS
+	store     storage.Storer
 	uploading atomic.Bool
 }
 
@@ -101,4 +108,45 @@ func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
 	_, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Delete()
 
 	return err
+}
+
+func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr net.Addr) (gridfs.File, error) {
+	tbl := query.Broker
+	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(bid)).First()
+	if err != nil {
+		return nil, err
+	}
+
+	binTbl := query.BrokerBin
+	bin, err := binTbl.WithContext(ctx).Where(binTbl.ID.Eq(fid)).First()
+	if err != nil {
+		return nil, err
+	}
+
+	servers := make([]string, 0, 2)
+	if dest, err := biz.store.LocalAddr(ctx); err == nil && dest != "" {
+		servers = append(servers, dest)
+	}
+	if addr != nil {
+		servers = append(servers, addr.String())
+	}
+	hide := &stegano.BHide{
+		ID:      bid,
+		Secret:  brk.Secret,
+		Semver:  string(bin.Semver),
+		Servers: servers,
+	}
+	enc, exx := ciphertext.EncryptPayload(hide)
+	if exx != nil {
+		return nil, exx
+	}
+
+	gf, err := biz.gfs.OpenID(bin.FileID)
+	if err != nil {
+		return nil, err
+	}
+
+	file := gridfs.Merge(gf, enc)
+
+	return file, nil
 }
