@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/gorilla/websocket v1.5.0
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20230810100615-2abcd14e31fe
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20230816040511-638a4c72219e
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20230719021516-03e1b06fa5c8
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
@@ -36,5 +36,5 @@ require (
 	gorm.io/datatypes v1.2.0 // indirect
 	gorm.io/driver/mysql v1.5.1 // indirect
 	gorm.io/hints v1.1.2 // indirect
-	gorm.io/plugin/dbresolver v1.4.3 // indirect
+	gorm.io/plugin/dbresolver v1.4.5 // indirect
 )
