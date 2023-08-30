@@ -79,7 +79,8 @@ func (rest *brokerBinaryREST) Download(c *ship.Context) error {
 		addr = a
 	}
 
-	file, err := rest.svc.Open(ctx, req.BrokerID, req.ID, addr)
+	host := c.Request().Host
+	file, err := rest.svc.Open(ctx, req.BrokerID, req.ID, addr, host)
 	if err != nil {
 		return err
 	}

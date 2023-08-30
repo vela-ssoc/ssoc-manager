@@ -11,6 +11,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/stegano"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -19,7 +20,7 @@ type BrokerBinaryService interface {
 	Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin)
 	Create(ctx context.Context, req *param.NodeBinaryCreate) error
 	Delete(ctx context.Context, id int64) error
-	Open(ctx context.Context, bid, fid int64, eth net.Addr) (gridfs.File, error)
+	Open(ctx context.Context, bid, fid int64, eth net.Addr, host string) (gridfs.File, error)
 }
 
 func BrokerBinary(gfs gridfs.FS, store storage.Storer) BrokerBinaryService {
@@ -110,7 +111,7 @@ func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr net.Addr) (gridfs.File, error) {
+func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr net.Addr, host string) (gridfs.File, error) {
 	tbl := query.Broker
 	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(bid)).First()
 	if err != nil {
@@ -123,12 +124,12 @@ func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr n
 		return nil, err
 	}
 
-	servers := make([]string, 0, 2)
+	servers := make(netutil.Addresses, 0, 2)
 	if dest, err := biz.store.LocalAddr(ctx); err == nil && dest != "" {
-		servers = append(servers, dest)
+		servers = append(servers, &netutil.Address{Addr: dest, Name: host})
 	}
 	if addr != nil {
-		servers = append(servers, addr.String())
+		servers = append(servers, &netutil.Address{Addr: addr.String(), Name: host})
 	}
 	hide := &stegano.BHide{
 		ID:      bid,

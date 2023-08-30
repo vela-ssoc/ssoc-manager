@@ -108,13 +108,24 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 		return issue, nil, ErrBrokerRepeat
 	}
 
+	// 查询证书
+	issue.Listen = blink.Listen{Addr: brk.Bind}
+	if certID := brk.CertID; certID != 0 {
+		certTbl := query.Certificate
+		cert, err := certTbl.WithContext(ctx).Where(certTbl.ID.Eq(certID)).First()
+		if err != nil {
+			return issue, nil, err
+		}
+		issue.Listen.Cert = []byte(cert.Certificate)
+		issue.Listen.Pkey = []byte(cert.PrivateKey)
+	}
+
 	// 随机生成一个 32-64 位的加密密钥
 	psz := hub.random.Intn(33) + 32
 	passwd := make([]byte, psz)
 	_, _ = hub.random.Read(passwd)
 
 	issue.Name, issue.Passwd = brk.Name, passwd
-	issue.Listen = blink.Listen{Addr: brk.Bind}
 	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
 
 	return issue, nil, nil
