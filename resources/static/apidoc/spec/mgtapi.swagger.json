@@ -5317,8 +5317,7 @@
           }
         },
         "tags": [
-          "elastic",
-          "最近修改"
+          "elastic"
         ],
         "description": "## 2023-07-18\n请求报文删除 `host` 字段，新增 `hosts` 字段。\n",
         "requestBody": {
@@ -5459,8 +5458,7 @@
           }
         },
         "tags": [
-          "elastic",
-          "最近修改"
+          "elastic"
         ]
       },
       "delete": {
@@ -6281,8 +6279,7 @@
           }
         },
         "tags": [
-          "broker",
-          "最近修改"
+          "broker"
         ],
         "description": "删除代理节点",
         "requestBody": {
@@ -6391,8 +6388,7 @@
         },
         "description": "## 20230727\n\n- 新增 `cert_id` 关联证书 ID。\n",
         "tags": [
-          "broker",
-          "最近修改"
+          "broker"
         ]
       }
     },
@@ -23430,8 +23426,7 @@
       "get": {
         "summary": "查询下发进度",
         "tags": [
-          "effect",
-          "最近修改"
+          "effect"
         ],
         "responses": {
           "200": {
@@ -23477,8 +23472,7 @@
       "get": {
         "summary": "查询下发任务进度列表",
         "tags": [
-          "effect",
-          "最近修改"
+          "effect"
         ],
         "responses": {
           "200": {
@@ -23759,7 +23753,6 @@
       "get": {
         "summary": "进度条件",
         "tags": [
-          "最近修改",
           "effect"
         ],
         "responses": {},
@@ -23771,8 +23764,7 @@
       "get": {
         "summary": "查询进度历史",
         "tags": [
-          "effect",
-          "最近修改"
+          "effect"
         ],
         "responses": {},
         "operationId": "get-effect-progress-histories",
@@ -24387,6 +24379,88 @@
             }
           }
         }
+      }
+    },
+    "/flame/load": {
+      "get": {
+        "summary": "加载火焰图",
+        "tags": [
+          "debug",
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "火焰图 ID"
+                    }
+                  }
+                },
+                "examples": {
+                  "返回示例": {
+                    "value": {
+                      "id": "1693301829590474405-168654750021468160-34ed72e36dfec1b62cc611a3bdf3ecef"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-flame-load",
+        "description": "加载火焰图",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "node",
+            "required": true,
+            "description": "节点 IP 或 ID"
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "second",
+            "description": "获取 pprof 秒数，默认 30"
+          }
+        ]
+      }
+    },
+    "/flame/view": {
+      "get": {
+        "summary": "浏览火焰图",
+        "tags": [
+          "debug",
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "get-flame-view",
+        "description": "浏览火焰图",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "id",
+            "description": "火焰图 ID",
+            "required": true
+          }
+        ]
       }
     }
   },

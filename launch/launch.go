@@ -117,8 +117,9 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	}
 	// ==========[ broker end ] ==========
 
+	dongCfg := dong.NewConfig()
 	client := netutil.NewClient()
-	emcService := service.Emc(pusher, client)
+	emcService := service.Emc(pusher, dongCfg)
 	emcREST := mgtapi.Emc(emcService)
 	emcREST.Route(anon, bearer, basic)
 	store := storage.NewStore()
@@ -126,7 +127,6 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	dongCfg := dong.NewConfigure()
 	dongCli := dong.NewClient(dongCfg, client, slog)
 
 	ssoCfg := ssoauth.NewConfigure(store)
@@ -299,7 +299,11 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	davREST := mgtapi.DavFS(base)
 	davREST.Route(anon, bearer, basic)
 
-	pprofREST := mgtapi.Pprof()
+	pprofDir := "resources/pprof"
+	_ = os.RemoveAll(pprofDir)
+	_ = os.MkdirAll(pprofDir, os.ModePerm)
+	pprofService := service.Pprof(pprofDir, pusher)
+	pprofREST := mgtapi.Pprof(pprofService)
 	pprofREST.Route(anon, bearer, basic)
 
 	app := &application{

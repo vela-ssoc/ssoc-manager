@@ -2,7 +2,14 @@ package push
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
 	"time"
+
+	"github.com/xgfone/ship/v5"
 
 	"github.com/vela-ssoc/vela-common-mb/accord"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -24,6 +31,7 @@ type Pusher interface {
 	Startup(ctx context.Context, bid, mid int64)
 	Upgrade(ctx context.Context, bid int64, mid []int64, semver string)
 	Command(ctx context.Context, bid int64, mids []int64, cmd string)
+	SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error
 }
 
 func NewPush(hub linkhub.Huber) Pusher {
@@ -122,4 +130,36 @@ func (pi *pushImpl) Command(ctx context.Context, bid int64, mids []int64, cmd st
 func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {
 	req := &accord.ThirdDiff{Name: name, Event: event}
 	pi.hub.Broadcast(nil, accord.FPThirdDiff, req)
+}
+
+func (pi *pushImpl) SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error {
+	if second <= 0 {
+		second = 30
+	}
+
+	strURL := fmt.Sprintf("/api/v1/arr/pprof/profile?seconds=%d", second)
+	header := http.Header{linkhub.HeaderXNodeID: []string{strconv.FormatInt(mid, 10)}}
+
+	res, err := pi.hub.Do(ctx, bid, http.MethodGet, strURL, nil, header)
+	if err != nil {
+		return err
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer res.Body.Close()
+
+	code := res.StatusCode
+	if code/100 != 2 {
+		return ship.ErrBadRequest
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer f.Close()
+
+	_, err = io.Copy(f, res.Body)
+
+	return err
 }

@@ -3,6 +3,7 @@ package linkhub
 import (
 	"context"
 	"errors"
+	"io"
 	"math/rand"
 	"net"
 	"net/http"
@@ -33,6 +34,8 @@ type Huber interface {
 	blink.Joiner
 
 	ResetDB() error
+
+	Do(ctx context.Context, bid int64, method, path string, body io.Reader, header http.Header) (*http.Response, error)
 
 	Oneway(ctx context.Context, id int64, path string, req any) error
 
@@ -166,6 +169,19 @@ func (hub *brokerHub) ResetDB() error {
 		Where(brk.Status.Is(true)).
 		UpdateColumn(brk.Status, false)
 	return err
+}
+
+func (hub *brokerHub) Do(ctx context.Context, bid int64, method, path string, body io.Reader, header http.Header) (*http.Response, error) {
+	httpURL := hub.httpURL(bid, path)
+	req, err := http.NewRequestWithContext(ctx, method, httpURL, body)
+	if err != nil {
+		return nil, err
+	}
+	if len(header) > 0 {
+		req.Header = header
+	}
+
+	return hub.client.Do(req)
 }
 
 func (hub *brokerHub) Oneway(ctx context.Context, id int64, path string, req any) error {

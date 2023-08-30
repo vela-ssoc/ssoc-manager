@@ -5,6 +5,10 @@ import (
 	"strconv"
 )
 
+type StrID struct {
+	ID string `json:"id" form:"id" query:"id" validate:"required,lte=100"`
+}
+
 type IntID struct {
 	ID int64 `json:"id,string" form:"id" query:"id" validate:"required,gt=0"`
 }
