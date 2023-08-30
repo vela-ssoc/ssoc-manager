@@ -31,3 +31,6 @@ resources/tls/*
 
 resources/temp/
 resources/html/doc/.stoplight
+
+resources/pprof/*
+!resources/pprof/.gitkeep

@@ -6,7 +6,7 @@ require (
 	github.com/google/pprof v0.0.0-20230821062121-407c9e7a662f
 	github.com/gorilla/websocket v1.5.0
 	github.com/vela-ssoc/vela-common-mb v0.0.0-20230822090300-f8aa27fc7e76
-	github.com/vela-ssoc/vela-common-mba v0.0.0-20230719021516-03e1b06fa5c8
+	github.com/vela-ssoc/vela-common-mba v0.0.0-20230830012324-4c589afc1dd6
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.25.0
@@ -21,7 +21,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.15.1 // indirect
+	github.com/go-playground/validator/v10 v10.15.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab // indirect
