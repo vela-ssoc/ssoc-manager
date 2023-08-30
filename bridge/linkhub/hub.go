@@ -116,8 +116,8 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 		if err != nil {
 			return issue, nil, err
 		}
-		issue.Listen.Cert = []byte(cert.Certificate)
-		issue.Listen.Pkey = []byte(cert.PrivateKey)
+		issue.Listen.Cert = cert.Certificate
+		issue.Listen.Pkey = cert.PrivateKey
 	}
 
 	// 随机生成一个 32-64 位的加密密钥

@@ -31,6 +31,6 @@ func (iss Issue) encrypt() ([]byte, error) {
 // Listen 监听信息
 type Listen struct {
 	Addr string `json:"addr"` // 监听地址 :8080 192.168.1.2:8080
-	Cert []byte `json:"cert"` // 证书
-	Pkey []byte `json:"pkey"` // 私钥
+	Cert string `json:"cert"` // 证书
+	Pkey string `json:"pkey"` // 私钥
 }
