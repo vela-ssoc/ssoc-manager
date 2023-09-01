@@ -125,7 +125,7 @@ func (ito *intoService) AWS(ctx context.Context, w http.ResponseWriter, r *http.
 	}
 
 	header := http.Header{linkhub.HeaderXNodeID: []string{strconv.FormatInt(minion.ID, 10)}}
-	path := r.URL.Path
+	path := r.URL.Path + "?" + r.URL.RawQuery
 	up, _, err := ito.hub.Stream(ctx, minion.BrokerID, path, header)
 	if err != nil {
 		return err

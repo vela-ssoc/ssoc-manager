@@ -66,6 +66,7 @@ func (ito *intoREST) BWS(c *ship.Context) error {
 
 	w, r := c.Response(), c.Request()
 	ctx := r.Context()
+	ito.desensitization(r)
 
 	return ito.svc.BWS(ctx, w, r, node)
 }
@@ -99,6 +100,7 @@ func (ito *intoREST) AWS(c *ship.Context) error {
 
 	w, r := c.Response(), c.Request()
 	ctx := r.Context()
+	ito.desensitization(r)
 
 	return ito.svc.AWS(ctx, w, r, node)
 }

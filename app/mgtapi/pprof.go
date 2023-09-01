@@ -69,9 +69,13 @@ func (rest *pprofREST) Load(c *ship.Context) error {
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
+	second := req.Second
+	if second <= 0 {
+		second = 30
+	}
 
 	ctx := c.Request().Context()
-	name, err := rest.svc.Load(ctx, req.Node, req.Second)
+	name, err := rest.svc.Load(ctx, req.Node, second)
 	if err != nil {
 		return err
 	}
