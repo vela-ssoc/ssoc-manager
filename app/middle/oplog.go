@@ -18,11 +18,11 @@ type OplogSaver interface{}
 // Oplog 操作日志记录中间件，内部包含 recovery，无需额外添加 recovery 中间件
 func Oplog(recd route.Recorder) ship.Middleware {
 	newFn := func() any {
-		// 最多记录前 4K 的报文数据
-		const max = 4 * 1024
+		// 最多记录前 1K 的报文数据
+		const maxsize = 1024
 		return &limitCopy{
-			max:  max,
-			data: make([]byte, max),
+			maxsize: maxsize,
+			data:    make([]byte, maxsize),
 		}
 	}
 	m := &oplogMid{
@@ -106,15 +106,15 @@ func (m *oplogMid) putLimitCopy(lc *limitCopy) {
 // 日志中间件需要记录原生请求 Body，但是 Body 有长有短，对与过长
 // 的请求我们只记录前 max 位数据，后续的数据不再记录。
 type limitCopy struct {
-	body io.ReadCloser // 原来的 HTTP Body
-	max  int           // 最大记录的 Body 长度
-	pos  int           // 已记录的数据偏移量
-	data []byte        // 数据
+	body    io.ReadCloser // 原来的 HTTP Body
+	maxsize int           // 最大记录的 Body 长度
+	pos     int           // 已记录的数据偏移量
+	data    []byte        // 数据
 }
 
 func (lc *limitCopy) Read(p []byte) (int, error) {
 	n, err := lc.body.Read(p)
-	if n != 0 && lc.max > lc.pos {
+	if n != 0 && lc.maxsize > lc.pos {
 		num := copy(lc.data[lc.pos:], p[:n])
 		lc.pos += num
 	}
