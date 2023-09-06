@@ -34,7 +34,7 @@ var (
 	ErrDeprecated           = ship.ErrBadRequest.Newf("版本已被标记为过期")
 	ErrInetAddress          = ship.ErrBadRequest.Newf("inet 地址无效")
 	ErrAlreadyExist         = ship.ErrBadRequest.Newf("数据已存在")
-	ErrInvalidData          = ship.ErrBadRequest.Newf("数据验证无效")
+	ErrNotExist             = ship.ErrBadRequest.Newf("数据不存在")
 )
 
 type Errorf interface {

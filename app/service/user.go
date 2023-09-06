@@ -2,6 +2,11 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -25,6 +30,8 @@ type UserService interface {
 
 	Passwd(ctx context.Context, id int64, original string, password string) error
 
+	AccessKey(ctx context.Context, id int64) error
+
 	Authenticate(ctx context.Context, uname, passwd string) (*model.User, error)
 }
 
@@ -43,7 +50,7 @@ type userService struct {
 func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {
 	tbl := query.User
 	db := tbl.WithContext(ctx).
-		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
+		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable, tbl.AccessKey)
 	if kw := page.Keyword(); kw != "" {
 		db.Where(tbl.Username.Like(kw)).
 			Or(tbl.Nickname.Like(kw))
@@ -193,6 +200,28 @@ func (biz *userService) Passwd(ctx context.Context, id int64, original string, p
 	_, err = tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		Update(tbl.Password, pwd)
+
+	return err
+}
+
+func (biz *userService) AccessKey(ctx context.Context, id int64) error {
+	tbl := query.User
+	if count, _ := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Count(); count == 0 {
+		return errcode.ErrNotExist
+	}
+
+	temp := make([]byte, 32)
+	if _, err := rand.Read(temp); err != nil {
+		return err
+	}
+	hec := hex.EncodeToString(temp)
+	nano := time.Now().UnixNano()
+	sid := strconv.FormatInt(id, 32)
+	sat := strconv.FormatInt(nano, 32)
+
+	words := []string{"access", sid, sat, hec}
+	ak := strings.Join(words, ".")
+	_, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).UpdateColumn(tbl.AccessKey, ak)
 
 	return err
 }

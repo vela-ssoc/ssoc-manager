@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
@@ -29,12 +30,13 @@ type Session interface {
 // Issued 签发 session 信息
 func Issued(u *model.User) *Ident {
 	now := time.Now()
-	id := strconv.FormatInt(u.ID, 10)
+	id := strconv.FormatInt(u.ID, 32)
 	nano := strconv.FormatInt(now.UnixNano(), 36)
 	buf := make([]byte, 32)
 	_, _ = rand.Read(buf)
 	nonce := hex.EncodeToString(buf)
-	token := id + "." + nano + "." + nonce // id 时间 随机字符串组成，英文 . 分割
+	words := []string{"bearer", id, nano, nonce}
+	token := strings.Join(words, ".")
 
 	return &Ident{
 		ID:       u.ID,
@@ -73,16 +75,31 @@ type sessDB struct {
 
 // GetSession 根据 token 获取 session 信息
 func (ssd *sessDB) GetSession(token string) (any, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, ship.ErrSessionNotExist
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), ssd.timeout)
 	defer cancel()
 
 	tbl := query.User
-	user, err := tbl.WithContext(ctx).
-		Where(tbl.Token.Eq(token)).
-		Where(tbl.Enable.Is(true)).
+	dao := tbl.WithContext(ctx)
+	user, err := dao.Where(tbl.Enable.Is(true)).
+		Where(dao.Or(tbl.Token.Eq(token)).Or(tbl.AccessKey.Eq(token))).
 		First()
 	if err != nil {
 		return nil, ship.ErrSessionNotExist
+	}
+	ident := &Ident{
+		ID:       user.ID,
+		Username: user.Username,
+		Nickname: user.Nickname,
+		Token:    token,
+		IssuedAt: user.IssueAt.Time,
+	}
+	if user.AccessKey == token {
+		return ident, nil
 	}
 
 	// 检查 session 是否有效
@@ -107,14 +124,6 @@ func (ssd *sessDB) GetSession(token string) (any, error) {
 		_, _ = tbl.WithContext(ctx).
 			Where(tbl.Token.Eq(token)).
 			UpdateColumn(tbl.SessionAt, now)
-	}
-
-	ident := &Ident{
-		ID:       user.ID,
-		Username: user.Username,
-		Nickname: user.Nickname,
-		Token:    token,
-		IssuedAt: user.IssueAt.Time,
 	}
 
 	return ident, nil

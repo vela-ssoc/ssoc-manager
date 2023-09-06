@@ -29,6 +29,8 @@ func (rest *userREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/user").
 		Data(route.Named("删除用户")).DELETE(rest.Delete).
 		Data(route.Named("创建用户")).POST(rest.Create)
+	bearer.Route("/user/ak").
+		Data(route.Named("更新 AK")).PATCH(rest.AccessKey)
 }
 
 // Page 分页查询
@@ -125,6 +127,18 @@ func (rest *userREST) Passwd(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 
 	err := rest.svc.Passwd(ctx, cu.ID, req.Original, req.Password)
+
+	return err
+}
+
+func (rest *userREST) AccessKey(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.AccessKey(ctx, req.ID)
 
 	return err
 }
