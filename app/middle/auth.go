@@ -28,6 +28,7 @@ type authMiddle struct {
 func (am *authMiddle) Bearer(h ship.Handler) ship.Handler {
 	return func(c *ship.Context) error {
 		token := am.bearer(c.Request())
+		c.Request().Context()
 		cu, err := c.GetSession(token)
 		if err != nil {
 			return errcode.ErrUnauthorized
