@@ -152,3 +152,6 @@ func (biz *dashService) Risksts(ctx context.Context) *param.DashRiskstsResp {
 
 	return &res
 }
+
+func (biz *dashService) BGoos(ctx context.Context, page, size int) {
+}

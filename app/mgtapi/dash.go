@@ -26,6 +26,7 @@ func (rest *dashREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/dash/evtlvl").Data(route.Ignore()).GET(rest.Evtlvl)
 	bearer.Route("/dash/risklvl").Data(route.Ignore()).GET(rest.Risklvl)
 	bearer.Route("/dash/risksts").Data(route.Ignore()).GET(rest.Risksts)
+	bearer.Route("/dash/broker/goos").Data(route.Ignore()).GET(rest.BGoos)
 }
 
 func (rest *dashREST) Status(c *ship.Context) error {
@@ -66,4 +67,14 @@ func (rest *dashREST) Risksts(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Risksts(ctx)
 	return c.JSON(http.StatusOK, res)
+}
+
+// BGoos 通过 status 维度统计 risk
+func (rest *dashREST) BGoos(c *ship.Context) error {
+	var req param.Page
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, nil)
 }

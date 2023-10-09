@@ -18,6 +18,8 @@ type BrokerService interface {
 	Create(ctx context.Context, req *param.BrokerCreate) error
 	Update(ctx context.Context, req *param.BrokerUpdate) error
 	Delete(ctx context.Context, id int64) error
+	Goos(ctx context.Context) []*param.BrokerGoos
+	Stats(ctx context.Context) ([]*model.BrokerStat, error)
 }
 
 func Broker() BrokerService {
@@ -152,4 +154,57 @@ func (biz *brokerService) Delete(ctx context.Context, id int64) error {
 	_, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Delete()
 
 	return err
+}
+
+func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
+	strSQL := "SELECT broker_id AS id, " +
+		"COUNT(IF(goos = 'linux', TRUE, NULL))   AS linux,   " +
+		"COUNT(IF(goos = 'windows', TRUE, NULL)) AS windows, " +
+		"COUNT(IF(goos = 'darwin', TRUE, NULL))  AS darwin   " +
+		" FROM minion" +
+		" GROUP BY broker_id "
+
+	ret := make([]*param.BrokerGoos, 0, 10)
+	query.Minion.WithContext(ctx).UnderlyingDB().Raw(strSQL).Scan(&ret)
+
+	size := len(ret)
+	if size == 0 {
+		return ret
+	}
+
+	index := make(map[int64]*param.BrokerGoos, size)
+	bids := make([]int64, 0, size)
+	for _, gc := range ret {
+		bid := gc.ID
+		if bid == 0 {
+			continue
+		}
+		if _, ok := index[bid]; ok {
+			continue
+		}
+
+		index[bid] = gc
+		bids = append(bids, bid)
+	}
+
+	if len(bids) != 0 {
+		tbl := query.Broker
+		brks, _ := tbl.WithContext(ctx).
+			Select(tbl.ID, tbl.Name).
+			Where(tbl.ID.In(bids...)).
+			Find()
+		for _, brk := range brks {
+			id, name := brk.ID, brk.Name
+			if gc := index[id]; gc != nil {
+				gc.Name = name
+			}
+		}
+	}
+
+	return ret
+}
+
+func (biz *brokerService) Stats(ctx context.Context) ([]*model.BrokerStat, error) {
+	tbl := query.BrokerStat
+	return tbl.WithContext(ctx).Order(tbl.ID).Limit(100).Find()
 }

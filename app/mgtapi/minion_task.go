@@ -48,6 +48,7 @@ func (rest *minionTaskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task/minion").Data(route.Ignore()).GET(rest.Minion)
 	bearer.Route("/task/gathers").Data(route.Ignore()).GET(rest.Gathers)
 	bearer.Route("/task/count").Data(route.Ignore()).GET(rest.Count)
+	bearer.Route("/task/rcount").Data(route.Ignore()).GET(rest.RCount)
 }
 
 func (rest *minionTaskREST) Cond(c *ship.Context) error {
@@ -120,5 +121,19 @@ func (rest *minionTaskREST) Gathers(c *ship.Context) error {
 func (rest *minionTaskREST) Count(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Count(ctx)
+	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *minionTaskREST) RCount(c *ship.Context) error {
+	var req param.Page
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	pager := req.Pager()
+	ctx := c.Request().Context()
+	count, dats := rest.svc.RCount(ctx, pager)
+	res := pager.Result(count, dats)
+
 	return c.JSON(http.StatusOK, res)
 }

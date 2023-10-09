@@ -22,6 +22,8 @@ type brokerREST struct {
 
 func (rest *brokerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brokers").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/broker/goos").Data(route.Ignore()).GET(rest.Goos)
+	bearer.Route("/broker/stats").Data(route.Ignore()).GET(rest.Stats)
 	bearer.Route("/broker/indices").Data(route.Ignore()).GET(rest.Indices)
 	bearer.Route("/broker").
 		Data(route.Named("新增代理节点")).POST(rest.Create).
@@ -92,4 +94,19 @@ func (rest *brokerREST) Delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rest.svc.Delete(ctx, req.ID)
+}
+
+func (rest *brokerREST) Goos(c *ship.Context) error {
+	ctx := c.Request().Context()
+	ret := rest.svc.Goos(ctx)
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *brokerREST) Stats(c *ship.Context) error {
+	ctx := c.Request().Context()
+	res, err := rest.svc.Stats(ctx)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, res)
 }

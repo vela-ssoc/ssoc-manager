@@ -19,6 +19,7 @@ type MinionTaskService interface {
 	Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error)
 	Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather)
 	Count(ctx context.Context) *param.TaskCount
+	RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount)
 }
 
 func MinionTask() MinionTaskService {
@@ -253,4 +254,58 @@ func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
 	db.Raw(rawSQL).Scan(&res)
 
 	return res
+}
+
+func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount) {
+	size := pager.Size()
+	ret := make([]*param.TaskRCount, 0, size)
+
+	tbl := query.MinionTask
+	count, _ := tbl.WithContext(ctx).
+		Distinct(tbl.SubstanceID).
+		Where(tbl.SubstanceID.Neq(0)).
+		Count()
+	if count == 0 {
+		return 0, ret
+	}
+
+	strSQL := "SELECT substance_id AS id, COUNT(*) AS count " +
+		" FROM minion_task " +
+		" WHERE substance_id != 0 " +
+		" GROUP BY substance_id " +
+		" ORDER BY count " +
+		" DESC LIMIT ?, ? "
+	query.MinionTask.
+		WithContext(ctx).
+		UnderlyingDB().
+		Scopes(pager.DBScope(count)).
+		Raw(strSQL, 0, size).
+		Scan(&ret)
+
+	index := make(map[int64]*param.TaskRCount, size)
+	sids := make([]int64, 0, size)
+	for _, rc := range ret {
+		sid := rc.ID
+		if _, ok := index[sid]; ok {
+			continue
+		}
+		index[sid] = rc
+		sids = append(sids, sid)
+	}
+	if len(sids) != 0 {
+		stbl := query.Substance
+		subs, _ := stbl.WithContext(ctx).
+			Select(stbl.ID, stbl.Name, stbl.Desc).
+			Where(stbl.ID.In(sids...)).
+			Find()
+		for _, sub := range subs {
+			sid := sub.ID
+			if rc := index[sid]; rc != nil {
+				rc.Name = sub.Name
+				rc.Desc = sub.Desc
+			}
+		}
+	}
+
+	return count, ret
 }

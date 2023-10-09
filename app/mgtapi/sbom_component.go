@@ -35,6 +35,7 @@ type sbomComponentREST struct {
 }
 
 func (rest *sbomComponentREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/sbom/count").Data(route.Ignore()).GET(rest.Count)
 	bearer.Route("/sbom/components").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/component/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/component/projects").Data(route.Ignore()).GET(rest.Project)
@@ -76,6 +77,20 @@ func (rest *sbomComponentREST) Project(c *ship.Context) error {
 	page := req.Pager()
 	ctx := c.Request().Context()
 	count, dats := rest.svc.Project(ctx, page, scope)
+	res := page.Result(count, dats)
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *sbomComponentREST) Count(c *ship.Context) error {
+	var req param.Page
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	page := req.Pager()
+	ctx := c.Request().Context()
+	count, dats := rest.svc.Count(ctx, page)
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)

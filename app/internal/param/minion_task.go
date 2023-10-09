@@ -90,3 +90,10 @@ type taskList struct {
 	CreatedAt   time.Time `json:"created_at"          gorm:"column:created_at"`   // 配置文件创建事件
 	ReportAt    time.Time `json:"report_at"           gorm:"column:report_at"`    // 下发节点的最新上报时间
 }
+
+type TaskRCount struct {
+	ID    int64  `json:"id,string" gorm:"column:id"`
+	Name  string `json:"name"      gorm:"column:name"`
+	Desc  string `json:"desc"      gorm:"-"`
+	Count int    `json:"count"     gorm:"column:count"`
+}

@@ -54,3 +54,19 @@ func (bss BrokerSummaries) CertMap() ([]int64, map[int64]BrokerSummaries) {
 
 	return certIDs, certMap
 }
+
+type BrokerGoos struct {
+	ID      int64  `json:"id,string" gorm:"column:id"`
+	Name    string `json:"name"      gorm:"column:name"`
+	Linux   int    `json:"linux"     gorm:"column:linux"`
+	Windows int    `json:"windows"   gorm:"column:windows"`
+	Darwin  int    `json:"darwin"    gorm:"column:darwin"`
+}
+
+type BrokerStat struct {
+	ID         int64   `json:"id"`
+	Name       string  `json:"name"`
+	MemUsed    uint64  `json:"mem_used"`
+	MemTotal   uint64  `json:"mem_total"`
+	CPUPercent float64 `json:"cpu_percent"`
+}
