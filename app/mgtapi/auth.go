@@ -30,6 +30,8 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/ding").Data(route.Ignore()).POST(ath.Dong)
 	anon.Route("/login").Data(route.DestPasswd("用户登录")).POST(ath.Login)
 
+	anon.Route("/auth/submit").Data(route.Named("用户登录")).POST(ath.Submit)
+
 	bearer.Route("/logout").Data(route.Named("用户退出登录")).DELETE(ath.Logout)
 }
 
@@ -121,4 +123,38 @@ func (ath *authREST) Login(c *ship.Context) error {
 func (ath *authREST) Logout(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 	return c.DelSession(cu.Token)
+}
+
+func (ath *authREST) Login1(c *ship.Context) error {
+	var req param.AuthBase
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ath *authREST) Totp(c *ship.Context) error {
+}
+
+func (ath *authREST) Submit(c *ship.Context) error {
+	var req param.AuthSubmit
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	// 查询 UID 是否有效
+	ctx := c.Request().Context()
+	user, err := ath.svc.Submit(ctx, req.UID, req.Code)
+	if err != nil {
+		return err
+	}
+
+	cu := session.Issued(user)
+	c.Any = cu
+	if err = c.SetSession(cu.Token, cu); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, cu)
 }

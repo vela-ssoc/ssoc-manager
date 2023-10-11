@@ -16,6 +16,7 @@ var (
 	ErrRequiredAddr         = ship.ErrBadRequest.Newf("地址必须填写")
 	ErrPictureCode          = ship.ErrBadRequest.Newf("图片验证码错误")
 	ErrDongCode             = ship.ErrBadRequest.Newf("咚咚验证码错误")
+	ErrVerifyCode           = ship.ErrBadRequest.Newf("验证码错误")
 	ErrWithoutDongCode      = ship.ErrBadRequest.Newf("无需发送咚咚验证码")
 	ErrTooManyLoginFailed   = ship.ErrBadRequest.Newf("登录错误次数较多")
 	ErrPassword             = ship.ErrBadRequest.Newf("密码错误")

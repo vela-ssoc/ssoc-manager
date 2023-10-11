@@ -1,6 +1,10 @@
 package param
 
-import "image"
+import (
+	"image"
+
+	"github.com/vela-ssoc/vela-manager/app/totp"
+)
 
 type AuthBase struct {
 	Username string `json:"username" validate:"required,lte=20"`
@@ -49,4 +53,14 @@ func (pps picturePoints) Convert() []*image.Point {
 	}
 
 	return ret
+}
+
+type AuthSubmit struct {
+	UID  string `json:"uid"  validate:"required,gte=255"`
+	Code string `json:"code" validate:"len=6,numeric"`
+}
+
+type AuthTotp struct {
+	*totp.TOTP
+	URL string `json:"url"`
 }
