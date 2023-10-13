@@ -30,6 +30,7 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/ding").Data(route.Ignore()).POST(ath.Dong)
 	anon.Route("/login").Data(route.DestPasswd("用户登录")).POST(ath.Login)
 
+	anon.Route("/auth/totp").Data(route.Named("获取 TOTP")).POST(ath.Totp)
 	anon.Route("/auth/submit").Data(route.Named("用户登录")).POST(ath.Submit)
 
 	bearer.Route("/logout").Data(route.Named("用户退出登录")).DELETE(ath.Logout)
@@ -130,11 +131,27 @@ func (ath *authREST) Login1(c *ship.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-
 	return nil
 }
 
 func (ath *authREST) Totp(c *ship.Context) error {
+	var req param.AuthUID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	otp, err := ath.svc.Totp(ctx, req.UID)
+	if err != nil {
+		return err
+	}
+
+	res := &param.AuthTotpResp{
+		TOTP: otp,
+		URL:  otp.String(),
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (ath *authREST) Submit(c *ship.Context) error {

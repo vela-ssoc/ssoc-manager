@@ -60,7 +60,11 @@ type AuthSubmit struct {
 	Code string `json:"code" validate:"len=6,numeric"`
 }
 
-type AuthTotp struct {
+type AuthUID struct {
+	UID string `json:"uid"  validate:"required,gte=255"`
+}
+
+type AuthTotpResp struct {
 	*totp.TOTP
 	URL string `json:"url"`
 }

@@ -15,7 +15,9 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
+	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
@@ -295,6 +297,11 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	startupService := service.Startup(store, pusher)
 	startupREST := mgtapi.Startup(startupService)
 	startupREST.Route(anon, bearer, basic)
+
+	hardConfig := sonatype.HardConfig()
+	sona := sonatype.NewClient(hardConfig, client)
+	synchro := vulnsync.New(db, sona)
+	mgtapi.Manual(synchro).Route(anon, bearer, basic)
 
 	davREST := mgtapi.DavFS(base)
 	davREST.Route(anon, bearer, basic)

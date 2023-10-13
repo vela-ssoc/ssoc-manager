@@ -19,6 +19,7 @@ type AuthService interface {
 	Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error
 	Login(ctx context.Context, ab param.AuthLogin) (*model.User, error)
 
+	Totp(ctx context.Context, uid string) (*totp.TOTP, error)
 	Submit(ctx context.Context, uid, code string) (*model.User, error)
 }
 
@@ -74,8 +75,56 @@ func (svc *authService) Login(ctx context.Context, ab param.AuthLogin) (*model.U
 	return user, nil
 }
 
+//func (svc *authService) Auth(ctx context.Context, uname, passwd string) (string, error) {
+//	if svc.lock.Limited(ctx, uname) {
+//		return "", errcode.ErrTooManyLoginFailed
+//	}
+//	user, err := svc.user.Authenticate(ctx, uname, passwd)
+//	if err != nil {
+//		svc.lock.Failed(ctx, uname)
+//		return "", err
+//	}
+//	svc.lock.Passed(ctx, uname)
+//
+//	// 生成唯一 UID
+//	temp := make([]byte, 32)
+//	_, _ = rand.Read(temp)
+//	uid := hex.EncodeToString(temp)
+//
+//	return uid, nil
+//}
+
+func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error) {
+	now := time.Now()
+	tempTbl := query.AuthTemp
+	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
+	if err != nil || temp.Expired(now, time.Minute) {
+		return nil, errcode.ErrUnauthorized
+	}
+	userTbl := query.User
+	user, err := userTbl.WithContext(ctx).
+		Where(userTbl.ID.Eq(temp.ID), userTbl.Enable.Is(true)).
+		First()
+	if err != nil {
+		return nil, errcode.ErrUnauthorized
+	}
+	if user.TotpBind && user.TotpSecret != "" {
+		return nil, errcode.ErrTotpBound
+	}
+
+	// 生成一个 totp
+	otp := totp.Generate("ssoc", user.Username)
+	// 保存 OTP
+	_, err = userTbl.WithContext(ctx).
+		UpdateSimple(userTbl.TotpBind.Value(false), userTbl.TotpSecret.Value(otp.Secret))
+	if err != nil {
+		return nil, err
+	}
+
+	return otp, nil
+}
+
 func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.User, error) {
-	// 查询 UID
 	now := time.Now()
 	tempTbl := query.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
