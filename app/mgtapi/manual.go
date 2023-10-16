@@ -20,7 +20,7 @@ type manualREST struct {
 	vuln *vulnsync.Synchro
 }
 
-func (rst *manualREST) Route(anon, bearer, basic *ship.RouteGroupBuilder) {
+func (rst *manualREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/manual/vuln/sync").Data("手动同步漏洞库").PATCH(rst.Sync)
 }
 
