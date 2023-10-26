@@ -62,8 +62,8 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 
 	taskTbl := query.MinionTask
 	mt, _ := taskTbl.WithContext(ctx).
-		Where(taskTbl.MinionID.Eq(mid)).
-		Where(taskTbl.SubstanceID.Eq(sid)).
+		Where(taskTbl.MinionID.Eq(mid), taskTbl.SubstanceID.Eq(sid)).
+		Order(taskTbl.ID.Desc()).
 		First()
 	if mt == nil {
 		mt = new(model.MinionTask)

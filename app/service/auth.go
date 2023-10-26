@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
@@ -19,6 +21,7 @@ type AuthService interface {
 	Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error
 	Login(ctx context.Context, ab param.AuthLogin) (*model.User, error)
 
+	Valid(ctx context.Context, uname, passwd string) (string, bool, error)
 	Totp(ctx context.Context, uid string) (*totp.TOTP, error)
 	Submit(ctx context.Context, uid, code string) (*model.User, error)
 }
@@ -75,24 +78,33 @@ func (svc *authService) Login(ctx context.Context, ab param.AuthLogin) (*model.U
 	return user, nil
 }
 
-//func (svc *authService) Auth(ctx context.Context, uname, passwd string) (string, error) {
-//	if svc.lock.Limited(ctx, uname) {
-//		return "", errcode.ErrTooManyLoginFailed
-//	}
-//	user, err := svc.user.Authenticate(ctx, uname, passwd)
-//	if err != nil {
-//		svc.lock.Failed(ctx, uname)
-//		return "", err
-//	}
-//	svc.lock.Passed(ctx, uname)
-//
-//	// 生成唯一 UID
-//	temp := make([]byte, 32)
-//	_, _ = rand.Read(temp)
-//	uid := hex.EncodeToString(temp)
-//
-//	return uid, nil
-//}
+func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string, bool, error) {
+	if svc.lock.Limited(ctx, uname) {
+		return "", false, errcode.ErrTooManyLoginFailed
+	}
+	user, err := svc.user.Authenticate(ctx, uname, passwd)
+	if err != nil {
+		svc.lock.Failed(ctx, uname)
+		return "", false, err
+	}
+	svc.lock.Passed(ctx, uname)
+
+	// 生成唯一 UID
+	temp := make([]byte, 32)
+	_, _ = rand.Read(temp)
+	uid := hex.EncodeToString(temp)
+	// 保存 uid
+	tmp := &model.AuthTemp{
+		ID:        user.ID,
+		UID:       uid,
+		CreatedAt: time.Now(),
+	}
+	if err = query.AuthTemp.WithContext(ctx).Save(tmp); err != nil {
+		return "", false, err
+	}
+
+	return uid, user.TotpBind, nil
+}
 
 func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error) {
 	now := time.Now()
@@ -116,6 +128,7 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 	otp := totp.Generate("ssoc", user.Username)
 	// 保存 OTP
 	_, err = userTbl.WithContext(ctx).
+		Where(userTbl.ID.Eq(user.ID)).
 		UpdateSimple(userTbl.TotpBind.Value(false), userTbl.TotpSecret.Value(otp.Secret))
 	if err != nil {
 		return nil, err

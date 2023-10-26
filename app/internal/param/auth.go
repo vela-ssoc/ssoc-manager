@@ -55,13 +55,18 @@ func (pps picturePoints) Convert() []*image.Point {
 	return ret
 }
 
+type AuthValidResp struct {
+	UID  string `json:"uid"`
+	Bind bool   `json:"bind"`
+}
+
 type AuthSubmit struct {
-	UID  string `json:"uid"  validate:"required,gte=255"`
+	UID  string `json:"uid"  validate:"required,lte=255"`
 	Code string `json:"code" validate:"len=6,numeric"`
 }
 
 type AuthUID struct {
-	UID string `json:"uid"  validate:"required,gte=255"`
+	UID string `json:"uid"  validate:"required,lte=255"`
 }
 
 type AuthTotpResp struct {

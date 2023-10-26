@@ -26,9 +26,9 @@ func (rst *manualREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 
 func (rst *manualREST) Sync(c *ship.Context) error {
 	fn := func(sync bool) {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Hour)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Hour)
 		defer cancel()
-		_ = rst.vuln.Scan(ctx, false)
+		_ = rst.vuln.Scan(ctx, sync)
 	}
 
 	query := c.Query("sync")

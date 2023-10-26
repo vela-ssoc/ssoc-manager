@@ -36,11 +36,11 @@ type minionLogonREST struct {
 	table dynsql.Table
 }
 
-func (rest *minionLogonREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *minionLogonREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/logon/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/logons").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/logon/attack").Data(route.Ignore()).POST(rest.Attack)
-	bearer.Route("/logon/recent").Data(route.Ignore()).GET(rest.Recent)
+	anon.Route("/logon/recent").Data(route.Ignore()).GET(rest.Recent)
 	bearer.Route("/logon/history").Data(route.Ignore()).GET(rest.History)
 	bearer.Route("/logon/ignore").Data(route.Ignore()).PATCH(rest.Ignore)
 	bearer.Route("/logon/alert").Data(route.Ignore()).PATCH(rest.Alert)

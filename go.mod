@@ -3,7 +3,7 @@ module github.com/vela-ssoc/vela-manager
 go 1.20
 
 require (
-	github.com/google/pprof v0.0.0-20230926050212-f7f687d19a98
+	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b
 	github.com/gorilla/websocket v1.5.0
 	github.com/vela-ssoc/vela-common-mb v0.0.0-20231013085131-68502b93114f
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20230830084957-da2ff0015ca5
@@ -24,7 +24,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20231023195312-e2daf7ba7156 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect

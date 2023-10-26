@@ -1,12 +1,12 @@
-#!/bin/zsh
+#!/bin/bash
 
-echo -e ""
-echo -e "\033[1;33m   ______________  _____  \033[0m"
-echo -e "\033[1;33m  / ___/ ___/ __ \/ ___/  \033[0m"
-echo -e "\033[1;33m (__  |__  ) /_/ / /__    \033[0m"
-echo -e "\033[1;33m/____/____/\____/\\___/   \033[0m \033[1;33m\033[0m \033[34mCOMPILE\033[0m"
-echo -e "    Powered By: 东方财富安全团队"
-echo -e ""
+echo ""
+echo "\033[1;33m   ______________  _____  \033[0m"
+echo "\033[1;33m  / ___/ ___/ __ \/ ___/  \033[0m"
+echo "\033[1;33m (__  |__  ) /_/ / /__    \033[0m"
+echo "\033[1;33m/____/____/\____/\\___/   \033[0m \033[1;33m\033[0m \033[34mCOMPILE\033[0m"
+echo "    Powered By: 东方财富安全团队"
+echo ""
 
 # 日志
 # 定义颜色代码
@@ -37,28 +37,28 @@ log_error() {
   echo -e "${RED}[ERRO] $message${DEFAULT}" >&2
 }
 
-PS3="请选择操作系统："
-GOOS_OPTS=("linux" "windows" "darwin")
-select goos in "${GOOS_OPTS[@]}"; do
-  case $goos in
-  "linux")
-    export GOOS="linux"
-    break
-    ;;
-  "windows")
-    export GOOS="windows"
-    break
-    ;;
-  "darwin")
-    export GOOS="darwin"
-    break
-    ;;
-  *)
-    log_error "输入了无效的参数。"
-    exit 1
-    ;;
-  esac
-done
+#PS3="请选择操作系统："
+#GOOS_OPTS=("linux" "windows" "darwin")
+#select goos in "${GOOS_OPTS[@]}"; do
+#  case $goos in
+#  "linux")
+#    export GOOS="linux"
+#    break
+#    ;;
+#  "windows")
+#    export GOOS="windows"
+#    break
+#    ;;
+#  "darwin")
+#    export GOOS="darwin"
+#    break
+#    ;;
+#  *)
+#    log_error "输入了无效的参数。"
+#    exit 1
+#    ;;
+#  esac
+#done
 
 GOOS=$(go env GOOS)
 ARCH=$(go env GOARCH)
@@ -85,7 +85,7 @@ LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/vela-manager/infra/b
 
 log_warning "编译信息：${GOOS}-${GOARCH}"
 log_info "正在编译......"
-
+# 7231
 export CGO_ENABLED=0
 
 go build -o mgt -ldflags "$LDFLAGS" \

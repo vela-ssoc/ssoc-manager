@@ -20,10 +20,10 @@ type brokerREST struct {
 	svc service.BrokerService
 }
 
-func (rest *brokerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *brokerREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brokers").Data(route.Ignore()).GET(rest.Page)
-	bearer.Route("/broker/goos").Data(route.Ignore()).GET(rest.Goos)
-	bearer.Route("/broker/stats").Data(route.Ignore()).GET(rest.Stats)
+	anon.Route("/broker/goos").Data(route.Ignore()).GET(rest.Goos)
+	anon.Route("/broker/stats").Data(route.Ignore()).GET(rest.Stats)
 	bearer.Route("/broker/indices").Data(route.Ignore()).GET(rest.Indices)
 	bearer.Route("/broker").
 		Data(route.Named("新增代理节点")).POST(rest.Create).

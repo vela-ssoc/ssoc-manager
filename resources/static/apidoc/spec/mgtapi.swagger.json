@@ -24462,6 +24462,217 @@
           }
         ]
       }
+    },
+    "/auth/valid": {
+      "post": {
+        "summary": "用户名密码认证",
+        "operationId": "post-auth-valid",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "uid": {
+                      "type": "string",
+                      "description": "登录唯一 ID"
+                    },
+                    "bind": {
+                      "type": "boolean",
+                      "description": "是否已经绑定 TOTP"
+                    }
+                  },
+                  "required": [
+                    "uid",
+                    "bind"
+                  ]
+                },
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "uid": "7e1e424ccb3ddaab0f05631fe8cb47a2337becaabc79ba6ef31c4f47d464dd6a",
+                      "bind": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "用户名密码认证",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "用户名"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "密码"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "username": "jack",
+                    "password": "Ady764@3#.,f"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/totp": {
+      "post": {
+        "summary": "获取 TOTP",
+        "operationId": "post-auth-totp",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "issuer": {
+                      "type": "string"
+                    },
+                    "account": {
+                      "type": "string"
+                    },
+                    "secret": {
+                      "type": "string"
+                    },
+                    "algorithm": {
+                      "type": "string"
+                    },
+                    "digits": {
+                      "type": "integer"
+                    },
+                    "period": {
+                      "type": "integer"
+                    },
+                    "image": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "issuer": "ssoc",
+                      "account": "200858",
+                      "secret": "VR2KDQ3EOGWNDLFVCW52T4COGRYZVB7JZ6ZDX4CZ2FZ3W6QJ",
+                      "algorithm": "",
+                      "digits": 0,
+                      "period": 0,
+                      "image": "",
+                      "url": "otpauth://totp/ssoc:200858?issuer=ssoc&secret=VR2KDQ3EOGWNDLFVCW52T4COGRYZVB7JZ6ZDX4CZ2FZ3W6QJ"
+                    }
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "issuer": "ssoc",
+                      "account": "200858",
+                      "secret": "VR2KDQ3EOGWNDLFVCW52T4COGRYZVB7JZ6ZDX4CZ2FZ3W6QJ",
+                      "algorithm": "",
+                      "digits": 0,
+                      "period": 0,
+                      "image": "",
+                      "url": "otpauth://totp/ssoc:200858?issuer=ssoc&secret=VR2KDQ3EOGWNDLFVCW52T4COGRYZVB7JZ6ZDX4CZ2FZ3W6QJ"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "获取 TOTP",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uid": {
+                    "type": "string",
+                    "description": "临时凭证"
+                  }
+                },
+                "required": [
+                  "uid"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "uid": "7e1e424ccb3ddaab0f05631fe8cb47a2337becaabc79ba6ef31c4f47d464dd6a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/submit": {
+      "post": {
+        "summary": "登录",
+        "operationId": "post-auth-submit",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "登录",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uid": {
+                    "type": "string",
+                    "description": "临时凭证"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "TOTP"
+                  }
+                },
+                "required": [
+                  "uid",
+                  "code"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "uid": "7e1e424ccb3ddaab0f05631fe8cb47a2337becaabc79ba6ef31c4f47d464dd6a",
+                    "code": "230943"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

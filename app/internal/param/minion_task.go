@@ -20,6 +20,10 @@ type MinionTaskSummary struct {
 	UpdatedAt  time.Time `json:"updated_at"`  // 修改时间
 }
 
+func (m MinionTaskSummary) String() string {
+	return m.Name + "[" + m.Status + "]"
+}
+
 type MinionTaskDetail struct {
 	ID         int64             `json:"id,string"`   // ID
 	Name       string            `json:"name"`        // 名字

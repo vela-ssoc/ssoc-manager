@@ -50,8 +50,8 @@ func (rest *riskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rest.Attack)
 	bearer.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
-	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rest.Recent)
-	bearer.Route("/risks").Data(route.Ignore()).GET(rest.Page)
+	anon.Route("/risk/recent").Data(route.Ignore()).GET(rest.Recent)
+	anon.Route("/risks").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/risk/csv").Data(route.Ignore()).GET(rest.CSV)
 	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rest.Pie)
 	bearer.Route("/risk").
@@ -152,7 +152,7 @@ func (rest *riskREST) Pie(c *ship.Context) error {
 	ctx := c.Request().Context()
 	tx := query.Risk.WithContext(ctx).UnderlyingDB()
 	if rtype != "" {
-		tx.Where("risk_type = ?", rtype)
+		tx = tx.Where("risk_type = ?", rtype)
 	}
 
 	res := &param.PieTopN{TopN: make([]*param.NameCount, 0, topN)}

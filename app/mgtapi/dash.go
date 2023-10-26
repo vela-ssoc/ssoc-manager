@@ -19,12 +19,12 @@ type dashREST struct {
 	svc service.DashService
 }
 
-func (rest *dashREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/dash/status").Data(route.Ignore()).GET(rest.Status)
-	bearer.Route("/dash/goos").Data(route.Ignore()).GET(rest.Goos)
+func (rest *dashREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+	anon.Route("/dash/status").Data(route.Ignore()).GET(rest.Status)
+	anon.Route("/dash/goos").Data(route.Ignore()).GET(rest.Goos)
 	bearer.Route("/dash/edition").Data(route.Ignore()).GET(rest.Edition)
 	bearer.Route("/dash/evtlvl").Data(route.Ignore()).GET(rest.Evtlvl)
-	bearer.Route("/dash/risklvl").Data(route.Ignore()).GET(rest.Risklvl)
+	anon.Route("/dash/risklvl").Data(route.Ignore()).GET(rest.Risklvl)
 	bearer.Route("/dash/risksts").Data(route.Ignore()).GET(rest.Risksts)
 	bearer.Route("/dash/broker/goos").Data(route.Ignore()).GET(rest.BGoos)
 }

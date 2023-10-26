@@ -34,8 +34,8 @@ type sbomComponentREST struct {
 	table dynsql.Table
 }
 
-func (rest *sbomComponentREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/sbom/count").Data(route.Ignore()).GET(rest.Count)
+func (rest *sbomComponentREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+	anon.Route("/sbom/count").Data(route.Ignore()).GET(rest.Count)
 	bearer.Route("/sbom/components").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/component/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/component/projects").Data(route.Ignore()).GET(rest.Project)

@@ -41,14 +41,15 @@ type minionTaskREST struct {
 	table dynsql.Table
 }
 
-func (rest *minionTaskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *minionTaskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/tasks").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/task").Data(route.Ignore()).GET(rest.Detail)
 	bearer.Route("/task/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/task/minion").Data(route.Ignore()).GET(rest.Minion)
 	bearer.Route("/task/gathers").Data(route.Ignore()).GET(rest.Gathers)
 	bearer.Route("/task/count").Data(route.Ignore()).GET(rest.Count)
-	bearer.Route("/task/rcount").Data(route.Ignore()).GET(rest.RCount)
+
+	anon.Route("/task/rcount").Data(route.Ignore()).GET(rest.RCount)
 }
 
 func (rest *minionTaskREST) Cond(c *ship.Context) error {
