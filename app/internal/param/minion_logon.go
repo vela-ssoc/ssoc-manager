@@ -64,3 +64,9 @@ func (rts MinionRecentTemps) Format(n int) MinionRecent {
 
 	return ret
 }
+
+type MinionLogonCount struct {
+	Success int `json:"success" gorm:"column:success"`
+	Failed  int `json:"failed"  gorm:"column:failed"`
+	Logout  int `json:"logout"  gorm:"column:logout"`
+}

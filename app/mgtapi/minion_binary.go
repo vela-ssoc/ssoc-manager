@@ -27,7 +27,7 @@ func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/monbin/deprecate").
 		Data(route.Named("agent 客户端标记为过期")).PATCH(rest.Deprecate)
 	bearer.Route("/monbin").
-		Data(route.Named("上传 agent 客户端")).POST(rest.Create).
+		Data(route.IgnoreBody("上传 agent 客户端")).POST(rest.Create).
 		Data(route.Named("删除 agent 客户端")).DELETE(rest.Delete)
 	bearer.Route("/monbin/release").
 		Data(route.Named("推送升级")).PATCH(rest.Release)

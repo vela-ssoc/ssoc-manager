@@ -24,7 +24,7 @@ func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brkbins").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/brkbin").
 		Data(route.Ignore()).GET(rest.Download).
-		Data(route.Named("上传 broker 客户端")).POST(rest.Create).
+		Data(route.IgnoreBody("上传 broker 客户端")).POST(rest.Create).
 		Data(route.Named("删除 broker 客户端")).DELETE(rest.Delete)
 }
 

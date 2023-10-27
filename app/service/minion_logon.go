@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
 
@@ -15,13 +17,18 @@ type MinionLogonService interface {
 	Recent(ctx context.Context, days int) param.MinionRecent
 	History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon)
 	Ignore(ctx context.Context, id int64) error
+	// Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error)
 }
 
-func MinionLogon() MinionLogonService {
-	return &minionLogonService{}
+func MinionLogon(es elastic.Searcher) MinionLogonService {
+	return &minionLogonService{
+		es: es,
+	}
 }
 
-type minionLogonService struct{}
+type minionLogonService struct {
+	es elastic.Searcher
+}
 
 func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon) {
 	tbl := query.MinionLogon
@@ -110,4 +117,8 @@ func (biz *minionLogonService) Ignore(ctx context.Context, id int64) error {
 		UpdateSimple(tbl.Ignore.Value(true))
 
 	return err
+}
+
+func (biz *minionLogonService) Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error) {
+	return nil, nil
 }

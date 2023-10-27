@@ -34,7 +34,7 @@ func (ito *intoREST) Route(_, _, basic *ship.RouteGroupBuilder) {
 	basic.Route("/bws/*path").Data(route.IgnoreBody("BWS")).GET(ito.BWS)
 	basic.Route("/brr/*path").Data(route.Named("BRR")).Method(ito.BRR, methods...)
 	basic.Route("/aws/*path").Data(route.IgnoreBody("AWS")).GET(ito.AWS)
-	basic.Route("/arr/*path").Data(route.Named("ARR")).Method(ito.ARR, methods...)
+	basic.Route("/arr/*path").Data(route.Ignore()).Method(ito.ARR, methods...)
 }
 
 func (ito *intoREST) BRR(c *ship.Context) error {

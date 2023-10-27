@@ -199,7 +199,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	minionTaskREST := mgtapi.MinionTask(minionTaskService)
 	minionTaskREST.Route(anon, bearer, basic)
 
-	minionLogonService := service.MinionLogon()
+	es := elastic.NewSearch(elastic.NewConfigure("ES"), client)
+	minionLogonService := service.MinionLogon(es)
 	minionLogonREST := mgtapi.MinionLogon(minionLogonService)
 	minionLogonREST.Route(anon, bearer, basic)
 

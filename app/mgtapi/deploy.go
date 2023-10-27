@@ -25,9 +25,9 @@ type deployREST struct {
 func (rest *deployREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/deploy/lan").Data(route.Ignore()).GET(rest.LAN)
 	anon.Route("/deploy/minion").
-		Data(route.Named("下载 agent 部署脚本")).GET(rest.Script)
+		Data(route.Ignore()).GET(rest.Script)
 	anon.Route("/deploy/minion/download").
-		Data(route.Named("下载 agent 二进制客户端")).GET(rest.MinionDownload)
+		Data(route.Ignore()).GET(rest.MinionDownload)
 }
 
 func (rest *deployREST) LAN(c *ship.Context) error {
