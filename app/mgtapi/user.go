@@ -31,6 +31,8 @@ func (rest *userREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("创建用户")).POST(rest.Create)
 	bearer.Route("/user/ak").
 		Data(route.Named("更新 AK")).PATCH(rest.AccessKey)
+	bearer.Route("/user/totp").
+		Data(route.Named("解绑 TOTP")).DELETE(rest.Totp)
 }
 
 // Page 分页查询
@@ -139,6 +141,18 @@ func (rest *userREST) AccessKey(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	err := rest.svc.AccessKey(ctx, req.ID)
+
+	return err
+}
+
+func (rest *userREST) Totp(c *ship.Context) error {
+	var req param.IntID
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	err := rest.svc.Totp(ctx, req.ID)
 
 	return err
 }

@@ -3,6 +3,7 @@ package mgtapi
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
@@ -57,6 +58,7 @@ func (rest *riskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk").
 		Data(route.Named("批量删除风险事件")).DELETE(rest.Delete)
 	anon.Route("/risk").Data(route.Ignore()).GET(rest.HTML)
+	anon.Route("/risk/payloads").Data(route.Ignore()).GET(rest.Payloads)
 	bearer.Route("/risk/ignore").
 		Data(route.Named("批量忽略风险事件")).PATCH(rest.Ignore)
 	bearer.Route("/risk/process").
@@ -240,4 +242,29 @@ func (rest *riskREST) HTML(c *ship.Context) error {
 	c.SetRespHeader(ship.HeaderContentLength, size)
 
 	return c.Stream(http.StatusOK, ship.MIMETextHTMLCharsetUTF8, buf)
+}
+
+func (rest *riskREST) Payloads(c *ship.Context) error {
+	var req param.RiskPayloadRequest
+	if err := c.BindQuery(&req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	pager := req.Pager()
+
+	days := req.Days
+	if days <= 0 {
+		days = 1
+	}
+	now := time.Now()
+	start := now.Add(-time.Duration(days) * time.Hour * 24)
+
+	count, ret, err := rest.svc.Payloads(ctx, pager, start, now, req.RiskType)
+	if err != nil {
+		return err
+	}
+	res := pager.Result(count, ret)
+
+	return c.JSON(http.StatusOK, res)
 }

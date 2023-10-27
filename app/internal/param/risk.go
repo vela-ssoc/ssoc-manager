@@ -65,3 +65,14 @@ type PieTopN struct {
 	TopN  []*NameCount `json:"topn"`
 	Other int          `json:"other"`
 }
+
+type RiskPayloadRequest struct {
+	Page
+	RiskType string `query:"risk_type"`
+	Days     int    `query:"days"      validate:"gte=0,lte=180"`
+}
+
+type RiskPayload struct {
+	Payload string    `json:"payload"  gorm:"column:payload"`
+	OccurAt time.Time `json:"occur_at" gorm:"column:occur_at"`
+}

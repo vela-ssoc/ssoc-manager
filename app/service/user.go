@@ -33,6 +33,8 @@ type UserService interface {
 	AccessKey(ctx context.Context, id int64) error
 
 	Authenticate(ctx context.Context, uname, passwd string) (*model.User, error)
+
+	Totp(ctx context.Context, uid int64) error
 }
 
 func User(digest DigestService, sso ssoauth.Client) UserService {
@@ -223,5 +225,13 @@ func (biz *userService) AccessKey(ctx context.Context, id int64) error {
 	ak := strings.Join(words, ".")
 	_, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).UpdateColumn(tbl.AccessKey, ak)
 
+	return err
+}
+
+func (biz *userService) Totp(ctx context.Context, uid int64) error {
+	tbl := query.User
+	_, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(uid)).
+		UpdateSimple(tbl.TotpBind.Value(false), tbl.TotpSecret.Value(""))
 	return err
 }

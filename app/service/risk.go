@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -21,6 +22,7 @@ type RiskService interface {
 	Ignore(ctx context.Context, scope dynsql.Scope) error
 	Process(ctx context.Context, scope dynsql.Scope) error
 	HTML(ctx context.Context, id int64, secret string) *bytes.Buffer
+	Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error)
 }
 
 func Risk(store storage.Storer) RiskService {
@@ -146,4 +148,27 @@ func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *byte
 	}
 
 	return biz.store.RiskHTML(ctx, rsk)
+}
+
+func (biz *riskService) Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error) {
+	tbl := query.Risk
+	dao := tbl.WithContext(ctx).
+		Distinct(tbl.Payload).
+		Where(tbl.OccurAt.Between(start, end)).
+		Order(tbl.ID.Desc())
+	if riskType != "" {
+		dao.Where(tbl.RiskType.Eq(riskType))
+	}
+
+	count, err := dao.Count()
+	if err != nil || count == 0 {
+		return 0, nil, err
+	}
+
+	var ret []*param.RiskPayload
+	err = dao.Scopes(page.Scope(count)).UnderlyingDB().
+		Select("DISTINCT(payload)", "id", "occur_at").
+		Find(&ret).Error
+
+	return count, ret, err
 }
