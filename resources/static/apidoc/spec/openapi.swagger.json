@@ -13,7 +13,7 @@
   },
   "servers": [
     {
-      "url": "/api",
+      "url": "/api/v1",
       "description": "API"
     }
   ],
@@ -221,7 +221,7 @@
           }
         },
         "operationId": "get-vulnerabilities",
-        "description": "## 使用说明\n\n- `offset_id` 为空时则从第一条漏洞开始查询\n\n- 每次查询记下最后一条数据的 `id` 用作下次查询的 `offset_id` （返回的数据是按照 `id` 递增的）\n\n- 当返回的结果的 length 为 0 或小于 `size` 时，通常说明后面没有新数据\n\n## 请求说明\n\n| 字段 | 类型 | 是否必填 | 校验 | 默认值 | \n| ---- | ---- | ---- | ---- | ---- |\n| `size` | int | 否 | 0 ≤ `size` ≤ 200 | 100 |\n| `offset_id` | string | 否 | `offset_id`.length ≤ 30 | 无 |\n\n## CVSS v3.x 评分标准细则点击 [nvd.nist.gov](https://nvd.nist.gov/vuln-metrics/cvss)\n\n| 分数 | 级别 | level 标识 |\n| ---- | ---- | ---- |\n| 0.0 | None （无危） | 0 |\n| 0.1-3.9 | Low （低危） | 1 |\n| 4.0-6.9 | Medium （中危） | 2 |\n| 7.0-8.9 | High （高危） | 3 |\n| 9.0-10.0 | Critical （紧急） | 4 |\n",
+        "description": "## 使用说明\n\n- `offset_id` 为空时则从第一条漏洞开始查询\n\n- 每次查询记下最后一条数据的 `id` 用作下次查询的 `offset_id` （返回的数据是按照 `id` 递增的）\n\n- 当返回的结果的 length 为 0 或小于 `size` 时，通常说明后面没有新数据\n\n## 请求说明\n\n| 字段 | 类型 | 是否必填 | 校验 | 默认值 | \n| ---- | ---- | ---- | ---- | ---- |\n| `size` | int | 否 | 0 ≤ `size` ≤ 200 | 100 |\n| `offset_id` | string | 否 | 数字类型 | 无 |\n\n## CVSS v3.x 评分标准细则点击 [nvd.nist.gov](https://nvd.nist.gov/vuln-metrics/cvss)\n\n| 分数 | 级别 | level 标识 |\n| ---- | ---- | ---- |\n| 0.0 | None （无危） | 0 |\n| 0.1-3.9 | Low （低危） | 1 |\n| 4.0-6.9 | Medium （中危） | 2 |\n| 7.0-8.9 | High （高危） | 3 |\n| 9.0-10.0 | Critical （紧急） | 4 |\n",
         "parameters": [
           {
             "schema": {
@@ -243,8 +243,7 @@
             "name": "offset_id",
             "description": "上次查询的最后一条 ID"
           }
-        ],
-        "deprecated": true
+        ]
       }
     },
     "/sbom/purl": {

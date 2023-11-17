@@ -2,6 +2,7 @@ package mgtapi
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -29,6 +30,7 @@ func (rest *sbomVulnREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/sbom/vulns").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/vuln/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/vuln/projects").Data(route.Ignore()).GET(rest.Project)
+	bearer.Route("/vulnerabilities").Data(route.Named("拉漏洞库")).GET(rest.Vulnerabilities)
 }
 
 func (rest *sbomVulnREST) Cond(c *ship.Context) error {
@@ -66,4 +68,19 @@ func (rest *sbomVulnREST) Project(c *ship.Context) error {
 	res := page.Result(count, dats)
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *sbomVulnREST) Vulnerabilities(c *ship.Context) error {
+	strSize := c.Query("size")
+	strOffsetID := c.Query("offset_id")
+	size, _ := strconv.Atoi(strSize)
+	if size <= 0 || size > 200 {
+		size = 200
+	}
+	id, _ := strconv.ParseInt(strOffsetID, 10, 64)
+	ctx := c.Request().Context()
+
+	ret := rest.svc.Vulnerabilities(ctx, id, size)
+
+	return c.JSON(http.StatusOK, ret)
 }

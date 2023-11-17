@@ -12,6 +12,7 @@ import (
 type SBOMVulnService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln)
 	Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject)
+	Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln
 }
 
 func SBOMVuln() SBOMVulnService {
@@ -57,4 +58,18 @@ func (biz *sbomVulnService) Project(ctx context.Context, page param.Pager, purl 
 		Find()
 
 	return count, dats
+}
+
+func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln {
+	tbl := query.SBOMVuln
+	ret, _ := tbl.WithContext(ctx).
+		Where(tbl.ID.Gt(offsetID)).
+		Limit(size).
+		Order(tbl.ID).
+		Find()
+	if len(ret) == 0 {
+		return []*model.SBOMVuln{}
+	}
+
+	return ret
 }

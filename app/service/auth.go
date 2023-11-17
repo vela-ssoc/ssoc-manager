@@ -110,7 +110,7 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 	now := time.Now()
 	tempTbl := query.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
-	if err != nil || temp.Expired(now, time.Minute) {
+	if err != nil || temp.Expired(now, 3*time.Minute) {
 		return nil, errcode.ErrUnauthorized
 	}
 	userTbl := query.User
@@ -141,7 +141,7 @@ func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.Us
 	now := time.Now()
 	tempTbl := query.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
-	if err != nil || temp.Expired(now, time.Minute) {
+	if err != nil || temp.Expired(now, 3*time.Minute) {
 		return nil, errcode.ErrUnauthorized
 	}
 	userTbl := query.User

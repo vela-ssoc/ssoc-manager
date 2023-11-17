@@ -6794,80 +6794,19 @@
       }
     },
     "/thirds": {
-      "post": {
+      "get": {
         "summary": "获取三方文件列表",
-        "operationId": "post-thirds",
+        "operationId": "get-thirds",
         "responses": {
           "200": {
             "description": "OK"
           }
         },
         "tags": [
+          "最近修改",
           "third"
         ],
-        "description": "获取三方文件列表",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "current": {
-                    "type": "integer"
-                  },
-                  "size": {
-                    "type": "integer"
-                  },
-                  "filters": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "key": {
-                          "type": "string"
-                        },
-                        "value": {
-                          "type": "string"
-                        },
-                        "operator": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                },
-                "x-examples": {
-                  "example-1": {
-                    "current": 1,
-                    "size": 10,
-                    "filters": [
-                      {
-                        "key": "extension",
-                        "value": ".lua",
-                        "operator": "eq"
-                      }
-                    ]
-                  }
-                }
-              },
-              "examples": {
-                "示例": {
-                  "value": {
-                    "current": 1,
-                    "size": 10,
-                    "filters": [
-                      {
-                        "key": "extension",
-                        "value": ".lua",
-                        "operator": "eq"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
+        "description": ""
       }
     },
     "/third": {
@@ -6964,6 +6903,60 @@
             "description": "三方文件 ID"
           }
         ]
+      },
+      "put": {
+        "summary": "修改三方文件信息",
+        "operationId": "put-third",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改",
+          "third"
+        ],
+        "description": "修改三方文件信息",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "文件 ID"
+                  },
+                  "customized": {
+                    "type": "string",
+                    "description": "归类标签"
+                  },
+                  "desc": {
+                    "type": "string",
+                    "description": "说明"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "文件（不上传代表不修改）"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "id": "71250149164371970",
+                    "customized": "扫描器",
+                    "desc": "这是一个简单的扫描器"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/third/tag": {
@@ -19386,7 +19379,8 @@
       "get": {
         "summary": "Agent 节点发布列表",
         "tags": [
-          "binary"
+          "binary",
+          "最近修改"
         ],
         "responses": {
           "200": {
@@ -19396,13 +19390,13 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
                     "current": {
                       "type": "integer"
                     },
                     "size": {
-                      "type": "integer"
-                    },
-                    "total": {
                       "type": "integer"
                     },
                     "records": {
@@ -19420,6 +19414,18 @@
                             "type": "string"
                           },
                           "name": {
+                            "type": "string"
+                          },
+                          "customized": {
+                            "type": "string"
+                          },
+                          "unstable": {
+                            "type": "boolean"
+                          },
+                          "caution": {
+                            "type": "string"
+                          },
+                          "ability": {
                             "type": "string"
                           },
                           "size": {
@@ -19448,36 +19454,180 @@
                     }
                   },
                   "x-examples": {
-                    "example-1": {
+                    "Example 1": {
+                      "total": 11,
                       "current": 1,
-                      "size": 2,
-                      "total": 7,
+                      "size": 10,
                       "records": [
                         {
-                          "id": "67193832595668992",
+                          "id": "206780565861617664",
                           "goos": "linux",
                           "arch": "amd64",
                           "name": "ssc-amd64-upx",
-                          "size": 20518948,
-                          "hash": "19f523ba41c3e0ab1bdaee56002c7503",
-                          "semver": "2.1.18",
-                          "changelog": "",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17777456,
+                          "hash": "e87b39a53c05479490da9716bd8efa51",
+                          "semver": "3.1.19",
+                          "changelog": "[2023082301] 开发elkeid驱动安装程序\r\n[2023082402] 开发hids内核驱动的安装程序\r\n[2023082403] 开发hids内核驱动的卸载程序\r\n[2023082501] 集成测试hids内核驱动兼容性\r\n[2023082502] process进程采集性能优化",
                           "deprecated": false,
-                          "created_at": "2022-08-05T10:04:18+08:00",
-                          "updated_at": "2022-08-05T10:04:18+08:00"
+                          "created_at": "2023-08-25T14:32:09Z",
+                          "updated_at": "2023-08-25T14:32:09Z"
                         },
                         {
-                          "id": "64034987337728000",
+                          "id": "205769153521569792",
                           "goos": "linux",
                           "arch": "amd64",
                           "name": "ssc-amd64-upx",
-                          "size": 20261428,
-                          "hash": "6d42eb72935c48d47434c452dfa38203",
-                          "semver": "2.1.4",
-                          "changelog": "",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17756136,
+                          "hash": "22bbd0fd8814db2b472e60a5368f0fe4",
+                          "semver": "3.1.18",
+                          "changelog": "[2023082101] 修复process采集信息丢失问题\r\n[2023082102] 删除process中args的信息\r\n[2023082103] 内置sysmon版本绑定\r\n[2023082201] 内置sysmon修改startup的更新逻辑",
                           "deprecated": false,
-                          "created_at": "2022-07-27T16:52:11+08:00",
-                          "updated_at": "2022-07-27T16:52:11+08:00"
+                          "created_at": "2023-08-22T19:33:09Z",
+                          "updated_at": "2023-08-22T19:33:09Z"
+                        },
+                        {
+                          "id": "204642132863143936",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17755928,
+                          "hash": "547a8f7cc707ecbf832f470d5cfc094a",
+                          "semver": "3.1.17",
+                          "changelog": "[2023081301] 修改process快照监控cpu问题 \r\n[2023081302] 修改process快照进程去掉simple\r\n[2023081501] 简化process的factory的服务\r\n[2023081701] 去掉linux服务的系统进程的监控\r\n[2023081801] 开启sysmon的功能检测\r\n[2023081802] 测试sysmon安装和卸载\r\n[2023081901] 修改并添加to的方法加速格式化\r\n[2023081902] 添加to定向dict方法\r\n[2023081903] 添加to定向sub方法",
+                          "deprecated": false,
+                          "created_at": "2023-08-19T16:54:47Z",
+                          "updated_at": "2023-08-19T16:54:47Z"
+                        },
+                        {
+                          "id": "202108481940148224",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17756028,
+                          "hash": "186e02e0999092435201dfc42689ab84",
+                          "semver": "3.1.16",
+                          "changelog": "[2023080301] 解决net不采集exe的问题 \r\n[2023080302] 添加pprof的性能检测\r\n[2023080303] 修改monitor的逻辑\r\n[2023080701] 修复cond中unary运算的问题\r\n[2023081201] 修复登录过了修改 解决采集问题\r\n[2023081202] 修复psnotify进程监控",
+                          "deprecated": false,
+                          "created_at": "2023-08-12T17:06:57Z",
+                          "updated_at": "2023-08-12T17:06:57Z"
+                        },
+                        {
+                          "id": "199228474356060160",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17750080,
+                          "hash": "f9934400e91c369ef9afde189012449f",
+                          "semver": "3.1.15",
+                          "changelog": "[2023080101] 默认打开monitor监控\r\n[2023080102] 取消高交互蜜罐默认安装",
+                          "deprecated": false,
+                          "created_at": "2023-08-04T18:22:50Z",
+                          "updated_at": "2023-08-04T18:22:50Z"
+                        },
+                        {
+                          "id": "196712277559398400",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 20781820,
+                          "hash": "62b89a20289e2dd079494434300130b6",
+                          "semver": "3.1.13-beta",
+                          "changelog": "3.1.13 beta",
+                          "deprecated": false,
+                          "created_at": "2023-07-28T19:44:22Z",
+                          "updated_at": "2023-07-28T19:44:22Z"
+                        },
+                        {
+                          "id": "196714039565537280",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 20781820,
+                          "hash": "62b89a20289e2dd079494434300130b6",
+                          "semver": "3.1.13",
+                          "changelog": "[2023072801] 优化文件管理服务 v3.1.13\r\n[2023072802] 可以删除系统自带文件 v3.1.13\r\n[2023072803] 优化bbolt存储算法 v3.1.13\r\n[2023072804] 新增加密算法 v3.1.13\r\n[2023072805] 修改request的请求body的方式 v3.1.13\r\n[2023072806] process的信息获取优化  v3.1.13\r\n[2023072807] webdav增加查看数据功能  v3.1.13\r\n[2023072808] monitor 采用Ringbuffer  v3.1.13",
+                          "deprecated": false,
+                          "created_at": "2023-07-28T19:51:22Z",
+                          "updated_at": "2023-07-28T19:51:22Z"
+                        },
+                        {
+                          "id": "193459114307932160",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 20758036,
+                          "hash": "81f96a5bc118bbfeed3ab5a4ecba8240",
+                          "semver": "3.1.12",
+                          "changelog": "优化process采集逻辑,开发file逻辑 和资产逻辑",
+                          "deprecated": false,
+                          "created_at": "2023-07-19T20:17:27Z",
+                          "updated_at": "2023-07-19T20:17:27Z"
+                        },
+                        {
+                          "id": "192700977204350976",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 20750832,
+                          "hash": "2648fcbe85f1613cd49bd5b2eae2eb52",
+                          "semver": "3.1.11",
+                          "changelog": "系统监控",
+                          "deprecated": true,
+                          "created_at": "2023-07-17T18:04:53Z",
+                          "updated_at": "2023-11-07T08:23:20Z"
+                        },
+                        {
+                          "id": "190867914635792384",
+                          "goos": "linux",
+                          "arch": "amd64",
+                          "name": "ssc-amd64-upx",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 21758500,
+                          "hash": "435d83f4aff559b25106e104c5397b86",
+                          "semver": "3.1.10",
+                          "changelog": "修复bpf的问题",
+                          "deprecated": true,
+                          "created_at": "2023-07-12T16:40:57Z",
+                          "updated_at": "2023-11-07T08:26:47Z"
                         }
                       ]
                     }
@@ -19486,35 +19636,43 @@
                 "examples": {
                   "返回示例": {
                     "value": {
+                      "total": 11,
                       "current": 1,
-                      "size": 2,
-                      "total": 7,
+                      "size": 10,
                       "records": [
                         {
-                          "id": "67193832595668992",
+                          "id": "206780565861617664",
                           "goos": "linux",
                           "arch": "amd64",
                           "name": "ssc-amd64-upx",
-                          "size": 20518948,
-                          "hash": "19f523ba41c3e0ab1bdaee56002c7503",
-                          "semver": "2.1.18",
-                          "changelog": "",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17777456,
+                          "hash": "e87b39a53c05479490da9716bd8efa51",
+                          "semver": "3.1.19",
+                          "changelog": "[2023082301] 开发elkeid驱动安装程序\r\n[2023082402] 开发hids内核驱动的安装程序\r\n[2023082403] 开发hids内核驱动的卸载程序\r\n[2023082501] 集成测试hids内核驱动兼容性\r\n[2023082502] process进程采集性能优化",
                           "deprecated": false,
-                          "created_at": "2022-08-05T10:04:18+08:00",
-                          "updated_at": "2022-08-05T10:04:18+08:00"
+                          "created_at": "2023-08-25T14:32:09Z",
+                          "updated_at": "2023-08-25T14:32:09Z"
                         },
                         {
-                          "id": "64034987337728000",
+                          "id": "205769153521569792",
                           "goos": "linux",
                           "arch": "amd64",
                           "name": "ssc-amd64-upx",
-                          "size": 20261428,
-                          "hash": "6d42eb72935c48d47434c452dfa38203",
-                          "semver": "2.1.4",
-                          "changelog": "",
+                          "customized": "",
+                          "unstable": false,
+                          "caution": "",
+                          "ability": "",
+                          "size": 17756136,
+                          "hash": "22bbd0fd8814db2b472e60a5368f0fe4",
+                          "semver": "3.1.18",
+                          "changelog": "[2023082101] 修复process采集信息丢失问题\r\n[2023082102] 删除process中args的信息\r\n[2023082103] 内置sysmon版本绑定\r\n[2023082201] 内置sysmon修改startup的更新逻辑",
                           "deprecated": false,
-                          "created_at": "2022-07-27T16:52:11+08:00",
-                          "updated_at": "2022-07-27T16:52:11+08:00"
+                          "created_at": "2023-08-22T19:33:09Z",
+                          "updated_at": "2023-08-22T19:33:09Z"
                         }
                       ]
                     }
@@ -19545,9 +19703,12 @@
             "name": "size",
             "description": "显示条数",
             "required": true
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/filters"
           }
         ],
-        "description": "### 2022-09-13\n\n- 新增 `deprecated` 代表版本是否过期（或称之为：不推荐使用的版本）\n\n- 新增 `changelog` 版本更新日志"
+        "description": ""
       }
     },
     "/monbin": {
@@ -19562,7 +19723,7 @@
         "tags": [
           "binary"
         ],
-        "description": "### 2022-09-13\n\n- `version` 变更为 `semver` 字段\n\n- `name` 为必输字段\n\n- 新增 `changelog` 字段",
+        "description": "",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -19609,6 +19770,22 @@
                     "type": "string",
                     "description": "二进制文件",
                     "format": "binary"
+                  },
+                  "caution": {
+                    "type": "string",
+                    "description": "注意事项"
+                  },
+                  "ability": {
+                    "type": "string",
+                    "description": "功能说明"
+                  },
+                  "customized": {
+                    "type": "string",
+                    "description": "定制版字段"
+                  },
+                  "unstable": {
+                    "type": "boolean",
+                    "description": "是否测试版"
                   }
                 },
                 "required": [
@@ -19622,6 +19799,81 @@
             }
           },
           "description": ""
+        }
+      },
+      "get": {
+        "summary": "下载原始的客户端",
+        "operationId": "get-monbin",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/ID"
+          }
+        ],
+        "description": ""
+      },
+      "patch": {
+        "summary": "修改 agent 发行版信息",
+        "operationId": "patch-monbin",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "x-examples": {
+                  "Example 1": {
+                    "id": "1234567893654557841",
+                    "changlog": "更新日志",
+                    "caution": "注意事项",
+                    "ability": "功能说明"
+                  }
+                },
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID"
+                  },
+                  "changlog": {
+                    "type": "string",
+                    "description": "更新说明"
+                  },
+                  "caution": {
+                    "type": "string",
+                    "description": "注意事项"
+                  },
+                  "ability": {
+                    "type": "string",
+                    "description": "功能说明"
+                  }
+                }
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "id": "1234567893654557841",
+                    "changlog": "更新日志",
+                    "caution": "注意事项",
+                    "ability": "功能说明"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -24385,8 +24637,7 @@
       "get": {
         "summary": "加载火焰图",
         "tags": [
-          "debug",
-          "最近修改"
+          "debug"
         ],
         "responses": {
           "200": {
@@ -24440,8 +24691,7 @@
       "get": {
         "summary": "浏览火焰图",
         "tags": [
-          "debug",
-          "最近修改"
+          "debug"
         ],
         "responses": {
           "200": {
@@ -24532,7 +24782,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "login"
+        ]
       }
     },
     "/auth/totp": {
@@ -24628,7 +24881,10 @@
               }
             }
           }
-        }
+        },
+        "tags": [
+          "login"
+        ]
       }
     },
     "/auth/submit": {
@@ -24668,6 +24924,1059 @@
                     "code": "230943"
                   }
                 }
+              }
+            }
+          }
+        },
+        "tags": [
+          "login"
+        ]
+      }
+    },
+    "/monbin/cond": {
+      "get": {
+        "summary": "agent 客户端条件",
+        "tags": [
+          "binary"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conditions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "desc": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "operators": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "desc": {
+                                  "type": "string"
+                                },
+                                "key": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "enum": {
+                            "type": "boolean"
+                          },
+                          "enums": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {}
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    },
+                    "orders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {}
+                      }
+                    }
+                  },
+                  "x-examples": {
+                    "Example 1": {
+                      "conditions": [
+                        {
+                          "key": "id",
+                          "desc": "ID",
+                          "type": "int",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "goos",
+                          "desc": "操作系统",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "arch",
+                          "desc": "系统架构",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "name",
+                          "desc": "文件名",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "semver",
+                          "desc": "版本号",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "changelog",
+                          "desc": "更新日志",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "deprecated",
+                          "desc": "是否过期",
+                          "type": "bool",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "unstable",
+                          "desc": "是否测试版",
+                          "type": "bool",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        }
+                      ],
+                      "groups": [],
+                      "orders": []
+                    }
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "conditions": [
+                        {
+                          "key": "id",
+                          "desc": "ID",
+                          "type": "int",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "goos",
+                          "desc": "操作系统",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "arch",
+                          "desc": "系统架构",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "name",
+                          "desc": "文件名",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "semver",
+                          "desc": "版本号",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "changelog",
+                          "desc": "更新日志",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "deprecated",
+                          "desc": "是否过期",
+                          "type": "bool",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "unstable",
+                          "desc": "是否测试版",
+                          "type": "bool",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        }
+                      ],
+                      "groups": [],
+                      "orders": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-monbin-cond"
+      }
+    },
+    "/monbin/classify": {
+      "get": {
+        "summary": "agent 客户端分类",
+        "tags": [
+          "binary"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "x-examples": {
+                    "Example 1": [
+                      {
+                        "structures": [
+                          {
+                            "goos": "linux",
+                            "arch": "amd64"
+                          },
+                          {
+                            "goos": "windows",
+                            "arch": "amd64"
+                          }
+                        ],
+                        "customized": ""
+                      },
+                      {
+                        "structures": [
+                          {
+                            "goos": "linux",
+                            "arch": "386"
+                          }
+                        ],
+                        "customized": "扫描器"
+                      }
+                    ]
+                  },
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "structures": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "goos": {
+                              "type": "string",
+                              "description": "操作系统"
+                            },
+                            "arch": {
+                              "type": "string",
+                              "description": "架构"
+                            }
+                          }
+                        }
+                      },
+                      "customized": {
+                        "type": "string",
+                        "description": "定制标签"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "示例": {
+                    "value": [
+                      {
+                        "structures": [
+                          {
+                            "goos": "linux",
+                            "arch": "amd64"
+                          },
+                          {
+                            "goos": "windows",
+                            "arch": "amd64"
+                          }
+                        ],
+                        "customized": ""
+                      },
+                      {
+                        "structures": [
+                          {
+                            "goos": "linux",
+                            "arch": "386"
+                          }
+                        ],
+                        "customized": "扫描器"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-monbin-classify",
+        "description": ""
+      }
+    },
+    "/monbin/customizes": {
+      "get": {
+        "summary": "获取客户端定制版标签",
+        "tags": [
+          "binary"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-monbin-customizes",
+        "description": "获取客户端定制版标签"
+      }
+    },
+    "/monbin/customized": {
+      "post": {
+        "summary": "创建定制化标签",
+        "operationId": "post-monbin-customized",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "description": "创建定制化标签",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "定制版本名字",
+                    "maxLength": 10
+                  },
+                  "icon": {
+                    "type": "string",
+                    "description": "图标",
+                    "maxLength": 65500
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "name": "扫描器",
+                    "icon": "san.svg"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除定制化标签",
+        "operationId": "delete-monbin-customized",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "binary"
+        ],
+        "description": "删除定制化标签",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "ID"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "id": "8954545752145475111"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/third/customizes": {
+      "get": {
+        "summary": "3rd 文件分类列表",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "operationId": "get-third-customizes",
+        "tags": [
+          "最近修改",
+          "third"
+        ],
+        "description": ""
+      }
+    },
+    "/third/customized": {
+      "post": {
+        "summary": "新增分类",
+        "operationId": "post-third-customized",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改",
+          "third"
+        ],
+        "description": "",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "examples": {
+                "示例": {
+                  "value": {
+                    "name": "标签名字",
+                    "remark": "说明",
+                    "icon": "图标"
+                  }
+                }
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "delete": {
+        "summary": "删除分类",
+        "operationId": "delete-third-customized",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改",
+          "third"
+        ]
+      },
+      "patch": {
+        "summary": "修改 3rd 文件标签",
+        "operationId": "patch-third-customized",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改",
+          "third"
+        ],
+        "description": "修改 3rd 文件标签",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "标签ID"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "description": "图标"
+                  },
+                  "remark": {
+                    "type": "string",
+                    "description": "说明"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
               }
             }
           }

@@ -255,6 +255,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	thirdREST := mgtapi.Third(thirdService)
 	thirdREST.Route(anon, bearer, basic)
 
+	thirdCustomizedService := service.ThirdCustomized()
+	thirdCustomizedREST := mgtapi.ThirdCustomized(thirdCustomizedService)
+	thirdCustomizedREST.Route(anon, bearer, basic)
+
 	brokerService := service.Broker()
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
@@ -290,6 +294,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskIPService := service.RiskIP()
 	riskIPREST := mgtapi.RiskIP(riskIPService)
 	riskIPREST.Route(anon, bearer, basic)
+
+	minionCustomizedService := service.MinionCustomized()
+	minionCustomizedREST := mgtapi.MinionCustomized(minionCustomizedService)
+	minionCustomizedREST.Route(anon, bearer, basic)
 
 	emailService := service.Email(pusher)
 	emailREST := mgtapi.Email(emailService)

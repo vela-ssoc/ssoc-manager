@@ -15,3 +15,53 @@ alter table user
 alter table minion_task
     add constraint minion_task_pk
         unique (minion_id, substance_id, name);
+
+-- --------------
+
+alter table minion
+    add unstable TINYINT(1) default 0 not null comment '不稳定版本' after broker_name;
+
+alter table minion
+    add customized VARCHAR(50) not null comment '定制版' after unstable;
+
+alter table minion_bin
+    add customized VARCHAR(255) not null comment '定制版本字段' after name;
+
+alter table minion_bin
+    add unstable TINYINT(1) default 0 not null comment '是否是不稳定版或测试版' after customized;
+
+alter table minion_bin
+    add caution TEXT null comment '注意事项' after unstable;
+
+alter table minion_bin
+    add ability TEXT null comment '功能作用' after caution;
+
+create table minion_customized
+(
+    id         BIGINT auto_increment comment 'ID',
+    name       VARCHAR(10)                        not null comment '定制版名字',
+    icon       TEXT                               not null comment '图标',
+    updated_at DATETIME default CURRENT_TIMESTAMP not null comment '更新时间',
+    created_at DATETIME default CURRENT_TIMESTAMP not null comment '创建时间',
+    constraint minion_customized_pk2
+        primary key (id),
+    constraint minion_customized_pk
+        unique (name)
+);
+
+alter table third
+    add customized VARCHAR(50) not null after size;
+
+create table third_customized
+(
+    id         bigint auto_increment
+        primary key,
+    name       varchar(50)                        not null,
+    icon       text                               null,
+    remark     text                               null,
+    created_at datetime default CURRENT_TIMESTAMP not null,
+    updated_at datetime default CURRENT_TIMESTAMP not null,
+    constraint third_customized_pk2
+        unique (name)
+);
+

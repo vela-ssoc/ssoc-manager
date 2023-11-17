@@ -33,12 +33,13 @@ type thirdREST struct {
 
 func (rest *thirdREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/third/cond").Data(route.Ignore()).GET(rest.Cond)
-	bearer.Route("/thirds").Data(route.Ignore()).GET(rest.Page)
+	// bearer.Route("/thirds").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/third").
 		Data(route.Ignore()).GET(rest.Download).
 		Data(route.Named("新增三方文件")).POST(rest.Create).
 		Data(route.Named("更新三方文件")).PUT(rest.Update).
 		Data(route.Named("删除三方文件")).DELETE(rest.Delete)
+	bearer.Route("/thirds").Data(route.Ignore()).GET(rest.List)
 }
 
 func (rest *thirdREST) Cond(c *ship.Context) error {
@@ -79,7 +80,7 @@ func (rest *thirdREST) Create(c *ship.Context) error {
 	//goland:noinspection GoUnhandledErrorResult
 	defer file.Close()
 
-	return rest.svc.Create(ctx, req.Name, req.Desc, file, cu.ID)
+	return rest.svc.Create(ctx, req.Name, req.Desc, req.Customized, file, cu.ID)
 }
 
 func (rest *thirdREST) Download(c *ship.Context) error {
@@ -133,5 +134,14 @@ func (rest *thirdREST) Update(c *ship.Context) error {
 	ctx := c.Request().Context()
 	cu := session.Cast(c.Any)
 
-	return rest.svc.Update(ctx, req.ID, req.Desc, r, cu.ID)
+	return rest.svc.Update(ctx, req.ID, req.Desc, req.Customized, r, cu.ID)
+}
+
+func (rest *thirdREST) List(c *ship.Context) error {
+	keyword := c.Query("keyword")
+	ctx := c.Request().Context()
+
+	ret := rest.svc.List(ctx, keyword)
+
+	return c.JSON(http.StatusOK, ret)
 }

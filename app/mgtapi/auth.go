@@ -30,7 +30,7 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	// anon.Route("/ding").Data(route.Ignore()).POST(ath.Dong)
 	// anon.Route("/login").Data(route.DestPasswd("用户登录")).POST(ath.Login)
 
-	anon.Route("/auth/valid").Data(route.Named("校验用户名密码")).POST(ath.Valid)
+	anon.Route("/auth/valid").Data(route.DestPasswd("校验用户名密码")).POST(ath.Valid)
 	anon.Route("/auth/totp").Data(route.Named("获取 TOTP")).POST(ath.Totp)
 	anon.Route("/auth/submit").Data(route.DestPasswd("用户登录")).POST(ath.Submit)
 
