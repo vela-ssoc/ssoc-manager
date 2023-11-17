@@ -192,7 +192,7 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 	th.UpdatedID = userID
 	th.Customized = customized
 	if r == nil { // 不更新文件内容
-		_, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Updates(th)
+		err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Save(th)
 		return err
 	}
 
@@ -209,7 +209,7 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 	th.Hash = file.MD5()
 	th.Size = file.Size()
 
-	if _, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Updates(th); err != nil {
+	if err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Save(th); err != nil {
 		// 未更新成功删除新上传的文件
 		_ = biz.gfs.Remove(file.ID())
 		return err
