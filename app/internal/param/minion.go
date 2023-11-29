@@ -73,6 +73,8 @@ type MinionDetail struct {
 	AgentTotal    int                `json:"agent_total"    gorm:"column:agent_total"`
 	AgentAlloc    int                `json:"agent_alloc"    gorm:"column:agent_alloc"`
 	Unload        bool               `json:"unload"         gorm:"column:unload"`
+	Unstable      bool               `json:"unstable"       gorm:"column:unstable"`   // 是否不稳定版本
+	Customized    string             `json:"customized"     gorm:"column:customized"` // 定制版
 	Tags          model.MinionTags   `json:"tags"           gorm:"-"`
 }
 

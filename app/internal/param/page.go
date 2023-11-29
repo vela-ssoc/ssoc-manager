@@ -15,9 +15,9 @@ type Pager interface {
 }
 
 type Page struct {
-	Current int    `query:"current"`
-	Size    int    `query:"size"`
-	Keyword string `query:"keyword"`
+	Current int    `query:"current" json:"current"`
+	Size    int    `query:"size"    json:"size"`
+	Keyword string `query:"keyword" json:"keyword"`
 }
 
 func (p Page) Pager() Pager {

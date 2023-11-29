@@ -9,3 +9,8 @@ type Config struct {
 	Logger   Logger      `json:"logger"   yaml:"logger"`   // 日志配置
 	Section  Section     `json:"section"  yaml:"section"`  // 其他信息
 }
+
+type SIEM struct {
+	URL   string `json:"url"   yaml:"url"`
+	Token string `json:"token" yaml:"token"`
+}

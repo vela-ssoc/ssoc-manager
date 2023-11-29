@@ -3,14 +3,14 @@ module github.com/vela-ssoc/vela-manager
 go 1.20
 
 require (
-	github.com/google/pprof v0.0.0-20231101202521-4ca4178f5c7a
+	github.com/google/pprof v0.0.0-20231127191134-f3a68a39ae15
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20231117032757-e7a7e7db9d2f
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20231129020811-162c98a5d85f
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20231110031019-8401a542e951
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.26.0
-	golang.org/x/crypto v0.15.0
+	golang.org/x/crypto v0.16.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gen v0.3.23
@@ -31,12 +31,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.15.0 // indirect
+	golang.org/x/tools v0.16.0 // indirect
 	gorm.io/datatypes v1.2.0 // indirect
 	gorm.io/driver/mysql v1.5.2 // indirect
 	gorm.io/hints v1.1.2 // indirect
-	gorm.io/plugin/dbresolver v1.4.7 // indirect
+	gorm.io/plugin/dbresolver v1.5.0 // indirect
 )
