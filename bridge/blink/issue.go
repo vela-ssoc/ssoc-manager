@@ -15,6 +15,7 @@ type Issue struct {
 	Listen   Listen        `json:"listen"`   // 服务监听配置
 	Logger   config.Logger `json:"logger"`   // 日志配置
 	Database dbms.Config   `json:"database"` // 数据库配置
+	SIEM     config.SIEM   `json:"siem"`     // 对接 siem
 }
 
 // String fmt.Stringer

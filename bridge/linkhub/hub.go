@@ -127,6 +127,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 
 	issue.Name, issue.Passwd = brk.Name, passwd
 	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
+	issue.SIEM = hub.config.SIEM
 
 	return issue, nil, nil
 }

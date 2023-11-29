@@ -8,6 +8,7 @@ type Config struct {
 	Database dbms.Config `json:"database" yaml:"database"` // 数据库配置
 	Logger   Logger      `json:"logger"   yaml:"logger"`   // 日志配置
 	Section  Section     `json:"section"  yaml:"section"`  // 其他信息
+	SIEM     SIEM        `json:"siem"     yaml:"siem"`
 }
 
 type SIEM struct {
