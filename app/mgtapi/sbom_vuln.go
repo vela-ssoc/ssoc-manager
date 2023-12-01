@@ -31,6 +31,7 @@ func (rest *sbomVulnREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/sbom/vuln/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/vuln/projects").Data(route.Ignore()).GET(rest.Project)
 	bearer.Route("/vulnerabilities").Data(route.Named("拉漏洞库")).GET(rest.Vulnerabilities)
+	bearer.Route("/sbom/purl").Data(route.Named("上报 PURL")).POST(rest.Purl)
 }
 
 func (rest *sbomVulnREST) Cond(c *ship.Context) error {
@@ -83,4 +84,14 @@ func (rest *sbomVulnREST) Vulnerabilities(c *ship.Context) error {
 	ret := rest.svc.Vulnerabilities(ctx, id, size)
 
 	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *sbomVulnREST) Purl(c *ship.Context) error {
+	req := new(param.ReportPurl)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.Purl(ctx, req)
 }

@@ -13,6 +13,7 @@ type SBOMVulnService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln)
 	Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject)
 	Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln
+	Purl(ctx context.Context, req *param.ReportPurl) error
 }
 
 func SBOMVuln() SBOMVulnService {
@@ -72,4 +73,8 @@ func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64,
 	}
 
 	return ret
+}
+
+func (biz *sbomVulnService) Purl(ctx context.Context, req *param.ReportPurl) error {
+	return nil
 }
