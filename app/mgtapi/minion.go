@@ -24,6 +24,7 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 		idcKey        = "minion.idc"
 		ibuKey        = "minion.ibu"
 		commentKey    = "minion.`comment`"
+		customizedKey = "minion.customized"
 		statusKey     = "minion.status"
 		unloadKey     = "minion.unload"
 		goosKey       = "minion.goos"
@@ -43,6 +44,7 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 	idcCol := dynsql.StringColumn(idcKey, "机房").Build()
 	ibuCol := dynsql.StringColumn(ibuKey, "部门").Build()
 	commentCol := dynsql.StringColumn(commentKey, "描述").Build()
+	customizedCol := dynsql.StringColumn(customizedKey, "定制版本").Build()
 	statusEnums := dynsql.IntEnum().Set(1, "未激活").Set(2, "离线").
 		Set(3, "在线").Set(4, "已删除")
 	statusCol := dynsql.IntColumn(statusKey, "状态").
@@ -68,7 +70,7 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 	upCol := dynsql.TimeColumn(uptimeKey, "上线时间").Build()
 
 	table := dynsql.Builder().
-		Filters(tagCol, inetCol, goosCol, archCol, statusCol, unloadCol, verCol,
+		Filters(tagCol, inetCol, goosCol, archCol, customizedCol, statusCol, unloadCol, verCol,
 			idcCol, ibuCol, commentCol, brkCol, dutyCol, catCol, upCol, idCol).
 		Build()
 
