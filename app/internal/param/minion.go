@@ -31,6 +31,8 @@ type MinionSummary struct {
 	BrokerName string             `json:"broker_name"`
 	Unload     bool               `json:"unload"` // 是否不加载配置模式
 	Uptime     time.Time          `json:"uptime"` // 最近一次上线时间
+	Unstable   bool               `json:"unstable"`
+	Customized string             `json:"customized"`
 	Tags       []string           `json:"tags"`
 }
 

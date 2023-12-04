@@ -102,6 +102,8 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 			BrokerName: m.BrokerName,
 			Unload:     m.Unload,
 			Uptime:     m.Uptime.Time,
+			Customized: m.Customized,
+			Unstable:   m.Unstable,
 			Tags:       tagMap[id],
 		}
 		if ms.Tags == nil {
