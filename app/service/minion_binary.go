@@ -225,6 +225,7 @@ func (biz *minionBinaryService) Update(ctx context.Context, req *param.MinionBin
 			tbl.Ability.Value(req.Ability),
 			tbl.Caution.Value(req.Caution),
 			tbl.Changelog.Value(req.Changelog),
+			tbl.Unstable.Value(req.Unstable),
 		)
 
 	return err
