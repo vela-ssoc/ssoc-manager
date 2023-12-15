@@ -5,8 +5,6 @@ import (
 	"io"
 	"time"
 
-	"gorm.io/gen"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -15,6 +13,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"gorm.io/gen"
 )
 
 type DeployService interface {
