@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"gorm.io/gorm/clause"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
@@ -76,5 +78,12 @@ func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64,
 }
 
 func (biz *sbomVulnService) Purl(ctx context.Context, req *param.ReportPurl) error {
-	return nil
+	ps := req.Purl
+	dats := make([]*model.Purl, 0, len(ps))
+	for _, p := range ps {
+		dats = append(dats, &model.Purl{ID: p})
+	}
+	tbl := query.Purl
+
+	return tbl.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: false}).Save(dats...)
 }
