@@ -13,6 +13,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/definition"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen"
 )
 
@@ -48,26 +49,7 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 	}
 
 	// 根据输入条件匹配合适版本
-	tbl := query.MinionBin
-	cond := []gen.Condition{
-		tbl.Unstable.Is(req.Unstable),
-		tbl.Customized.Eq(req.Customized),
-		tbl.Deprecated.Is(false),
-	}
-	if req.ID != 0 {
-		cond = append(cond, tbl.ID.Eq(req.ID))
-	} else {
-		cond = append(cond, tbl.Goos.Eq(req.Goos))
-		cond = append(cond, tbl.Arch.Eq(req.Arch))
-	}
-	if ver := req.Version; ver != "" {
-		cond = append(cond, tbl.Semver.Eq(string(ver)))
-	}
-
-	bin, err := tbl.WithContext(ctx).
-		Where(cond...).
-		Order(tbl.Weight.Desc()).
-		First()
+	bin, err := biz.matchBinary(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +59,7 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		return nil, err
 	}
 
+	// 构造隐写数据
 	addrs := make([]string, 0, 16)
 	unique := make(map[string]struct{}, 16)
 	for _, addr := range brk.LAN {
@@ -94,10 +77,11 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		addrs = append(addrs, addr)
 	}
 
+	semver := string(bin.Semver)
 	hide := &definition.MHide{
 		Servername: brk.Servername,
 		Addrs:      addrs,
-		Semver:     string(bin.Semver),
+		Semver:     semver,
 		Hash:       bin.Hash,
 		Size:       bin.Size,
 		Tags:       req.Tags,
@@ -109,7 +93,7 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinio
 		DownloadAt: time.Now(),
 		VIP:        brk.VIP,
 		LAN:        brk.LAN,
-		Edition:    string(bin.Semver),
+		Edition:    semver,
 	}
 
 	enc, exx := ciphertext.EncryptPayload(hide)
@@ -128,29 +112,31 @@ func (biz *deployService) Script(ctx context.Context, goos string, data *modview
 	return buf, nil
 }
 
-func (biz *deployService) suitableMinion(ctx context.Context, id int64, goos, arch, version string) (*model.MinionBin, error) {
+func (biz *deployService) matchBinary(ctx context.Context, req *param.DeployMinionDownload) (*model.MinionBin, error) {
 	tbl := query.MinionBin
-	dao := tbl.WithContext(ctx).
-		Where(tbl.Deprecated.Is(false)).
-		Order(tbl.Weight.Desc(), tbl.UpdatedAt.Desc())
-	if id != 0 {
-		return dao.Where(tbl.ID.Eq(id)).First()
-	}
-
-	if version != "" {
-		return dao.Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch), tbl.Semver.Eq(version)).First()
-	}
-
-	// 版本号包含 - + 的权重会下降，例如：
-	// 0.0.1-debug < 0.0.1
-	// 0.0.1+20230720 < 0.0.1
-	stmt := dao.Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch))
-	bin, err := stmt.WithContext(ctx).
-		Where(tbl.Semver.NotLike("%-%"), tbl.Semver.NotLike("%+%")).
-		First()
-	if err == nil {
+	if binID := req.ID; binID != 0 { // 如果显式指定了 id，则按照 ID 匹配。
+		bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(binID)).First()
+		if err != nil {
+			return nil, err
+		}
+		if bin.Deprecated {
+			return nil, errcode.ErrDeprecated
+		}
 		return bin, nil
 	}
 
-	return stmt.First()
+	conds := []gen.Condition{
+		tbl.Deprecated.Is(false), // 标记为过期不能下载
+		tbl.Goos.Eq(req.Goos),
+		tbl.Arch.Eq(req.Arch),
+		tbl.Customized.Eq(req.Customized), // 定制版匹配
+		tbl.Unstable.Is(req.Unstable),     // 是否测试版
+	}
+	if semver := string(req.Version); semver != "" {
+		conds = append(conds, tbl.Semver.Eq(semver))
+	}
+
+	return tbl.WithContext(ctx).Where(conds...).
+		Order(tbl.Weight.Desc(), tbl.Semver.Desc()).
+		First()
 }

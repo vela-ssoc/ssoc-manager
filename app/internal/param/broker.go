@@ -11,7 +11,7 @@ type BrokerCreate struct {
 	LAN        []string `json:"lan"            validate:"omitempty,unique,lte=10,dive,hostname_port"` // 内部连接地址
 	VIP        []string `json:"vip"            validate:"omitempty,unique,lte=10,dive,hostname_port"` // 外部连接地址
 	Bind       string   `json:"bind"           validate:"required,lte=22,hostname_port"`              // 监听地址
-	Servername string   `json:"servername"     validate:"omitempty,lte=255,hostname"`                 // TLS 证书校验用
+	Servername string   `json:"servername"     validate:"omitempty,lte=255,hostname_rfc1123"`         // TLS 证书校验用
 	CertID     int64    `json:"cert_id,string"`                                                       // 关联证书 ID
 }
 

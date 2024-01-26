@@ -37,6 +37,7 @@ var (
 	ErrNodeStatus           = ship.ErrBadRequest.Newf("节点状态不允许操作")
 	ErrExceedAuthority      = ship.ErrBadRequest.Newf("越权访问")
 	ErrDeprecated           = ship.ErrBadRequest.Newf("版本已被标记为过期")
+	ErrReleaseUnstable      = ship.ErrBadRequest.Newf("测试版禁止批量推送更新")
 	ErrInetAddress          = ship.ErrBadRequest.Newf("inet 地址无效")
 	ErrAlreadyExist         = ship.ErrBadRequest.Newf("数据已存在")
 	ErrNotExist             = ship.ErrBadRequest.Newf("数据不存在")

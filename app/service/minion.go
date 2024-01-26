@@ -24,7 +24,7 @@ type MinionService interface {
 	Create(ctx context.Context, mc *param.MinionCreate) error
 	Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
 	CSV(ctx context.Context) sheet.CSVStreamer
-	Upgrade(ctx context.Context, id int64, semver model.Semver) error
+	Upgrade(ctx context.Context, mid, binID int64) error
 	Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error
 	Command(ctx context.Context, mid int64, cmd string) error
 	Unload(ctx context.Context, mid int64, unload bool) error
@@ -319,8 +319,7 @@ func (biz *minionService) CSV(ctx context.Context) sheet.CSVStreamer {
 	return sheet.NewCSV(read)
 }
 
-func (biz *minionService) Upgrade(ctx context.Context, mid int64, semver model.Semver) error {
-	// 查询节点信息
+func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
 	tbl := query.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Status, tbl.BrokerID).
@@ -332,8 +331,20 @@ func (biz *minionService) Upgrade(ctx context.Context, mid int64, semver model.S
 		return errcode.ErrNodeStatus
 	}
 
-	// 通知 agent 升级
-	biz.pusher.Upgrade(ctx, mon.BrokerID, []int64{mon.ID}, string(semver))
+	binTbl := query.MinionBin
+	bin, err := binTbl.WithContext(ctx).Where(binTbl.ID.Eq(binID)).First()
+	if err != nil {
+		return err
+	}
+	if bin.Deprecated {
+		return errcode.ErrDeprecated
+	}
+	if bin.Unstable {
+		return errcode.ErrReleaseUnstable
+	}
+
+	semver := string(bin.Semver)
+	biz.pusher.Upgrade(ctx, mon.BrokerID, []int64{mid}, semver, bin.Customized)
 
 	return nil
 }

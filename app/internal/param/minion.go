@@ -112,8 +112,8 @@ func (k MinionDeleteRequest) Like() string {
 }
 
 type MinionUpgradeRequest struct {
-	IntID
-	Semver model.Semver `json:"semver" validate:"omitempty,semver"`
+	ID       int64 `json:"id,string"        validate:"required"`
+	BinaryID int64 `json:"binary_id,string" validate:"required"`
 }
 
 type MinionTagRequest struct {

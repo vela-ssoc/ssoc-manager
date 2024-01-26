@@ -29,7 +29,7 @@ type Pusher interface {
 	StoreReset(ctx context.Context, id string)
 	NotifierReset(ctx context.Context)
 	Startup(ctx context.Context, bid, mid int64)
-	Upgrade(ctx context.Context, bid int64, mid []int64, semver string)
+	Upgrade(ctx context.Context, bid int64, mid []int64, semver, customized string)
 	Command(ctx context.Context, bid int64, mids []int64, cmd string)
 	SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error
 }
@@ -117,8 +117,8 @@ func (pi *pushImpl) Startup(ctx context.Context, bid int64, mid int64) {
 	_ = pi.hub.Oneway(nil, bid, accord.FPStartup, req)
 }
 
-func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mids []int64, semver string) {
-	req := accord.Upgrade{ID: mids, Semver: semver}
+func (pi *pushImpl) Upgrade(ctx context.Context, bid int64, mids []int64, semver, customized string) {
+	req := accord.Upgrade{ID: mids, Semver: semver, Customized: customized}
 	_ = pi.hub.Oneway(nil, bid, accord.FPUpgrade, req)
 }
 

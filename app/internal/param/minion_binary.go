@@ -34,5 +34,4 @@ type MinionBinaryUpdate struct {
 	Changelog string `json:"changelog" validate:"lte=65500"`
 	Caution   string `json:"caution"   validate:"lte=65500"`
 	Ability   string `json:"ability"   validate:"lte=65500"`
-	Unstable  bool   `json:"unstable"`
 }

@@ -169,6 +169,9 @@ func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
 	if bin.Deprecated {
 		return errcode.ErrDeprecated
 	}
+	if bin.Unstable {
+		return errcode.ErrReleaseUnstable
+	}
 
 	go biz.sendRelease(bin)
 
@@ -225,7 +228,6 @@ func (biz *minionBinaryService) Update(ctx context.Context, req *param.MinionBin
 			tbl.Ability.Value(req.Ability),
 			tbl.Caution.Value(req.Caution),
 			tbl.Changelog.Value(req.Changelog),
-			tbl.Unstable.Value(req.Unstable),
 		)
 
 	return err
@@ -243,10 +245,10 @@ func (biz *minionBinaryService) sendRelease(bin *model.MinionBin) {
 		Where(
 			tbl.Goos.Eq(bin.Goos),
 			tbl.Arch.Eq(bin.Arch),
+			tbl.Customized.Eq(bin.Customized),
 			tbl.Edition.Neq(semver),
 			tbl.Status.Neq(deleted),
-		).
-		Order(tbl.ID).
+		).Order(tbl.ID).
 		Limit(200)
 
 	var lastID int64
@@ -259,7 +261,7 @@ func (biz *minionBinaryService) sendRelease(bin *model.MinionBin) {
 		lastID = minions[size-1].ID
 		hm := biz.reduce(minions)
 		for bid, mids := range hm {
-			biz.pusher.Upgrade(ctx, bid, mids, semver)
+			biz.pusher.Upgrade(ctx, bid, mids, semver, bin.Customized)
 		}
 	}
 }

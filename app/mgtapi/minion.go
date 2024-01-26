@@ -198,7 +198,7 @@ func (rest *minionREST) Upgrade(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 
-	return rest.svc.Upgrade(ctx, req.ID, req.Semver)
+	return rest.svc.Upgrade(ctx, req.ID, req.BinaryID)
 }
 
 func (rest *minionREST) Unload(c *ship.Context) error {
