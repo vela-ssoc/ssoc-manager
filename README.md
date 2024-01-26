@@ -87,6 +87,8 @@ func (sv Semver) Int64() int64 {
 - `Deprecated`: 强烈反对的版本，通常是在发行后发现较大的 BUG 或其它问题的版本，一旦被标记为 `Deprecated` 后不可反向标记回来。
   该版本在任何情况下都不会下发给 minion 节点升级。
 
+- `Goos` + `Arch` + `Semver` + `Customized` 四者组合唯一（联合主键）。
+
 - 如果上传的是 `Unstable` 版本，请上传者在命名版本号时添加 __先行版本号__
   ，尽量避免占用正式版本号，比如可以叫作：`1.0.0-alpha`、`1.0.0-beta` 等，把 `1.0.0`
   留给正式版命名。此处可参考 [语义化版本控制规范 第九条](https://semver.org/lang/zh-CN/#spec-item-9)。
