@@ -65,3 +65,16 @@ create table third_customized
         unique (name)
 );
 
+create table kv_data
+(
+    bucket     varchar(255)                       not null comment '存储桶',
+    `key`      varchar(255)                       not null comment 'key',
+    value      blob                               null comment '数据',
+    count      bigint   default 0                 not null,
+    lifetime   bigint   default 0                 not null comment '生命时长',
+    expired_at datetime default CURRENT_TIMESTAMP not null comment '过期时间',
+    updated_at datetime default CURRENT_TIMESTAMP not null comment '最近修改时间',
+    created_at datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    primary key (bucket, `key`)
+);
+

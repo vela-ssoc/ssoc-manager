@@ -3,9 +3,9 @@ module github.com/vela-ssoc/vela-manager
 go 1.20
 
 require (
-	github.com/google/pprof v0.0.0-20231229205709-960ae82b1e42
+	github.com/google/pprof v0.0.0-20240125082051-42cd04596328
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240112060731-804c15728721
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240126010240-4181ff733555
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
@@ -21,10 +21,10 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.16.0 // indirect
+	github.com/go-playground/validator/v10 v10.17.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/ianlancetaylor/demangle v0.0.0-20231023195312-e2daf7ba7156 // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20240123011522-1fd6b93ad1eb // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
