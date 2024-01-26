@@ -12,7 +12,6 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/totp"
 	"github.com/vela-ssoc/vela-manager/errcode"
-	"gorm.io/gorm/clause"
 )
 
 // AuthService 认证模块业务层
@@ -100,9 +99,11 @@ func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string
 		UID:       uid,
 		CreatedAt: time.Now(),
 	}
-	if err = query.AuthTemp.WithContext(ctx).Clauses(clause.OnConflict{
-		UpdateAll: true,
-	  }).Create(tmp); err != nil {
+	tbl := query.AuthTemp
+	if _, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(user.ID)).Delete(); err != nil {
+		return "", false, err
+	}
+	if err = tbl.WithContext(ctx).Create(tmp); err != nil {
 		return "", false, err
 	}
 
