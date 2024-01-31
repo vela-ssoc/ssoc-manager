@@ -3,7 +3,7 @@ module github.com/vela-ssoc/vela-manager
 go 1.20
 
 require (
-	github.com/google/pprof v0.0.0-20240125082051-42cd04596328
+	github.com/google/pprof v0.0.0-20240130152714-0ed6a68c8d9e
 	github.com/gorilla/websocket v1.5.1
 	github.com/vela-ssoc/vela-common-mb v0.0.0-20240126062406-3c3b6522fc0b
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650
@@ -14,7 +14,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gen v0.3.25
-	gorm.io/gorm v1.25.5
+	gorm.io/gorm v1.25.6
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/ianlancetaylor/demangle v0.0.0-20240123011522-1fd6b93ad1eb // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/leodido/go-urn v1.2.4 // indirect
+	github.com/leodido/go-urn v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect

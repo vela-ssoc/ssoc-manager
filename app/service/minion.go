@@ -339,9 +339,6 @@ func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
 	if bin.Deprecated {
 		return errcode.ErrDeprecated
 	}
-	if bin.Unstable {
-		return errcode.ErrReleaseUnstable
-	}
 
 	semver := string(bin.Semver)
 	biz.pusher.Upgrade(ctx, mon.BrokerID, []int64{mid}, semver, bin.Customized)

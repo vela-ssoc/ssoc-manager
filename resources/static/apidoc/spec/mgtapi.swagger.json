@@ -25982,6 +25982,218 @@
           }
         }
       }
+    },
+    "/shared/strings/cond": {
+      "get": {
+        "summary": "共享kv-搜索条件",
+        "tags": [
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "conditions": [
+                        {
+                          "key": "bucket",
+                          "desc": "bucket",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        },
+                        {
+                          "key": "key",
+                          "desc": "key",
+                          "type": "string",
+                          "operators": [
+                            {
+                              "desc": "等于",
+                              "key": "eq"
+                            },
+                            {
+                              "desc": "不等于",
+                              "key": "ne"
+                            },
+                            {
+                              "desc": "大于",
+                              "key": "gt"
+                            },
+                            {
+                              "desc": "小于",
+                              "key": "lt"
+                            },
+                            {
+                              "desc": "大于等于",
+                              "key": "gte"
+                            },
+                            {
+                              "desc": "小于等于",
+                              "key": "lte"
+                            },
+                            {
+                              "desc": "IN",
+                              "key": "in"
+                            },
+                            {
+                              "desc": "NOT IN",
+                              "key": "notin"
+                            },
+                            {
+                              "desc": "LIKE",
+                              "key": "like"
+                            },
+                            {
+                              "desc": "NOT LIKE",
+                              "key": "notlike"
+                            }
+                          ],
+                          "enum": false,
+                          "enums": []
+                        }
+                      ],
+                      "groups": [],
+                      "orders": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-shared-strings-cond",
+        "description": "共享kv-搜索条件"
+      }
+    },
+    "/shared/strings/sweep": {
+      "delete": {
+        "summary": "共享kv-清理过期数据",
+        "operationId": "delete-shared-strings-sweep",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改"
+        ],
+        "description": "共享kv-清理过期数据"
+      }
+    },
+    "/shared/strings/keys": {
+      "get": {
+        "summary": "共享kv-分页查询",
+        "tags": [
+          "最近修改"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "examples": {
+                  "示例": {
+                    "value": {
+                      "total": 2,
+                      "current": 1,
+                      "size": 10,
+                      "records": [
+                        {
+                          "bucket": "测试数据",
+                          "key": "abc",
+                          "count": 0,
+                          "lifetime": 100000000000,
+                          "expired_at": "2024-01-30T02:46:11Z",
+                          "created_at": "2024-01-29T09:13:26Z",
+                          "updated_at": "2024-01-29T09:13:26Z"
+                        },
+                        {
+                          "bucket": "测试数据",
+                          "key": "hello",
+                          "count": 0,
+                          "lifetime": 100000000000,
+                          "expired_at": "2024-01-30T02:46:40Z",
+                          "created_at": "2024-01-30T02:45:00Z",
+                          "updated_at": "2024-01-30T02:45:00Z"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-shared-strings-keys",
+        "description": "共享kv-分页查询",
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageCurrent"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/Keyword"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/filters"
+          }
+        ]
+      }
     }
   },
   "components": {

@@ -307,6 +307,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	startupREST := mgtapi.Startup(startupService)
 	startupREST.Route(anon, bearer, basic)
 
+	sharedService := service.Shared()
+	sharedAPI := mgtapi.Shared(sharedService)
+	sharedAPI.Route(anon, bearer, basic)
+
 	hardConfig := sonatype.HardConfig()
 	sona := sonatype.NewClient(hardConfig, client)
 	synchro := vulnsync.New(db, sona)
