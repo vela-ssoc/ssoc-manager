@@ -24,6 +24,8 @@ tags:
     description: 流式传输
   - name: Collect
     description: Agent 节点信息收集上报
+  - name: Shared
+    description: Agent 共享 KV
 servers:
   - url: /api/v1
     description: 基础路径
@@ -531,6 +533,237 @@ paths:
                   type: string
               required:
                 - cmd
+  /shared/strings/get:
+    post:
+      summary: 共享KV-获取数据
+      operationId: post-shared-strings-get
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KVData'
+      tags:
+        - Shared
+      description: |-
+        - `bucket` 和 `key` 是联合主键，唯一。
+
+        - `lifetime` 单位：纳秒，对应 Go 的 time.Duration 类型。小于等于 0 时代表永不过期。此时 `expired_at` 参数无具体意义。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucket:
+                  type: string
+                  x-stoplight:
+                    id: j8an21te2exq3
+                  description: 存储桶
+                key:
+                  type: string
+                  x-stoplight:
+                    id: 0gj444d5fveyx
+                  description: key
+              required:
+                - bucket
+                - key
+            examples:
+              示例:
+                value:
+                  bucket: bucket-test
+                  key: bucket-key
+  /shared/strings/set:
+    post:
+      summary: 共享KV-设置数据
+      operationId: post-shared-strings-set
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KVData'
+      tags:
+        - Shared
+      description: |-
+        > 过期时间更新策略
+
+        <pre>
+        1. 当 req.lifetime <= 0 时
+            ├─ 如果没有数据：直接插入一条不过期的数据。
+            └─ 如果存在数据（old）：
+                ├─ 如果 old.lifetime <= 0，不更新过期时间。
+                └─ 如果 old.lifetime > 0，按照 old.lifetime 续期。
+        2. 当 req.lifetime > 0 时，按照 req.lifetime 续期
+        </pre>
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucket:
+                  type: string
+                  x-stoplight:
+                    id: 18rzizi7u22fu
+                  description: 存储桶
+                key:
+                  type: string
+                  x-stoplight:
+                    id: z23gc7oc7kias
+                  description: key
+                value:
+                  type: string
+                  x-stoplight:
+                    id: 87ezwas7ixgs5
+                  description: 数据
+                lifetime:
+                  type: integer
+                  x-stoplight:
+                    id: rhx7527l65moe
+                  description: 生命时长
+                reply:
+                  type: boolean
+                  x-stoplight:
+                    id: 2opujwk5knz23
+                  description: 是否响应数据
+              required:
+                - bucket
+                - key
+                - value
+                - lifetime
+  /shared/strings/store:
+    post:
+      summary: 共享KV-设置数据
+      operationId: post-shared-strings-store
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KVData'
+      tags:
+        - Shared
+      description: |
+        与 `set` 操作不同的是：
+
+        - 如果已存在 old 数据，`store` 操作不会续期。
+
+        - 如果没有 old 数据，`store` 操作会插入一条 `req.lifetime` 过期时间的数据。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucket:
+                  type: string
+                  x-stoplight:
+                    id: 75uhriod2oea4
+                  description: 存储桶
+                key:
+                  type: string
+                  x-stoplight:
+                    id: rpngoam2adsg0
+                  description: key
+                value:
+                  type: string
+                  x-stoplight:
+                    id: 5jzntp2f7pnj5
+                  description: 数据
+                lifetime:
+                  type: integer
+                  x-stoplight:
+                    id: 8jllwm0fqehyo
+                  description: 存活时长
+                reply:
+                  type: boolean
+                  x-stoplight:
+                    id: oj5bzdhbgjrrz
+                  description: 回显
+              required:
+                - bucket
+                - key
+                - lifetime
+                - reply
+        description: ''
+  /shared/strings/incr:
+    post:
+      summary: 共享KV-INCR数据
+      operationId: post-shared-strings-incr
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KVData'
+      description: 共享KV-INCR数据
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucket:
+                  type: string
+                  x-stoplight:
+                    id: 8a6q7pxq0ucf5
+                  description: 存储桶
+                key:
+                  type: string
+                  x-stoplight:
+                    id: wqrcyntyvaya9
+                  description: key
+                'n':
+                  type: integer
+                  x-stoplight:
+                    id: feenoqeq44i44
+                  description: 自增数，不填写默认为 1
+              required:
+                - bucket
+                - key
+                - 'n'
+      tags:
+        - Shared
+  /shared/strings/del:
+    post:
+      summary: 共享KV-删除数据
+      operationId: post-shared-strings-del
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Shared
+      description: 共享KV-删除数据
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucket:
+                  type: string
+                  x-stoplight:
+                    id: lbvum64ytnoaz
+                  description: 存储桶
+                key:
+                  type: string
+                  x-stoplight:
+                    id: 8qm892ymrjvmq
+                  description: key
+              required:
+                - bucket
+                - key
+            examples:
+              示例:
+                value:
+                  bucket: bucket-test
+                  key: bucket-key
+        description: ''
 components:
   schemas:
     TaskDiff:
@@ -650,3 +883,52 @@ components:
                 - name: kafka.sub
                   type: kafka
                   status: running
+    KVData:
+      type: object
+      x-examples:
+        Example 1:
+          bucket: bucket-test
+          key: key-test
+          value: 测试一下下
+          count: 10
+          lifetime: 0
+          expired_at: '2024-01-31T06:40:07.192Z'
+          updated_at: '2024-01-31T06:40:07.192Z'
+          created_at: '2024-01-31T06:40:07.192Z'
+      properties:
+        bucket:
+          type: string
+          description: 存储桶（存储分区）
+        key:
+          type: string
+          description: key
+        value:
+          type: string
+          description: 数据
+        count:
+          type: integer
+          description: INCR 计数器
+        lifetime:
+          type: integer
+          description: 有效时长（小于等于 0 时代表不过期）
+        expired_at:
+          type: string
+          description: 过期时间（lifetime > 0 时才有效）
+        updated_at:
+          type: string
+          description: 最近一次更新时间
+        created_at:
+          type: string
+          description: 创建时间
+      required:
+        - bucket
+        - key
+      examples:
+        - bucket: bucket-test
+          key: key-test
+          value: 测试一下下
+          count: 10
+          lifetime: 0
+          expired_at: '2024-01-31T06:40:07.192Z'
+          updated_at: '2024-01-31T06:40:07.192Z'
+          created_at: '2024-01-31T06:40:07.192Z'

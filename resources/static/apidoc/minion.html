@@ -1,34 +1,20 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="en">
 <head>
-    <title>ssoc | mgtapi</title>
-    <!-- needed for adaptive design -->
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="icon" href="spec/favicon.ico">
-    <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700"
-          rel="stylesheet"/>
-
-    <!--
-    Redoc doesn't change outer page styles
-    -->
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>接口文档</title>
+    <!-- Embed elements Elements via Web Component -->
+    <script src="css/web-components.min.js"></script>
+    <link rel="stylesheet" href="css/styles.min.css">
 </head>
 <body>
-<!--
-Redoc element with link to your OpenAPI definition
--->
-<redoc spec-url="spec/minion.swagger.yaml"></redoc>
 
-<!--
-Link to Redoc JavaScript on CDN for rendering standalone element
--->
-<script src="css/redoc.standalone.js"></script>
+<elements-api
+        apiDescriptionUrl="spec/api.yaml"
+        router="hash"
+        layout="sidebar"
+/>
 
 </body>
 </html>
