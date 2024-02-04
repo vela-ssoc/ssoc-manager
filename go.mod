@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/google/pprof v0.0.0-20240130152714-0ed6a68c8d9e
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240201092228-469b24a3047e
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240204052828-fdda22ee621c
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
@@ -24,10 +24,10 @@ require (
 	github.com/go-playground/validator/v10 v10.17.0 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/ianlancetaylor/demangle v0.0.0-20240123011522-1fd6b93ad1eb // indirect
+	github.com/ianlancetaylor/demangle v0.0.0-20240202211129-afffee1e3e59 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/leodido/go-urn v1.3.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect

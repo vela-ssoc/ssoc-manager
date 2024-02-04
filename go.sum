@@ -28,6 +28,8 @@ github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/
 github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZHL0uE0tcaY=
 github.com/ianlancetaylor/demangle v0.0.0-20240123011522-1fd6b93ad1eb h1:I+a9shJuSkWy4Dn5loSUn84oVCMXiCBCAOrX6Ljrnl4=
 github.com/ianlancetaylor/demangle v0.0.0-20240123011522-1fd6b93ad1eb/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
+github.com/ianlancetaylor/demangle v0.0.0-20240202211129-afffee1e3e59 h1:vg6dvT1QN/kxhVo//R7FK9PTEgKTncGN/cMze2GvOdc=
+github.com/ianlancetaylor/demangle v0.0.0-20240202211129-afffee1e3e59/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
 github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a h1:bbPeKD0xmW/Y25WS6cokEszi5g+S0QxI/d45PkRi7Nk=
 github.com/jackc/pgx/v5 v5.3.0 h1:/NQi8KHMpKWHInxXesC8yD4DhkXPrVhmnwYkjp9AmBA=
@@ -39,6 +41,8 @@ github.com/jinzhu/now v1.1.5/go.mod h1:d3SSVoowX0Lcu0IBviAWJpolVfI5UJVZZ7cO71lE/
 github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8HmY=
 github.com/leodido/go-urn v1.3.0 h1:jX8FDLfW4ThVXctBNZ+3cIWnCSnrACDV73r76dy0aQQ=
 github.com/leodido/go-urn v1.3.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
+github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
+github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
 github.com/mattn/go-sqlite3 v1.14.15/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 github.com/mattn/go-sqlite3 v1.14.16 h1:yOQRA0RpS5PFz/oikGwBEqvAWhWg5ufRz4ETLjwpU1Y=
@@ -52,6 +56,8 @@ github.com/vela-ssoc/vela-common-mb v0.0.0-20240131091239-9c2c048dde1e h1:EQKhna
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240131091239-9c2c048dde1e/go.mod h1:5BtQmKCekFKMzFGTQB3wV0IJWsPFf1MvWTbV8GjYr/E=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240201092228-469b24a3047e h1:lOMWaubq/BZUct3rXiSRC+k4OkZY3Rah+5rih0vr/uE=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240201092228-469b24a3047e/go.mod h1:9LwO46EhcAFDlT/iST5xou4/dupHPwj3E2bQWuL6E3M=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240204052828-fdda22ee621c h1:0vkN866sCm3pxasM1OUXKrv68ym7GCRrIZrzhqhdP8M=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240204052828-fdda22ee621c/go.mod h1:ah/IZs4bvInFRxx1cR2R0pnukGPQW6Qt3bPoFmAza68=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650 h1:wrBDhY7WfQZ5yP1uULSfmC4sa3SsV6dUVNi0TMLhqdw=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240109050951-9a18a7be3650/go.mod h1:6KIOpO/By01OXkjOuLvHQBo/WxGG+xwFAi9t+bpxmA8=
 github.com/wenlng/go-captcha v1.2.5 h1:zA0/fovEl9oAhSg+KwHBwmq99GeeAXknWx6wYKjhjTg=
