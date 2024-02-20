@@ -73,7 +73,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 		if err = os.MkdirAll(cdn, os.ModePerm); err != nil {
 			return nil, err
 		}
-		gfs = gridfs.NewCDN(sdb, cdn, 60*1024)
+		gfs = gridfs.NewCache(sdb, cdn)
 	}
 
 	const name = "manager"

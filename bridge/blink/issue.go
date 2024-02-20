@@ -16,6 +16,7 @@ type Issue struct {
 	Logger   config.Logger `json:"logger"`   // 日志配置
 	Database dbms.Config   `json:"database"` // 数据库配置
 	SIEM     config.SIEM   `json:"siem"`     // 对接 siem
+	Section  Section       `json:"section"`
 }
 
 // String fmt.Stringer
@@ -34,4 +35,8 @@ type Listen struct {
 	Addr string `json:"addr"` // 监听地址 :8080 192.168.1.2:8080
 	Cert string `json:"cert"` // 证书
 	Pkey string `json:"pkey"` // 私钥
+}
+
+type Section struct {
+	CDN string `json:"cdn"` // 文件下载缓存目录
 }
