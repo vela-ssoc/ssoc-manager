@@ -36,7 +36,6 @@ func (svc *sharedService) Buckets(ctx context.Context) []string {
 func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData) {
 	tbl := query.KVData
 	db := tbl.WithContext(ctx).
-		Omit(tbl.Value).
 		Order(tbl.UpdatedAt.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
