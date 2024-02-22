@@ -11,8 +11,9 @@ import (
 )
 
 type SharedService interface {
+	Buckets(ctx context.Context) []string
 	Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData)
-	Sweep(ctx context.Context) error
+	Sweep(ctx context.Context, bucket, key string) error
 }
 
 func Shared() SharedService {
@@ -20,6 +21,17 @@ func Shared() SharedService {
 }
 
 type sharedService struct{}
+
+func (svc *sharedService) Buckets(ctx context.Context) []string {
+	ret := make([]string, 0, 1024)
+	tbl := query.KVData
+	_ = tbl.WithContext(ctx).
+		Distinct(tbl.Bucket).
+		Limit(10000).
+		Scan(&ret)
+
+	return ret
+}
 
 func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData) {
 	tbl := query.KVData
@@ -39,11 +51,18 @@ func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dyns
 	return count, dats
 }
 
-func (svc *sharedService) Sweep(ctx context.Context) error {
-	now := time.Now()
+func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 	tbl := query.KVData
+	if bucket != "" && key != "" {
+		_, err := tbl.WithContext(ctx).
+			Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
+			Delete()
+		return err
+	}
+
+	now := time.Now()
 	_, err := tbl.WithContext(ctx).
-		Where(tbl.Lifetime.Neq(0), tbl.ExpiredAt.Lt(now)).
+		Where(tbl.Lifetime.Gt(0), tbl.ExpiredAt.Lt(now)).
 		Delete()
 
 	return err
