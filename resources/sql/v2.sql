@@ -78,3 +78,17 @@ create table kv_data
     primary key (bucket, `key`)
 );
 
+create table kv_audit
+(
+    id         bigint auto_increment
+        primary key,
+    minion_id  bigint                             not null,
+    inet       varchar(50)                        not null,
+    bucket     varchar(255)                       not null,
+    `key`      varchar(255)                       not null,
+    created_at datetime default CURRENT_TIMESTAMP not null,
+    updated_at datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    constraint kv_audit_pk_2
+        unique (minion_id, bucket, `key`)
+)
+    comment 'kv审计表';
