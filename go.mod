@@ -5,11 +5,11 @@ go 1.20
 require (
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240220074103-38a24f01ac84
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240223063231-9535730d33fa
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.19.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
