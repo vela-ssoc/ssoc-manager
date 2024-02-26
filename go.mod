@@ -3,7 +3,7 @@ module github.com/vela-ssoc/vela-manager
 go 1.20
 
 require (
-	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5
+	github.com/google/pprof v0.0.0-20240225044709-fd706174c886
 	github.com/gorilla/websocket v1.5.1
 	github.com/vela-ssoc/vela-common-mb v0.0.0-20240223072017-c204bb7ac737
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c
