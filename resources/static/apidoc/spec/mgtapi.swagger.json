@@ -26116,7 +26116,7 @@
     },
     "/shared/strings/sweep": {
       "delete": {
-        "summary": "共享kv-清理过期数据",
+        "summary": "共享kv-清理数据",
         "operationId": "delete-shared-strings-sweep",
         "responses": {
           "200": {
@@ -26126,7 +26126,25 @@
         "tags": [
           "最近修改"
         ],
-        "description": "共享kv-清理过期数据"
+        "description": "共享kv-清理过期数据\n\n当 bucket 和 key 有值时代表删除特定的数据，否则代表清理所有过期的数据。\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "bucket",
+            "description": "bucket"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "description": "key"
+          }
+        ]
       }
     },
     "/shared/strings/keys": {
@@ -26191,6 +26209,43 @@
           },
           {
             "$ref": "./manager.v1.yaml#/components/parameters/filters"
+          }
+        ]
+      }
+    },
+    "/shared/strings/audits": {
+      "get": {
+        "summary": "共享kv-审计数据分页",
+        "tags": [
+          "最近修改"
+        ],
+        "responses": {},
+        "operationId": "get-shared-strings-audits",
+        "description": "共享kv-审计数据分页",
+        "parameters": [
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "./manager.v1.yaml#/components/parameters/PageCurrent"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "bucket",
+            "description": "bucket",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "key",
+            "description": "key",
+            "required": true
           }
         ]
       }

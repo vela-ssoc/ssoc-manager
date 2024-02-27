@@ -5,12 +5,12 @@ go 1.20
 require (
 	github.com/google/pprof v0.0.0-20240225044709-fd706174c886
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20240223072017-c204bb7ac737
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20240227102352-bccb4c43f81e
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.19.0
+	golang.org/x/crypto v0.20.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/gen v0.3.25
@@ -38,5 +38,5 @@ require (
 	gorm.io/datatypes v1.2.0 // indirect
 	gorm.io/driver/mysql v1.5.4 // indirect
 	gorm.io/hints v1.1.2 // indirect
-	gorm.io/plugin/dbresolver v1.5.0 // indirect
+	gorm.io/plugin/dbresolver v1.5.1 // indirect
 )

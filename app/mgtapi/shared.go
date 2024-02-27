@@ -14,6 +14,7 @@ func Shared(svc service.SharedService) route.Router {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("bucket", "bucket").Build(),
 		dynsql.StringColumn("key", "key").Build(),
+		dynsql.IntColumn("`count`", "count").Build(),
 	}
 	tbl := dynsql.Builder().Filters(filters...).Build()
 
@@ -37,6 +38,8 @@ func (rest *sharedREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Ignore()).GET(rest.Keys)
 	bearer.Route("/shared/strings/buckets").
 		Data(route.Ignore()).GET(rest.Buckets)
+	bearer.Route("/shared/strings/audits").
+		Data(route.Ignore()).GET(rest.Audits)
 }
 
 func (rest *sharedREST) Cond(c *ship.Context) error {
@@ -76,6 +79,20 @@ func (rest *sharedREST) Sweep(c *ship.Context) error {
 func (rest *sharedREST) Buckets(c *ship.Context) error {
 	ctx := c.Request().Context()
 	ret := rest.svc.Buckets(ctx)
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *sharedREST) Audits(c *ship.Context) error {
+	req := new(param.SharedAuditPage)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	p := req.Pager()
+	count, dats := rest.svc.Audits(ctx, p, req.Bucket, req.Key)
+	ret := p.Result(count, dats)
 
 	return c.JSON(http.StatusOK, ret)
 }

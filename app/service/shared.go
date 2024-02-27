@@ -14,6 +14,7 @@ type SharedService interface {
 	Buckets(ctx context.Context) []string
 	Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData)
 	Sweep(ctx context.Context, bucket, key string) error
+	Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit)
 }
 
 func Shared() SharedService {
@@ -65,4 +66,18 @@ func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 		Delete()
 
 	return err
+}
+
+func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit) {
+	tbl := query.KVAudit
+	stmt := tbl.WithContext(ctx).
+		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key))
+	count, _ := stmt.Count()
+	if count <= 0 {
+		return 0, nil
+	}
+
+	dats, _ := stmt.Scopes(page.Scope(count)).Find()
+
+	return count, dats
 }
