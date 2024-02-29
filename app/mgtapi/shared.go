@@ -40,6 +40,8 @@ func (rest *sharedREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Ignore()).GET(rest.Buckets)
 	bearer.Route("/shared/strings/audits").
 		Data(route.Ignore()).GET(rest.Audits)
+	bearer.Route("/shared/strings/update").
+		Data(route.Ignore()).POST(rest.Update)
 }
 
 func (rest *sharedREST) Cond(c *ship.Context) error {
@@ -95,4 +97,15 @@ func (rest *sharedREST) Audits(c *ship.Context) error {
 	ret := p.Result(count, dats)
 
 	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *sharedREST) Update(c *ship.Context) error {
+	req := new(param.SharedUpdate)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+
+	return rest.svc.Update(ctx, req)
 }

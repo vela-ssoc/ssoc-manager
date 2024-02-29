@@ -26249,6 +26249,54 @@
           }
         ]
       }
+    },
+    "/shared/strings/update": {
+      "post": {
+        "summary": "共享kv-修改数据",
+        "operationId": "post-shared-strings-update",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "最近修改"
+        ],
+        "description": "共享kv-修改数据",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bucket": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "7cubsdy2287i4"
+                    }
+                  },
+                  "key": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "ib46lwgl1x0tq"
+                    }
+                  },
+                  "value": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "cnlimoqvtyrxq"
+                    }
+                  }
+                },
+                "required": [
+                  "bucket",
+                  "key"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

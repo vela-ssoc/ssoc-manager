@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type SharedService interface {
@@ -15,6 +16,7 @@ type SharedService interface {
 	Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData)
 	Sweep(ctx context.Context, bucket, key string) error
 	Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit)
+	Update(ctx context.Context, req *param.SharedUpdate) error
 }
 
 func Shared() SharedService {
@@ -80,4 +82,24 @@ func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, 
 	dats, _ := stmt.Scopes(page.Scope(count)).Find()
 
 	return count, dats
+}
+
+func (svc *sharedService) Update(ctx context.Context, req *param.SharedUpdate) error {
+	tbl := query.KVData
+	bucket, key := req.Bucket, req.Key
+
+	now := time.Now()
+	if dat, err := tbl.WithContext(ctx).
+		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
+		First(); err != nil {
+		return err
+	} else if dat.Expired(now) {
+		return errcode.ErrNotExist
+	}
+
+	_, err := tbl.WithContext(ctx).
+		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
+		UpdateSimple(tbl.Value.Value(req.Value))
+
+	return err
 }
