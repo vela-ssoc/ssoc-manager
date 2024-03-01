@@ -28,6 +28,7 @@ var (
 	ErrBrokerRepeat   = errors.New("broker 节点重复连接")
 	ErrBrokerInet     = errors.New("broker IP 不合法")
 	ErrBrokerOffline  = errors.New("代理节点未上线")
+	ErrBrokerOnline   = errors.New("代理节点已上线")
 )
 
 type Huber interface {
@@ -145,13 +146,13 @@ func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	info, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(ident.ID), tbl.Status.Is(false)).
-		UpdateColumn(tbl.Status, true)
+		UpdateSimple(tbl.Status.Value(true), tbl.Semver.Value(ident.Semver))
 	cancel()
 	if err != nil {
 		return err
 	}
 	if info.RowsAffected == 0 {
-		return ErrBrokerOffline
+		return ErrBrokerOnline
 	}
 
 	defer func() {

@@ -9,6 +9,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"gorm.io/gen"
 )
 
 type SharedService interface {
@@ -53,19 +54,29 @@ func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dyns
 	return count, dats
 }
 
+// Sweep 清除 kv 数据。
 func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
+	now := time.Now()
 	tbl := query.KVData
-	if bucket != "" && key != "" {
+	if bucket == "" { // 仅清理过期的数据。
 		_, err := tbl.WithContext(ctx).
-			Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
+			Where(tbl.Lifetime.Gt(0), tbl.ExpiredAt.Lt(now)).
 			Delete()
 		return err
 	}
 
-	now := time.Now()
-	_, err := tbl.WithContext(ctx).
-		Where(tbl.Lifetime.Gt(0), tbl.ExpiredAt.Lt(now)).
-		Delete()
+	auditTbl := query.KVAudit
+	dataCond := []gen.Condition{tbl.Bucket.Eq(bucket)}
+	auditCond := []gen.Condition{auditTbl.Bucket.Eq(bucket)}
+	if key != "" {
+		dataCond = append(dataCond, tbl.Key.Eq(key))
+		auditCond = append(auditCond, auditTbl.Key.Eq(key))
+	}
+
+	_, err := tbl.WithContext(ctx).Where(dataCond...).Delete()
+	if err == nil {
+		_, _ = auditTbl.WithContext(ctx).Where(auditCond...).Delete()
+	}
 
 	return err
 }

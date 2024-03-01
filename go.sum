@@ -48,6 +48,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240229094559-f799c0e8d7a6 h1:C3zW/AWfdysGwacEvro3ybOppLdaZ0yqZZfoYy0yjjY=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240229094559-f799c0e8d7a6/go.mod h1:PRv1xTcEzxd/sEgsUwp3E1dfgHW5MRQGzc5vrX9cHyE=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240301100443-5515268d0b84 h1:/Qf5FEJ0zDdJc8ZOY3M2/V+M/MRItVDV1B6swdxjejo=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240301100443-5515268d0b84/go.mod h1:PRv1xTcEzxd/sEgsUwp3E1dfgHW5MRQGzc5vrX9cHyE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c h1:U6LK04GbLbxrboNoYf/0BRp3cmFJJE8CfinyUzMMYzE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240220012708-458dc14abc4c/go.mod h1:Al6l1pzjzwNPGH4PLLvNlJnvg1hQOIngU1aafsNhdZw=
 github.com/wenlng/go-captcha v1.2.5 h1:zA0/fovEl9oAhSg+KwHBwmq99GeeAXknWx6wYKjhjTg=

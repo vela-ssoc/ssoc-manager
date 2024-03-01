@@ -93,3 +93,6 @@ create table kv_audit
         unique (minion_id, bucket, `key`)
 )
     comment 'kv审计表';
+
+alter table broker
+    add semver VARCHAR(255) null comment '版本号';

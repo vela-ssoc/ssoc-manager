@@ -30,6 +30,7 @@ type brokerSummary struct {
 	Secret      string             `json:"secret"                   gorm:"column:secret"`     // 随机密钥防止恶意攻击
 	Bind        string             `json:"bind"                     gorm:"column:bind"`       // 服务监听地址
 	CertID      int64              `json:"cert_id,string,omitempty" gorm:"column:cert_id"`    // 证书 ID
+	Semver      string             `json:"semver"                   gorm:"semver"`            // 版本号
 	CreatedAt   time.Time          `json:"created_at"               gorm:"column:created_at"` // 创建时间
 	UpdatedAt   time.Time          `json:"updated_at"               gorm:"column:updated_at"` // 更新时间
 	Certificate *model.Certificate `json:"certificate,omitempty"    gorm:"-"`                 // 证书
