@@ -34,3 +34,5 @@ resources/html/doc/.stoplight
 
 resources/pprof/*
 !resources/pprof/.gitkeep
+
+resources/cdn/
