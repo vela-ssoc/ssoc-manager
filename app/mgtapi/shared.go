@@ -14,6 +14,7 @@ func Shared(svc service.SharedService) route.Router {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("bucket", "bucket").Build(),
 		dynsql.StringColumn("key", "key").Build(),
+		dynsql.StringColumn("`value`", "value").Build(),
 		dynsql.IntColumn("`count`", "count").Build(),
 	}
 	tbl := dynsql.Builder().Filters(filters...).Build()

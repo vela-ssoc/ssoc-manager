@@ -26126,7 +26126,7 @@
         "tags": [
           "最近修改"
         ],
-        "description": "共享kv-清理过期数据\n\n当 bucket 和 key 有值时代表删除特定的数据，否则代表清理所有过期的数据。\n",
+        "description": "- bucket+key 都不为空代表删除指定的数据。\n- bucket 不为空，key 为空时：删除整个 bucket 数据。\n- bucket 为空时，不论 key 是否有值，仅代表清理过期的数据。\n",
         "parameters": [
           {
             "schema": {
