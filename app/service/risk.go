@@ -38,6 +38,7 @@ type riskService struct {
 func (biz *riskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk) {
 	tbl := query.Risk
 	db := tbl.WithContext(ctx).
+		Where(tbl.Status.Neq(uint8(model.RSIgnore))).
 		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
