@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vela-ssoc/vela-common-mb/davfs"
+	"github.com/vela-ssoc/vela-common-mb-itai/davfs"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/xgfone/ship/v5"

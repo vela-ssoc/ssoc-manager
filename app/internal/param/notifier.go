@@ -9,7 +9,7 @@ type NotifierCreate struct {
 	EventCode []byte   `json:"event_code" validate:"lte=65535"`
 	RiskCode  []byte   `json:"risk_code"  validate:"lte=65535"`
 	Ways      []string `json:"ways"       validate:"lte=10,unique,dive,oneof=dong email wechat sms call"`
-	Dong      string   `json:"dong"       validate:"omitempty,dong"`
+	Dong      string   `json:"dong"       validate:"omitempty"`
 	Email     string   `json:"email"      validate:"omitempty,email"`
 	Mobile    string   `json:"mobile"     validate:"omitempty,mobile"`
 }

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/prof"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"

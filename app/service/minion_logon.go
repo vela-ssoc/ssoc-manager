@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
-	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dynsql"
+	"github.com/vela-ssoc/vela-common-mb-itai/integration/elastic"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
 
@@ -71,12 +71,21 @@ func (biz *minionLogonService) Attack(ctx context.Context, page param.Pager, sco
 }
 
 func (biz *minionLogonService) Recent(ctx context.Context, days int) param.MinionRecent {
-	rawSQL := "SELECT a.date, a.msg, COUNT(*) AS count " +
-		"FROM (SELECT DATE_FORMAT(logon_at, '%m-%d') AS date, msg " +
-		"      FROM minion_logon " +
-		"      WHERE DATE_FORMAT(logon_at, '%Y-%m-%d') > DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL ? DAY), '%Y-%m-%d')) a " +
-		" GROUP BY a.date, a.msg"
+	// rawSQL := "SELECT a.date, a.msg, COUNT(*) AS count " +
+	//	"FROM (SELECT DATE_FORMAT(logon_at, '%m-%d') AS date, msg " +
+	//	"      FROM minion_logon " +
+	//	"      WHERE DATE_FORMAT(logon_at, '%Y-%m-%d') > DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL $1 DAY), '%Y-%m-%d')) a " +
+	//	" GROUP BY a.date, a.msg"
 
+	rawSQL := `
+SELECT a.date, a.msg, COUNT(*) AS count 
+FROM (
+    SELECT TO_CHAR(logon_at, 'MM-DD') AS date, msg       
+    FROM minion_logon       
+    WHERE logon_at::date > (CURRENT_DATE - INTERVAL $1 DAY)::date
+) a  
+GROUP BY a.date, a.msg
+`
 	var temps param.MinionRecentTemps
 	query.MinionLogon.
 		WithContext(ctx).

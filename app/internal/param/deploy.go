@@ -1,6 +1,6 @@
 package param
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import "github.com/vela-ssoc/vela-common-mb-itai/dal/model"
 
 type DeployLAN struct {
 	Scheme string `json:"scheme"`

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 )
 
 type CmdbService interface {

@@ -1,6 +1,6 @@
 package config
 
-import "github.com/vela-ssoc/vela-common-mb/dbms"
+import "github.com/vela-ssoc/vela-common-mb-itai/dbms"
 
 // Config 配置参数
 type Config struct {

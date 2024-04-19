@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gorm"
@@ -43,7 +43,7 @@ func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope 
 	var dats param.TaskList
 	stmt.Select("minion_task.id", "minion_task.inet", "minion_task.minion_id", "minion_task.substance_id",
 		"minion_task.name", "minion_task.dialect", "minion_task.status", "minion_task.hash AS report_hash", "st.hash",
-		"minion_task.link", "minion_task.`from`", "minion_task.failed", "minion_task.cause", "st.created_at",
+		"minion_task.link", "minion_task.from", "minion_task.failed", "minion_task.cause", "st.created_at",
 		"st.updated_at", "minion_task.created_at AS report_at").
 		Scopes(page.DBScope(count)).Find(&dats)
 
@@ -239,15 +239,25 @@ func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *
 }
 
 func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
-	rawSQL := "SELECT COUNT(IF(`dialect` = TRUE, TRUE, NULL)) AS `dialect`, " +
-		"COUNT(IF(`dialect` = FALSE, TRUE, NULL))    AS `public`, " +
-		"COUNT(IF(`status` = 'running', TRUE, NULL)) AS `running`," +
-		"COUNT(IF(`status` = 'doing', TRUE, NULL))   AS `doing`, " +
-		"COUNT(IF(`status` = 'fail', TRUE, NULL))    AS `fail`, " +
-		"COUNT(IF(`status` = 'panic', TRUE, NULL))   AS `panic`, " +
-		"COUNT(IF(`status` = 'reg', TRUE, NULL))     AS `reg`, " +
-		"COUNT(IF(`status` = 'update', TRUE, NULL))  AS `update` " +
+	_ = "SELECT COUNT(IF(dialect = TRUE, TRUE, NULL)) AS dialect, " +
+		"COUNT(IF('dialect' = FALSE, TRUE, NULL))    AS public, " +
+		"COUNT(IF('status' = 'running', TRUE, NULL)) AS running," +
+		"COUNT(IF('status' = 'doing', TRUE, NULL))   AS doing, " +
+		"COUNT(IF('status' = 'fail', TRUE, NULL))    AS fail, " +
+		"COUNT(IF('status' = 'panic', TRUE, NULL))   AS panic, " +
+		"COUNT(IF('status' = 'reg', TRUE, NULL))     AS reg, " +
+		"COUNT(IF('status' = 'update', TRUE, NULL))  AS update " +
 		"FROM minion_task"
+	rawSQL := `SELECT COUNT(CASE WHEN dialect = TRUE THEN TRUE END)     AS dialect,
+       COUNT(CASE WHEN dialect = FALSE THEN TRUE END)    AS public,
+       COUNT(CASE WHEN status = 'running' THEN TRUE END) AS running,
+       COUNT(CASE WHEN status = 'doing' THEN TRUE END)   AS doing,
+       COUNT(CASE WHEN status = 'fail' THEN TRUE END)    AS fail,
+       COUNT(CASE WHEN status = 'panic' THEN TRUE END)   AS panic,
+       COUNT(CASE WHEN status = 'reg' THEN TRUE END)     AS reg,
+       COUNT(CASE WHEN status = 'update' THEN TRUE END)  AS update
+FROM minion_task
+`
 
 	res := new(param.TaskCount)
 	db := query.MinionTask.WithContext(ctx).UnderlyingDB()

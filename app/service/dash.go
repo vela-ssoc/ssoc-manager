@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
 
@@ -66,7 +66,7 @@ func (biz *dashService) Edition(ctx context.Context) []*param.DashEditionVO {
 	query.Minion.WithContext(ctx).UnderlyingDB().
 		Select("edition", "COUNT(*) AS total").
 		Group("edition").
-		Order("INET_ATON(CONCAT(edition, '.0')) DESC"). // 按照版本号降序
+		Order("CONCAT(edition, '.0') DESC"). // 按照版本号降序
 		Scan(&dats)
 
 	return dats

@@ -3,7 +3,7 @@ package blink
 import (
 	"encoding/json"
 
-	"github.com/vela-ssoc/vela-common-mb/dbms"
+	"github.com/vela-ssoc/vela-common-mb-itai/dbms"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-manager/infra/config"
 )

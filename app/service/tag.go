@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -86,17 +86,37 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 
 func (biz *tagService) Sidebar(ctx context.Context) []*param.NameCount {
 	tbl := query.MinionTag
-	lifelong := int8(model.TkLifelong)
-	ipv4 := "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+	// lifelong := int8(model.TkLifelong)
+	ipv4 := `^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$`
 	ret := make([]*param.NameCount, 0, 100)
-	tbl.WithContext(ctx).
-		Where(tbl.Kind.Neq(lifelong)).
-		Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(ipv4)).
-		Group(tbl.Tag).
-		Order(tbl.Tag).
-		Limit(1000).
+	// tbl.WithContext(ctx).
+	//	Where(tbl.Kind.Neq(lifelong)).
+	//	Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(ipv4)).
+	//	Group(tbl.Tag).
+	//	Order(tbl.Tag).
+	//	Limit(1000).
+	//	UnderlyingDB().
+	//	Select("COUNT(*) AS count", "minion_tag.tag AS name").
+	//	Scan(&ret)
+
+	// SELECT COUNT(*) AS count, minion_tag.tag AS name
+	// FROM minion_tag
+	// WHERE minion_tag.kind <> 1
+	//   OR (minion_tag.kind = 1 AND NOT minion_tag.tag ~ '^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+	// GROUP BY minion_tag.tag
+	// ORDER BY minion_tag.tag
+	// LIMIT 1000;
+	str := `SELECT COUNT(*) AS count, minion_tag.tag AS name
+FROM minion_tag
+WHERE minion_tag.kind <> 1
+   OR (minion_tag.kind = 1 AND NOT minion_tag.tag ~ $1)
+GROUP BY minion_tag.tag
+ORDER BY minion_tag.tag
+LIMIT 1000
+`
+	_ = tbl.WithContext(ctx).
 		UnderlyingDB().
-		Select("COUNT(*) AS count", "`minion_tag`.`tag` AS name").
+		Raw(str, ipv4).
 		Scan(&ret)
 
 	return ret

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
@@ -83,9 +83,9 @@ func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdat
 	dat.EventCode = req.EventCode
 	dat.RiskCode = req.RiskCode
 
-	if err = tbl.WithContext(ctx).
+	if _, err = tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
-		Save(dat); err != nil {
+		Updates(dat); err != nil {
 		return err
 	}
 	biz.pusher.NotifierReset(ctx)

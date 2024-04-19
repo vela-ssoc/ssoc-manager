@@ -11,8 +11,8 @@ import (
 
 	"github.com/xgfone/ship/v5"
 
-	"github.com/vela-ssoc/vela-common-mb/accord"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/accord"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"gorm.io/gen/field"
 )

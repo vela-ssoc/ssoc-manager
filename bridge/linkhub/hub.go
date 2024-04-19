@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
-	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/gopool"
+	"github.com/vela-ssoc/vela-common-mb-itai/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"

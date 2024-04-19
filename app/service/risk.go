@@ -5,10 +5,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
-	"github.com/vela-ssoc/vela-common-mb/storage/v2"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
+	"github.com/vela-ssoc/vela-common-mb-itai/dynsql"
+	"github.com/vela-ssoc/vela-common-mb-itai/storage/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
@@ -96,7 +96,7 @@ func (biz *riskService) Recent(ctx context.Context, day int) *param.RecentCharts
 	rawSQL := "SELECT a.date, a.risk_type, COUNT(*) AS count " +
 		"FROM (SELECT DATE_FORMAT(occur_at, '%m-%d') AS date, risk_type " +
 		"FROM risk " +
-		"WHERE DATE_FORMAT(occur_at, '%Y-%m-%d') > DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL ? DAY), '%Y-%m-%d')) a " +
+		"WHERE DATE_FORMAT(occur_at, '%Y-%m-%d') > DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL $1 DAY), '%Y-%m-%d')) a " +
 		"GROUP BY a.date, a.risk_type"
 
 	var temps param.RiskRecentTemps

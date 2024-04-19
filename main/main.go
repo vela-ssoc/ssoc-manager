@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vela-ssoc/vela-common-mb/logback"
+	"github.com/vela-ssoc/vela-common-mb-itai/logback"
 	"github.com/vela-ssoc/vela-manager/infra/banner"
 	"github.com/vela-ssoc/vela-manager/launch"
 )

@@ -3,7 +3,7 @@ package param
 import (
 	"mime/multipart"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
 )
 
 type ThirdCreate struct {
