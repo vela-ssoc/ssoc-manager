@@ -25,6 +25,8 @@ github.com/go-playground/universal-translator v0.18.1 h1:Bcnm0ZwsGyWbCzImXv+pAJn
 github.com/go-playground/universal-translator v0.18.1/go.mod h1:xekY+UJKNuX9WP91TpwSH2VMlDf28Uj24BCp08ZFTUY=
 github.com/go-playground/validator/v10 v10.19.0 h1:ol+5Fu+cSq9JD7SoSqe04GMI92cbn0+wvQ3bZ8b/AU4=
 github.com/go-playground/validator/v10 v10.19.0/go.mod h1:dbuPbCMFw/DrkbEynArYaCwl3amGuJotoKCe95atGMM=
+github.com/go-playground/validator/v10 v10.20.0 h1:K9ISHbSaI0lyB2eWMPJo+kOS/FBExVwjEviJTixqxL8=
+github.com/go-playground/validator/v10 v10.20.0/go.mod h1:dbuPbCMFw/DrkbEynArYaCwl3amGuJotoKCe95atGMM=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/go-sql-driver/mysql v1.7.0/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
@@ -53,6 +55,8 @@ github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMyw
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/pprof v0.0.0-20240416155748-26353dc0451f h1:WpZiq8iqvGjJ3m3wzAVKL6+0vz7VkE79iSy9GII00II=
 github.com/google/pprof v0.0.0-20240416155748-26353dc0451f/go.mod h1:kf6iHlnVGwgKolg33glAes7Yg/8iWP8ukqeldJSO7jw=
+github.com/google/pprof v0.0.0-20240430035430-e4905b036c4e h1:RsXNnXE59RTt8o3DcA+w7ICdRfR2l+Bb5aE0YMpNTO8=
+github.com/google/pprof v0.0.0-20240430035430-e4905b036c4e/go.mod h1:kf6iHlnVGwgKolg33glAes7Yg/8iWP8ukqeldJSO7jw=
 github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/QY=
 github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZHL0uE0tcaY=
 github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 h1:KwWnWVWCNtNq/ewIX7HIKnELmEx2nDP42yskD/pi7QE=
@@ -96,6 +100,8 @@ github.com/vela-ssoc/vela-common-mb v0.0.0-20240417051645-fc49d5a7746f h1:2hFqQE
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240417051645-fc49d5a7746f/go.mod h1:KWoLh0hJI7pa+fU0qOaemtO37RNr4r8RrebmWYkWoAY=
 github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240419075505-e99f25fe381c h1:zVJvP63PS9BlcgJn/UPx0YS2Dr2lUokXJpSubGlgC8w=
 github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240419075505-e99f25fe381c/go.mod h1:TykIeOUZi8AJw4fanjPemdrR3RR3atOMRYN+Kvj1Mxw=
+github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240428033059-17a5cc04f730 h1:W8h+ic4fny+bkapRIqxY7ixWENamG2ZN7cNm+w+7c+8=
+github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240428033059-17a5cc04f730/go.mod h1:ci0x+hrte2cEPOPuP1CKn4qtdwhnuvxaXHN9ksMtc4c=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae h1:9WZGtHTOjrMV4eKWUnWIhiZEP89X0F5vI0KXhm2LXCE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae/go.mod h1:A/jTFDpCqQMZsDjL6NEBw5XtAfYnI12bTp4oIVDzhfQ=
 github.com/wenlng/go-captcha v1.2.5 h1:zA0/fovEl9oAhSg+KwHBwmq99GeeAXknWx6wYKjhjTg=
@@ -204,6 +210,8 @@ gorm.io/gorm v1.25.2/go.mod h1:L4uxeKpfBml98NYqVqwAdmV1a2nBtAec/cf3fpucW/k=
 gorm.io/gorm v1.25.7/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
 gorm.io/gorm v1.25.9 h1:wct0gxZIELDk8+ZqF/MVnHLkA1rvYlBWUMv2EdsK1g8=
 gorm.io/gorm v1.25.9/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
+gorm.io/gorm v1.25.10 h1:dQpO+33KalOA+aFYGlK+EfxcI5MbO7EP2yYygwh9h+s=
+gorm.io/gorm v1.25.10/go.mod h1:hbnx/Oo0ChWMn1BIhpy1oYozzpM15i4YPuHDmfYtwg8=
 gorm.io/hints v1.1.2 h1:b5j0kwk5p4+3BtDtYqqfY+ATSxjj+6ptPgVveuynn9o=
 gorm.io/hints v1.1.2/go.mod h1:/ARdpUHAtyEMCh5NNi3tI7FsGh+Cj/MIUlvNxCNCFWg=
 gorm.io/plugin/dbresolver v1.5.1 h1:s9Dj9f7r+1rE3nx/Ywzc85nXptUEaeOO0pt27xdopM8=
