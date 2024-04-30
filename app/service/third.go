@@ -5,7 +5,6 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
@@ -129,7 +128,6 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 		}
 	}
 
-	now := time.Now()
 	file, err := biz.gfs.Write(r, name)
 	if err != nil {
 		return err
@@ -145,8 +143,6 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 		Customized: customized,
 		CreatedID:  userID,
 		UpdatedID:  userID,
-		CreatedAt:  now,
-		UpdatedAt:  now,
 	}
 	err = tbl.WithContext(ctx).Create(mod)
 	if err != nil {

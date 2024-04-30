@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
@@ -59,7 +58,6 @@ func (svc *thirdCustomizedService) Update(ctx context.Context, req *param.ThirdC
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
 		UpdateSimple(
-			tbl.UpdatedAt.Value(time.Now()),
 			tbl.Icon.Value(req.Icon),
 			tbl.Remark.Value(req.Remark),
 		)

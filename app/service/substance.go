@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
@@ -102,7 +101,6 @@ func (biz *substanceService) Detail(ctx context.Context, id int64) (*model.Subst
 }
 
 func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error {
-	now := time.Now()
 	name, mid := sc.Name, sc.MinionID
 
 	var bid int64
@@ -150,8 +148,6 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 		MinionID:  mid,
 		CreatedID: userID,
 		UpdatedID: userID,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 	if err := tbl.WithContext(ctx).Create(dat); err != nil {
 		return err
