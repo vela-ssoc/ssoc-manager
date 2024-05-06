@@ -5,7 +5,7 @@ go 1.22.2
 require (
 	github.com/google/pprof v0.0.0-20240430035430-e4905b036c4e
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240430115832-748cdf69d4da
+	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240506013753-c5593ed493f5
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
@@ -37,12 +37,12 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/image v0.15.0 // indirect
+	golang.org/x/image v0.16.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.20.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gorm.io/datatypes v1.2.0 // indirect

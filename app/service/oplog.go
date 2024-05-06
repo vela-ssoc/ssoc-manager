@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-manager/errcode"
-
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/query"
 	"github.com/vela-ssoc/vela-common-mb-itai/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type OplogService interface {
@@ -25,6 +24,7 @@ type oplogService struct{}
 func (op *oplogService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Oplog) {
 	tbl := query.Oplog
 	db := tbl.WithContext(ctx).
+		Order(tbl.ID.Desc()).
 		UnderlyingDB().
 		Scopes(scope.Where)
 
