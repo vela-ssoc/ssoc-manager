@@ -5,7 +5,7 @@ go 1.22.2
 require (
 	github.com/google/pprof v0.0.0-20240430035430-e4905b036c4e
 	github.com/gorilla/websocket v1.5.1
-	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240506060229-770beea7f23e
+	github.com/vela-ssoc/vela-common-mb-itai v0.0.0-20240507060210-c09c03868559
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1

@@ -36,7 +36,8 @@ type brokerService struct {
 
 func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries) {
 	tbl := query.Broker
-	dao := tbl.WithContext(ctx)
+	dao := tbl.WithContext(ctx).
+		Order(tbl.ID)
 	if kw := page.Keyword(); kw != "" {
 		dao.Where(tbl.Name.Like(kw)).
 			Or(tbl.Servername.Like(kw))
@@ -136,11 +137,11 @@ func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) e
 	brk.VIP = req.VIP
 	brk.CertID = req.CertID
 
-	_, err = tbl.WithContext(ctx).
-		Where(tbl.ID.Eq(req.ID)).
-		Updates(brk)
+	//_, err = tbl.WithContext(ctx).
+	//	Where(tbl.ID.Eq(req.ID)).
+	//	Updates(brk)
 
-	return err
+	return tbl.WithContext(ctx).Save(brk)
 }
 
 func (biz *brokerService) Delete(ctx context.Context, id int64) error {
