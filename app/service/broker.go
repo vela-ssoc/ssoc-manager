@@ -136,8 +136,11 @@ func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) e
 	brk.VIP = req.VIP
 	brk.CertID = req.CertID
 
-	return tbl.WithContext(ctx).
-		Save(brk)
+	_, err = tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(req.ID)).
+		Updates(brk)
+
+	return err
 }
 
 func (biz *brokerService) Delete(ctx context.Context, id int64) error {
