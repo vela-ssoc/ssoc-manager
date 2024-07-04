@@ -60,6 +60,8 @@ github.com/vela-ssoc/vela-common-mb v0.0.0-20240417051645-fc49d5a7746f h1:2hFqQE
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240417051645-fc49d5a7746f/go.mod h1:KWoLh0hJI7pa+fU0qOaemtO37RNr4r8RrebmWYkWoAY=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240605031009-78e18f4139d0 h1:Vo1hsdXkP3BR/GZy5+DPg3u8mvD6IQRN3xsPOQSF5v8=
 github.com/vela-ssoc/vela-common-mb v0.0.0-20240605031009-78e18f4139d0/go.mod h1:Go4hX/ak7SEVSbTshIvDPOqWC+VLHyKzrVEndemcnRA=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240628031013-61553f2dca18 h1:E2Oihkt9iOgJ1s7PMbHfCnjJ+dXWEBTu4hpQ73xiNa4=
+github.com/vela-ssoc/vela-common-mb v0.0.0-20240628031013-61553f2dca18/go.mod h1:WdeNPmzXf9XPujTNiR7MFDaWsKUEfH1//dw4qKtEoWA=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae h1:9WZGtHTOjrMV4eKWUnWIhiZEP89X0F5vI0KXhm2LXCE=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240415091935-2a717f864eae/go.mod h1:A/jTFDpCqQMZsDjL6NEBw5XtAfYnI12bTp4oIVDzhfQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20240628030633-4c80de169f25 h1:O89D4VpN6Bw9rR3kt4/D4PHrQKF4WQaZF5L5aaOWuWI=
