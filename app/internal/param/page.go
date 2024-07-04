@@ -107,8 +107,8 @@ type Index struct {
 
 func (i Index) Indexer() Indexer {
 	size, keyword := i.Size, i.Keyword
-	if size <= 0 || size > 100 {
-		size = 10
+	if size <= 0 || size > 1000 {
+		size = 1000
 	}
 	if keyword != "" {
 		keyword = "%" + keyword + "%"
