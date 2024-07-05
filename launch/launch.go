@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-common-mb/cmdb2"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
@@ -222,7 +224,6 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	riskFileREST.Route(anon, bearer, basic)
 
 	storeService := service.Store(pusher, store)
-
 	eventService := service.Event(store)
 	eventREST := mgtapi.Event(eventService)
 	eventREST.Route(anon, bearer, basic)
@@ -315,6 +316,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	sona := sonatype.NewClient(hardConfig, client)
 	synchro := vulnsync.New(db, sona)
 	mgtapi.Manual(synchro).Route(anon, bearer, basic)
+
+	cmdb2Client := cmdb2.NewClient(cfg.Section.Cmdb2, client)
+	cmdb2Service := service.Cmdb2(cmdb2Client)
+	mgtapi.Cmdb2(cmdb2Service).Route(anon, bearer, basic)
 
 	davREST := mgtapi.DavFS(base)
 	davREST.Route(anon, bearer, basic)

@@ -28,7 +28,7 @@ func (p Page) Pager() Pager {
 		current = 1
 	}
 	if size <= 0 || size > 100 {
-		size = 10
+		size = 100
 	}
 	if keyword != "" {
 		keyword = "%" + keyword + "%"
