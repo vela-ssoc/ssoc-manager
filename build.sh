@@ -85,13 +85,24 @@ LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/vela-manager/infra/b
 
 log_warning "编译信息：${GOOS}-${GOARCH}"
 log_info "正在编译......"
-# 7231
+
 export CGO_ENABLED=0
 
-go build -o mgt -ldflags "$LDFLAGS" \
+CURRENT_DATE=$(date +'%Y%m%d')
+BINARY_NAME=ssoc-manager-${CURRENT_DATE}$(go env GOEXE)
+
+go build -o ${BINARY_NAME} -ldflags "$LDFLAGS" \
   -gcflags="all=-trimpath=${PWD}" \
   -asmflags="all=-trimpath=${PWD}" \
   ./main
+
+
+if [ $? -eq 0 ]; then
+    # 检查 upx 命令是否存在
+    if command -v upx &> /dev/null; then
+        upx -9 ${BINARY_NAME}
+    fi
+fi
 
 if [ $? -eq 0 ]; then
   log_success "编译成功."

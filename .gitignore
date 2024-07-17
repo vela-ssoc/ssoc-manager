@@ -36,3 +36,5 @@ resources/pprof/*
 !resources/pprof/.gitkeep
 
 resources/cdn/
+
+ssoc-manager*
