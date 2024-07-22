@@ -8,6 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/oauth2"
+
+	"github.com/vela-ssoc/vela-manager/httpx"
+
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -142,7 +146,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	verifyService := service.Verify(3, dongCli, store, slog) // 验证码 3 分钟有效期
 	loginLockService := service.LoginLock(time.Hour, 10)     // 每小时错误 10 次就锁定账户
 
-	authService := service.Auth(verifyService, loginLockService, userService)
+	httpxCli := httpx.Client{Client: http.DefaultClient}
+	oauthCli := oauth2.NewClient(cfg.Oauth, httpxCli)
+
+	authService := service.Auth(verifyService, loginLockService, userService, oauthCli)
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 

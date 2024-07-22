@@ -73,3 +73,7 @@ type AuthTotpResp struct {
 	*totp.TOTP
 	URL string `json:"url"`
 }
+
+type AuthOauth struct {
+	Code string `json:"code" form:"code" validate:"required,lte=1000"`
+}

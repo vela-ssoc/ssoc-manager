@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/totp"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/oauth2"
 )
 
 // AuthService 认证模块业务层
@@ -24,13 +25,15 @@ type AuthService interface {
 	Valid(ctx context.Context, uname, passwd string) (string, bool, error)
 	Totp(ctx context.Context, uid string) (*totp.TOTP, error)
 	Submit(ctx context.Context, uid, code string) (*model.User, error)
+	Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error)
 }
 
-func Auth(verify VerifyService, lock LoginLockService, user UserService) AuthService {
+func Auth(verify VerifyService, lock LoginLockService, user UserService, oauth oauth2.Client) AuthService {
 	return &authService{
 		verify: verify,
 		lock:   lock,
 		user:   user,
+		oauth:  oauth,
 	}
 }
 
@@ -38,6 +41,7 @@ type authService struct {
 	verify VerifyService
 	lock   LoginLockService
 	user   UserService
+	oauth  oauth2.Client
 }
 
 func (svc *authService) Picture(ctx context.Context, uname string) (*param.AuthPicture, error) {
@@ -164,6 +168,22 @@ func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.Us
 			UpdateColumn(userTbl.TotpBind, true)
 	}
 	_, _ = tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).Delete()
+
+	return user, nil
+}
+
+func (svc *authService) Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error) {
+	userinfo, err := svc.oauth.Exchange(ctx, req.Code)
+	if err != nil {
+		return nil, err
+	}
+
+	jobNumber := userinfo.SUB
+	tbl := query.User
+	user, err := tbl.WithContext(ctx).Where(tbl.Dong.Eq(jobNumber)).First()
+	if err != nil || !user.Enable {
+		return nil, errcode.ErrUnauthorized
+	}
 
 	return user, nil
 }

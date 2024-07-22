@@ -33,6 +33,7 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/auth/valid").Data(route.DestPasswd("校验用户名密码")).POST(ath.Valid)
 	anon.Route("/auth/totp").Data(route.Named("获取 TOTP")).POST(ath.Totp)
 	anon.Route("/auth/submit").Data(route.DestPasswd("用户登录")).POST(ath.Submit)
+	anon.Route("/auth/oauth").Data(route.DestPasswd("用户登录(oauth)")).POST(ath.Oauth)
 
 	bearer.Route("/logout").Data(route.Named("用户退出登录")).DELETE(ath.Logout)
 }
@@ -175,6 +176,27 @@ func (ath *authREST) Submit(c *ship.Context) error {
 	// 查询 UID 是否有效
 	ctx := c.Request().Context()
 	user, err := ath.svc.Submit(ctx, req.UID, req.Code)
+	if err != nil {
+		return err
+	}
+
+	cu := session.Issued(user)
+	c.Any = cu
+	if err = c.SetSession(cu.Token, cu); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, cu)
+}
+
+// Oauth 通过咚咚扫码登录。
+func (ath *authREST) Oauth(c *ship.Context) error {
+	req := new(param.AuthOauth)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	user, err := ath.svc.Oauth(ctx, req)
 	if err != nil {
 		return err
 	}

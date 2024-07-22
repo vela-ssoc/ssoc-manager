@@ -26297,6 +26297,42 @@
           }
         }
       }
+    },
+    "/auth/oauth": {
+      "post": {
+        "summary": "登录-咚咚扫码认证",
+        "operationId": "post-auth-oauth",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "login"
+        ],
+        "description": "咚咚扫码认证",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "tie15tr2wc359"
+                    },
+                    "description": "扫码认证后的 code"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
