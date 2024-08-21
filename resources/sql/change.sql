@@ -1,7 +1,7 @@
 -- 2024-03-12: 5F 公募基金升级
 
 -- 2024-06-28 对接 cmdb2
-create table ssoc.cmdb2
+create table cmdb2
 (
     id                         bigint auto_increment
         primary key,
@@ -110,5 +110,5 @@ create table ssoc.cmdb2
         unique (inet)
 );
 
-
+-- 2024-08-21 证券升级
 
