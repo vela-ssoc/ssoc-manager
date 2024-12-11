@@ -53,7 +53,7 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(handler http.Handler, pool gopool.Executor, cfg config.Config) Huber {
+func New(handler http.Handler, pool gopool.Pool, cfg config.Config) Huber {
 	hub := &brokerHub{
 		name:     "manager",
 		handler:  handler,
@@ -78,7 +78,7 @@ type brokerHub struct {
 	client   netutil.HTTPClient
 	forward  netutil.Forwarder
 	streamer netutil.Streamer
-	pool     gopool.Executor
+	pool     gopool.Pool
 	mutex    sync.RWMutex
 	connects map[string]*spdyServerConn
 	random   *rand.Rand
@@ -209,7 +209,7 @@ func (hub *brokerHub) Oneway(ctx context.Context, id int64, path string, req any
 		path: path,
 		req:  req,
 	}
-	hub.pool.Submit(tsk) // 交给协程池去执行
+	hub.pool.Go(tsk.Run) // 交给协程池去执行
 
 	return tsk.Wait()
 }
@@ -227,7 +227,7 @@ func (hub *brokerHub) Unicast(ctx context.Context, id int64, path string, req, r
 		resp:  resp,
 	}
 
-	hub.pool.Submit(rt) // 交给协程池去执行
+	hub.pool.Go(rt.Run) // 交给协程池去执行
 	err := rt.Wait()    // 等待执行完毕
 
 	return err
@@ -275,7 +275,7 @@ func (hub *brokerHub) multicast(bids []int64, path string, req any, ret chan *Er
 		}
 
 		wg.Add(1)
-		hub.pool.Submit(tsk) // 将任务丢到协程池中等待执行
+		hub.pool.Go(tsk.Run) // 将任务丢到协程池中等待执行
 	}
 
 	// 当所有的任务执行完毕，关闭返回值 chan

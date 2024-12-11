@@ -8,12 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/oauth2"
-
-	"github.com/vela-ssoc/vela-manager/httpx"
-
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
@@ -37,8 +32,10 @@ import (
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
+	"github.com/vela-ssoc/vela-manager/httpx"
 	"github.com/vela-ssoc/vela-manager/infra/config"
 	"github.com/vela-ssoc/vela-manager/infra/profile"
+	"github.com/vela-ssoc/vela-manager/oauth2"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -112,7 +109,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	basic := anon.Clone().Use(auth.Basic)
 
 	// 初始化协程池
-	pool := gopool.New(512, 1024, 10*time.Minute)
+	pool := gopool.NewV2(8192)
 
 	// ==========[ broker begin ] ==========
 	huber := linkhub.New(http.NewServeMux(), pool, cfg) // 将连接中心注入到 broker 接入网关中
