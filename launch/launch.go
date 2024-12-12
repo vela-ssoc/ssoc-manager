@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/app/brkapi"
+
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -108,11 +110,28 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	bearer := anon.Clone().Use(auth.Bearer)
 	basic := anon.Clone().Use(auth.Basic)
 
+	client := netutil.NewClient()
+	siemCfg := dong.SIEMConfig{
+		URL:   cfg.SIEM.URL,
+		Token: cfg.SIEM.Token,
+	}
+	dongSIEM := dong.NewSIEM(client, siemCfg)
+
 	// 初始化协程池
 	pool := gopool.NewV2(8192)
 
 	// ==========[ broker begin ] ==========
-	huber := linkhub.New(http.NewServeMux(), pool, cfg) // 将连接中心注入到 broker 接入网关中
+	brkmux := ship.Default()
+	brkmux.Validator = valid
+	brkmux.NotFound = prob.NotFound
+	brkmux.HandleError = prob.HandleError
+	brkgrp := brkmux.Group("/")
+	{
+		alert := brkapi.NewAlert(dongSIEM)
+		alert.Router(brkgrp)
+	}
+
+	huber := linkhub.New(brkmux, pool, cfg) // 将连接中心注入到 broker 接入网关中
 	pusher := push.NewPush(huber)
 	brkHandle := blink.New(huber)        // 将 broker 网关注入到 blink service 中
 	blinkREST := mgtapi.Blink(brkHandle) // 构造 REST 层
@@ -123,7 +142,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	// ==========[ broker end ] ==========
 
 	dongCfg := dong.NewConfig()
-	client := netutil.NewClient()
+
 	emcService := service.Emc(pusher, dongCfg)
 	emcREST := mgtapi.Emc(emcService)
 	emcREST.Route(anon, bearer, basic)
