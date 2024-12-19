@@ -5,7 +5,6 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"gorm.io/gen/field"
@@ -18,16 +17,14 @@ type EmcService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Emc(pusher push.Pusher, cfg dong.Configurer) EmcService {
+func Emc(pusher push.Pusher) EmcService {
 	return &emcService{
 		pusher: pusher,
-		cfg:    cfg,
 	}
 }
 
 type emcService struct {
 	pusher push.Pusher
-	cfg    dong.Configurer
 }
 
 func (biz *emcService) Page(ctx context.Context, page param.Pager) (int64, []*model.Emc) {

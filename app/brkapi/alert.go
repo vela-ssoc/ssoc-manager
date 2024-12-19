@@ -1,7 +1,7 @@
 package brkapi
 
 import (
-	"github.com/vela-ssoc/vela-common-mb/integration/dong"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/xgfone/ship/v5"
 )
@@ -23,6 +23,7 @@ func (alt *Alert) dong(c *ship.Context) error {
 	if err := c.Bind(req); err != nil {
 		return err
 	}
+	ctx := c.Request().Context()
 
-	return nil
+	return alt.cli.Send(ctx, req.UserIDs, req.GroupIDs, req.Title, req.Detail)
 }

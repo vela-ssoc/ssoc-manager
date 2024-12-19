@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/app/brkapi"
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
 
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
@@ -16,7 +16,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
-	"github.com/vela-ssoc/vela-common-mb/integration/dong"
+	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
@@ -26,6 +26,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-manager/app/brkapi"
 	"github.com/vela-ssoc/vela-manager/app/mgtapi"
 	"github.com/vela-ssoc/vela-manager/app/middle"
 	"github.com/vela-ssoc/vela-manager/app/route"
@@ -67,7 +68,15 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	if err != nil {
 		return nil, err
 	}
+	tables := []any{
+		model.AlertServer{},
+	}
+	if err = db.AutoMigrate(tables...); err != nil {
+		return nil, err
+	}
+
 	query.SetDefault(db)
+	qry := query.Q
 	secCfg := cfg.Section
 
 	var gfs gridfs.FS
@@ -110,12 +119,10 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	bearer := anon.Clone().Use(auth.Bearer)
 	basic := anon.Clone().Use(auth.Basic)
 
+	alertServerSvc := service.NewAlertServer(qry)
+
 	client := netutil.NewClient()
-	siemCfg := dong.SIEMConfig{
-		URL:   cfg.SIEM.URL,
-		Token: cfg.SIEM.Token,
-	}
-	dongSIEM := dong.NewSIEM(client, siemCfg)
+	dongCli := dong.NewAlert(alertServerSvc)
 
 	// 初始化协程池
 	pool := gopool.NewV2(8192)
@@ -127,7 +134,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brkmux.HandleError = prob.HandleError
 	brkgrp := brkmux.Group("/")
 	{
-		alert := brkapi.NewAlert(dongSIEM)
+		alert := brkapi.NewAlert(dongCli)
 		alert.Router(brkgrp)
 	}
 
@@ -141,17 +148,13 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	}
 	// ==========[ broker end ] ==========
 
-	dongCfg := dong.NewConfig()
-
-	emcService := service.Emc(pusher, dongCfg)
+	emcService := service.Emc(pusher)
 	emcREST := mgtapi.Emc(emcService)
 	emcREST.Route(anon, bearer, basic)
 	store := storage.NewStore()
 
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
-
-	dongCli := dong.NewClient(dongCfg, client, slog)
 
 	ssoCfg := ssoauth.NewConfigure(store)
 	ssoCli := ssoauth.NewClient(ssoCfg, client, slog)
@@ -207,6 +210,9 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	processService := service.Process()
 	processREST := mgtapi.Process(processService)
 	processREST.Route(anon, bearer, basic)
+
+	alertServerREST := mgtapi.NewAlertServer(alertServerSvc)
+	alertServerREST.Route(anon, bearer, basic)
 
 	accountService := service.Account()
 	accountREST := mgtapi.Account(accountService)
