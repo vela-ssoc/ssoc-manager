@@ -63,7 +63,7 @@ func (als *AlertServer) Delete(ctx context.Context) error {
 
 	tbl := als.qry.AlertServer
 	_, err := tbl.WithContext(ctx).
-		Where(tbl.ID.Neq(0)).
+		Where(tbl.ID.Neq(0)). // 跳过全表删除检查。
 		Delete()
 	if err == nil {
 		als.mem.Forget()

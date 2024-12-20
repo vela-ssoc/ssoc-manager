@@ -70,6 +70,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	}
 	tables := []any{
 		model.AlertServer{},
+		model.SIEMServer{},
 	}
 	if err = db.AutoMigrate(tables...); err != nil {
 		return nil, err
@@ -120,6 +121,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	basic := anon.Clone().Use(auth.Basic)
 
 	alertServerSvc := service.NewAlertServer(qry)
+	siemServerSvc := service.NewSIEMServer(qry)
 
 	client := netutil.NewClient()
 	dongCli := dong.NewAlert(alertServerSvc)
@@ -136,6 +138,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	{
 		alert := brkapi.NewAlert(dongCli)
 		alert.Router(brkgrp)
+		siemAPI := brkapi.NewSIEM(siemServerSvc)
+		siemAPI.Router(brkgrp)
 	}
 
 	huber := linkhub.New(brkmux, pool, cfg) // 将连接中心注入到 broker 接入网关中
@@ -213,6 +217,8 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 
 	alertServerREST := mgtapi.NewAlertServer(alertServerSvc)
 	alertServerREST.Route(anon, bearer, basic)
+	siemServerREST := mgtapi.NewSIEMServer(siemServerSvc)
+	siemServerREST.Route(anon, bearer, basic)
 
 	accountService := service.Account()
 	accountREST := mgtapi.Account(accountService)

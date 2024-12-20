@@ -26,6 +26,8 @@ tags:
     description: 对节点直接操作
   - name: 插件配置
     description: substance lua 脚本
+  - name: 配置参数
+    description: 配置参数
 paths:
   /login/han:
     post:
@@ -1099,6 +1101,224 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ID'
       description: '`minion_id` 为 0 代表是公有配置。非 0 均为私有配置。'
+  /alert-server:
+    get:
+      summary: 获取咚咚告警配置
+      tags:
+        - 配置参数
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    x-stoplight:
+                      id: ujzp6wuu6uw5x
+                    description: 发送模式
+                    enum:
+                      - siem
+                      - dong
+                    example: dong
+                  name:
+                    type: string
+                    x-stoplight:
+                      id: 7kgmiem5pdrr5
+                    description: 名字
+                    example: 安全应急响应中心
+                  url:
+                    type: string
+                    x-stoplight:
+                      id: 7ar432ot19mw4
+                    description: 服务器地址
+                    example: 'https://send.example.com'
+                  token:
+                    type: string
+                    x-stoplight:
+                      id: s1a19lv0vuvev
+                    example: 6743dbc7a96dd591cf68375f
+                    description: Token
+                  account:
+                    type: string
+                    x-stoplight:
+                      id: ccpf6jr0t45sa
+                    example: '802563'
+                    description: '`dong` 模式时有效'
+                  created_at:
+                    type: string
+                    x-stoplight:
+                      id: 0mm8dnlwk3bno
+                    example: '2024-12-19T11:47:48.612Z'
+                  updated_at:
+                    type: string
+                    x-stoplight:
+                      id: wnpgjgl2teuna
+                    example: '2024-12-19T11:47:48.612Z'
+                required:
+                  - mode
+                  - name
+                  - url
+                  - token
+      operationId: get-alert-server
+      description: |-
+        `mode`: 告警发送渠道
+
+            - `dong`: 通过咚咚服务号发送。
+
+            - `siem`: 通过 SIEM 平台发送。
+    post:
+      summary: 新增/修改咚咚告警配置
+      operationId: post-alert-server
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 配置参数
+      description: 新增/修改咚咚告警配置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  x-stoplight:
+                    id: g5ffqt8q2l5eu
+                  description: 发送模式
+                  enum:
+                    - siem
+                    - dong
+                  example: siem
+                name:
+                  type: string
+                  x-stoplight:
+                    id: n1np6koldikhz
+                  description: 名字
+                  example: 安全应急响应中心
+                  minLength: 1
+                  maxLength: 20
+                url:
+                  type: string
+                  x-stoplight:
+                    id: 6lkduo1ki4lfz
+                  description: 服务器地址
+                  example: 'https://send.example.com'
+                token:
+                  type: string
+                  x-stoplight:
+                    id: pp6phf060fhf2
+                  description: Token
+                  example: 6743dbc7a96dd591cf68375f
+                account:
+                  type: string
+                  x-stoplight:
+                    id: a1nlmunc4ppik
+                  description: 账号，当为`dong`模式时必填。
+                  example: '802568'
+              required:
+                - mode
+                - name
+                - url
+                - token
+    delete:
+      summary: 删除咚咚告警配置
+      operationId: delete-alert-server
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 配置参数
+      description: 删除咚咚告警配置
+  /siem-server:
+    get:
+      summary: 获取SIEM服务器连接参数
+      tags:
+        - 配置参数
+      responses: {}
+      operationId: get-siem-server
+      description: 获取SIEM服务器连接参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: xcbvwvsd7q2v3
+                  description: 名字
+                  example: 测试名字
+                url:
+                  type: string
+                  x-stoplight:
+                    id: g448el60u6cwv
+                  description: SIEM服务地址
+                  example: 'https://siem.example.com'
+                token:
+                  type: string
+                  x-stoplight:
+                    id: kqt5pi6v9q19w
+                  description: Token
+                  example: secret.xxxxxx
+                created_at:
+                  type: string
+                  x-stoplight:
+                    id: 5hhnjxkrld1b5
+                updated_at:
+                  type: string
+                  x-stoplight:
+                    id: krchq037f6h3b
+    post:
+      summary: 新增/修改SIEM服务器连接参数
+      operationId: post-siem-server
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 配置参数
+      description: 新增/修改SIEM服务器连接参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: t76k68voj3uzs
+                  example: 友好的名字
+                  description: 名字
+                url:
+                  type: string
+                  x-stoplight:
+                    id: ytfvcjy9dxmez
+                  description: 地址
+                  example: 'https://siem.eastmoney.com'
+                token:
+                  type: string
+                  x-stoplight:
+                    id: uwuk0v8u8ck3k
+                  description: Token
+                  example: secret.xxxxxx
+              required:
+                - name
+                - url
+                - token
+    delete:
+      summary: 删除SIEM服务器连接参数
+      operationId: delete-siem-server
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 配置参数
+      description: 删除SIEM服务器连接参数
 components:
   securitySchemes:
     Authorization:
