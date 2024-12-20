@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
@@ -136,7 +135,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	brkmux.HandleError = prob.HandleError
 	brkgrp := brkmux.Group("/")
 	{
-		alert := brkapi.NewAlert(dongCli)
+		alert := brkapi.NewAlert(dongCli, slog)
 		alert.Router(brkgrp)
 		siemAPI := brkapi.NewSIEM(siemServerSvc)
 		siemAPI.Router(brkgrp)
