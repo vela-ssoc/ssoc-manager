@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,12 +14,16 @@ import (
 )
 
 func main() {
-	flagSet := flag.NewFlagSet("安全平台", flag.ExitOnError)
-	printExit := flagSet.Bool("v", false, "打印版本号就退出")
-	configPath := flagSet.String("c", "resources/config/manager.yaml", "配置文件路径")
-	_ = flagSet.Parse(os.Args[1:])
+	var version bool
+	var config string
 
-	if banner.WriteTo(os.Stdout); *printExit {
+	args := os.Args
+	fset := flag.NewFlagSet(args[0], flag.ExitOnError)
+	fset.BoolVar(&version, "version", false, "打印版本号并退出")
+	fset.StringVar(&config, "c", "resources/config/manager.yaml", "配置文件路径")
+	_ = fset.Parse(args[1:])
+
+	if banner.WriteTo(os.Stdout); version {
 		return
 	}
 
@@ -26,9 +31,35 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
 	defer cancel()
 
-	slog := logback.Stdout()
-	slog.Info("按 [Ctrl] + [C] 结束运行")
+	log := slog.Default()
+	log.Info("按 [Ctrl+C] 停止运行")
+	if err := launch.Run(ctx, config, logback.Stdout()); err != nil {
+		log.Error("程序运行错误", slog.Any("error", err))
+	} else {
+		log.Warn("程序运行结束")
+	}
+}
 
-	err := launch.Run(ctx, *configPath, slog)
-	slog.Warnf("程序停止运行：%v", err)
+func mainV1() {
+	args := os.Args
+	set := flag.NewFlagSet(args[0], flag.ExitOnError)
+	v := set.Bool("v", false, "打印版本并退出")
+	c := set.String("c", "resources/config/application.jsonc", "配置文件路径")
+	_ = set.Parse(args[1:])
+
+	if banner.WriteTo(os.Stdout); *v {
+		return
+	}
+
+	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
+	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
+	defer cancel()
+
+	log := slog.Default()
+	log.Info("按 [Ctrl+C] 停止运行")
+	if err := launch.Run1(ctx, *c); err != nil {
+		log.Error("程序运行错误", slog.Any("error", err))
+	} else {
+		log.Warn("程序运行结束")
+	}
 }
