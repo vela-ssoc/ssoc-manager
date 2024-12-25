@@ -6,16 +6,18 @@ import (
 	"github.com/vela-ssoc/vela-manager/applet/manager/request"
 )
 
-func NewLog(logLevel, ormLevel *slog.LevelVar) *Log {
+func NewLog(logLevel, ormLevel *slog.LevelVar, log *slog.Logger) *Log {
 	return &Log{
 		logLevel: logLevel,
 		ormLevel: ormLevel,
+		log:      log,
 	}
 }
 
 type Log struct {
 	logLevel *slog.LevelVar
 	ormLevel *slog.LevelVar
+	log      *slog.Logger
 }
 
 func (lg *Log) Levels() (slog.Level, slog.Level) {

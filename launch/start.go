@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/entity"
+	"github.com/vela-ssoc/vela-common-mb/dal/gridfs2"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/sqldb"
 	"github.com/vela-ssoc/vela-common-mb/validate"
@@ -80,16 +81,20 @@ func Exec(ctx context.Context, cfg *profile.Config) error {
 	}
 
 	qry := query.Use(db)
+	gridFS := gridfs.New(qry)
 
 	alertServerSvc := service.NewAlertServer(qry, log)
-	logSvc := service.NewLog(logLevel, gormLevel)
+	gridSvc := service.NewGrid(gridFS, qry, log)
+	logSvc := service.NewLog(logLevel, gormLevel, log)
 	mgtRouters := []shipx.Router{
 		restapi.NewAlertServer(alertServerSvc),
+		restapi.NewGrid(gridSvc),
 		restapi.NewLog(logSvc),
 	}
 	mgtMux := ship.Default()
 	mgtMux.Validator = valid
 	mgtMux.Logger = shipx.NewLog(log)
+	mgtMux.HandleError = shipx.HandleError
 	mgtRGB := mgtMux.Group("/api/v1")
 	if err = shipx.BindRouters(mgtRGB, mgtRouters); err != nil {
 		return err
@@ -99,6 +104,7 @@ func Exec(ctx context.Context, cfg *profile.Config) error {
 	mgtSrv := &http.Server{Handler: mgtMux}
 	errs := make(chan error, 1)
 	go serveHTTP(srvCfg, mgtSrv, errs)
+	log.Info("服务准备就绪")
 	select {
 	case <-ctx.Done():
 	case err = <-errs:

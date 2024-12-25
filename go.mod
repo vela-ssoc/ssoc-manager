@@ -7,7 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad
 	github.com/gorilla/websocket v1.5.3
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20241224085133-669de1c8ed69
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20241225114915-f4dd441fb04f
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20240705041659-14fcfa4b1df3
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1

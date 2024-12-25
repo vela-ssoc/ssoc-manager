@@ -2,17 +2,20 @@ package launch
 
 import (
 	"context"
+	stdlog "log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
@@ -22,6 +25,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb/sqldb"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mb/validate"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
@@ -57,16 +61,27 @@ func Run(ctx context.Context, path string, slog logback.Logger) error {
 
 func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*application, error) {
 	dbCfg := cfg.Database
-	logCfg := cfg.Logger
+	// logCfg := cfg.Logger
 
 	zapLog := cfg.Logger.Zap()
 	slog.Replace(zapLog)
-	gormLog := logback.Gorm(zapLog, logCfg.Level)
+	// gormLog := logback.Gorm(zapLog, logCfg.Level)
 
-	db, sdb, err := dbms.Open(dbCfg, gormLog)
+	ormLog, _ := sqldb.NewLog(os.Stdout, logger.Config{LogLevel: logger.Info})
+	ormCfg := &gorm.Config{Logger: ormLog}
+	db, _, err := sqldb.Open(dbCfg.DSN, stdlog.Default(), ormCfg)
 	if err != nil {
 		return nil, err
 	}
+	sdb, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	//db, sdb, err := dbms.Open(dbCfg, gormLog)
+	//if err != nil {
+	//	return nil, err
+	//}
 	tables := []any{
 		model.AlertServer{},
 		model.SIEMServer{},

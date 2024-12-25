@@ -1,5 +1,13 @@
 # [ssoc](https://github.com/vela-ssoc)
 
+## 贯标
+
+### 常用字段数据库定义
+
+GOOS: varchar(10)
+
+GOARCH: VARCHAR(15)
+
 ## minion 版本管理和升级规则
 
 minion 表结构体定义如下：
