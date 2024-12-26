@@ -90,6 +90,7 @@ func Exec(ctx context.Context, cfg *profile.Config) error {
 		restapi.NewAlertServer(alertServerSvc),
 		restapi.NewGrid(gridSvc),
 		restapi.NewLog(logSvc),
+		restapi.NewSystem(),
 	}
 	mgtMux := ship.Default()
 	mgtMux.Validator = valid

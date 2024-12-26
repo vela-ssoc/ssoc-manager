@@ -9,11 +9,11 @@ import (
 	"syscall"
 
 	"github.com/vela-ssoc/vela-common-mb/logback"
-	"github.com/vela-ssoc/vela-manager/infra/banner"
+	"github.com/vela-ssoc/vela-manager/banner"
 	"github.com/vela-ssoc/vela-manager/launch"
 )
 
-func main() {
+func main1() {
 	var version bool
 	var config string
 
@@ -23,7 +23,7 @@ func main() {
 	fset.StringVar(&config, "c", "resources/config/manager.yaml", "配置文件路径")
 	_ = fset.Parse(args[1:])
 
-	if banner.WriteTo(os.Stdout); version {
+	if banner.ANSI(os.Stdout); version {
 		return
 	}
 
@@ -40,14 +40,14 @@ func main() {
 	}
 }
 
-func mainV1() {
+func main() {
 	args := os.Args
 	set := flag.NewFlagSet(args[0], flag.ExitOnError)
 	v := set.Bool("v", false, "打印版本并退出")
 	c := set.String("c", "resources/config/application.jsonc", "配置文件路径")
 	_ = set.Parse(args[1:])
 
-	if banner.WriteTo(os.Stdout); *v {
+	if banner.ANSI(os.Stdout); *v {
 		return
 	}
 
