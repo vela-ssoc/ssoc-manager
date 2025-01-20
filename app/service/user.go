@@ -144,7 +144,7 @@ func (biz *userService) Create(ctx context.Context, req *param.UserCreate, cid i
 		if err != nil {
 			return errcode.ErrPassword
 		}
-		req.Password = pwd
+		dat.Password = pwd
 	}
 
 	return tbl.WithContext(ctx).Create(dat)
