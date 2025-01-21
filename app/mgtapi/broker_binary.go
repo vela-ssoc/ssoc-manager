@@ -80,6 +80,10 @@ func (rest *brokerBinaryREST) Download(c *ship.Context) error {
 	}
 
 	host := c.Request().Host
+	if str, _, _ := net.SplitHostPort(host); str != "" {
+		host = str
+	}
+
 	file, err := rest.svc.Open(ctx, req.BrokerID, req.ID, addr, host)
 	if err != nil {
 		return err
