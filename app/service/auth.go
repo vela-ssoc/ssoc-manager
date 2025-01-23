@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"os"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
@@ -12,6 +13,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/totp"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/infra/config"
 )
 
 // AuthService 认证模块业务层
@@ -26,11 +28,12 @@ type AuthService interface {
 	Submit(ctx context.Context, uid, code string) (*model.User, error)
 }
 
-func Auth(verify VerifyService, lock LoginLockService, user UserService) AuthService {
+func Auth(verify VerifyService, lock LoginLockService, user UserService, cfg config.TOTP) AuthService {
 	return &authService{
 		verify: verify,
 		lock:   lock,
 		user:   user,
+		cfg:    cfg,
 	}
 }
 
@@ -38,6 +41,7 @@ type authService struct {
 	verify VerifyService
 	lock   LoginLockService
 	user   UserService
+	cfg    config.TOTP
 }
 
 func (svc *authService) Picture(ctx context.Context, uname string) (*param.AuthPicture, error) {
@@ -129,7 +133,16 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 	}
 
 	// 生成一个 totp
-	otp := totp.Generate("ssoc", user.Username)
+	totpName := user.Username
+	if str := svc.cfg.Name; str != "" {
+		totpName = "-" + str
+	}
+
+	if env := os.Getenv("SSOC_TOTP_NAME"); env != "" {
+		totpName += "-" + env
+	}
+
+	otp := totp.Generate("ssoc", totpName)
 	// 保存 OTP
 	_, err = userTbl.WithContext(ctx).
 		Where(userTbl.ID.Eq(user.ID)).

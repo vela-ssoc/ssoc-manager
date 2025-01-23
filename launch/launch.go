@@ -140,7 +140,7 @@ func newApp(ctx context.Context, cfg config.Config, slog logback.Logger) (*appli
 	verifyService := service.Verify(3, dongCli, store, slog) // 验证码 3 分钟有效期
 	loginLockService := service.LoginLock(time.Hour, 10)     // 每小时错误 10 次就锁定账户
 
-	authService := service.Auth(verifyService, loginLockService, userService)
+	authService := service.Auth(verifyService, loginLockService, userService, cfg.TOTP)
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 
