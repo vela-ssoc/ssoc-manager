@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"os"
+	"strings"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb-itai/dal/model"
@@ -135,11 +135,7 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 	// 生成一个 totp
 	totpName := user.Username
 	if str := svc.cfg.Name; str != "" {
-		totpName = "-" + str
-	}
-
-	if env := os.Getenv("SSOC_TOTP_NAME"); env != "" {
-		totpName += "-" + env
+		totpName = strings.Join([]string{totpName, str}, "-")
 	}
 
 	otp := totp.Generate("ssoc", totpName)
