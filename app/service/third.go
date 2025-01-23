@@ -46,10 +46,6 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 			Or(tbl.Customized.Like(like))
 	}
 	thirds, _ := dao.Find()
-	if len(thirds) == 0 {
-		return []*param.ThirdListItem{}
-	}
-
 	index := make(map[string][]*model.Third, 16)
 	for _, third := range thirds {
 		cust := third.Customized
