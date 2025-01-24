@@ -19,18 +19,20 @@ type EventService interface {
 	HTML(ctx context.Context, id int64, secret string) *bytes.Buffer
 }
 
-func Event(store storage.Storer) EventService {
+func Event(qry *query.Query, store storage.Storer) EventService {
 	return &eventService{
+		qry:   qry,
 		store: store,
 	}
 }
 
 type eventService struct {
+	qry   *query.Query
 	store storage.Storer
 }
 
 func (biz *eventService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event) {
-	tbl := query.Event
+	tbl := biz.qry.Event
 	db := tbl.WithContext(ctx).
 		Where(tbl.HaveRead.Is(false)).
 		Order(tbl.ID.Desc()).
@@ -49,7 +51,7 @@ func (biz *eventService) Page(ctx context.Context, page param.Pager, scope dynsq
 }
 
 func (biz *eventService) Confirm(ctx context.Context, id []int64) error {
-	tbl := query.Event
+	tbl := biz.qry.Event
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.In(id...), tbl.HaveRead.Is(false)).
 		UpdateColumnSimple(tbl.HaveRead.Value(true))
@@ -61,7 +63,7 @@ func (biz *eventService) Confirm(ctx context.Context, id []int64) error {
 }
 
 func (biz *eventService) Delete(ctx context.Context, scope dynsql.Scope) error {
-	ret := query.Event.WithContext(ctx).
+	ret := biz.qry.Event.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where).
 		Delete(&model.Event{})
@@ -73,7 +75,7 @@ func (biz *eventService) Delete(ctx context.Context, scope dynsql.Scope) error {
 }
 
 func (biz *eventService) HTML(ctx context.Context, id int64, secret string) *bytes.Buffer {
-	tbl := query.Event
+	tbl := biz.qry.Event
 	evt, _ := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id), tbl.Secret.Eq(secret), tbl.SendAlert.Is(true)).
 		First()

@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/vela-ssoc/vela-manager/errcode"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type OplogService interface {
@@ -16,14 +15,18 @@ type OplogService interface {
 	Delete(ctx context.Context, scope dynsql.Scope) error
 }
 
-func Oplog() OplogService {
-	return &oplogService{}
+func Oplog(qry *query.Query) OplogService {
+	return &oplogService{
+		qry: qry,
+	}
 }
 
-type oplogService struct{}
+type oplogService struct {
+	qry *query.Query
+}
 
 func (op *oplogService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Oplog) {
-	tbl := query.Oplog
+	tbl := op.qry.Oplog
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where)
@@ -40,7 +43,7 @@ func (op *oplogService) Page(ctx context.Context, page param.Pager, scope dynsql
 }
 
 func (op *oplogService) Delete(ctx context.Context, scope dynsql.Scope) error {
-	db := query.Oplog.WithContext(ctx).UnderlyingDB()
+	db := op.qry.Oplog.WithContext(ctx).UnderlyingDB()
 	ret := db.Scopes(scope.Where).Delete(&model.Oplog{})
 	if ret.Error != nil || ret.RowsAffected != 0 {
 		return ret.Error

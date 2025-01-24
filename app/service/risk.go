@@ -25,18 +25,20 @@ type RiskService interface {
 	Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error)
 }
 
-func Risk(store storage.Storer) RiskService {
+func Risk(qry *query.Query, store storage.Storer) RiskService {
 	return &riskService{
+		qry:   qry,
 		store: store,
 	}
 }
 
 type riskService struct {
+	qry   *query.Query
 	store storage.Storer
 }
 
 func (biz *riskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk) {
-	tbl := query.Risk
+	tbl := biz.qry.Risk
 	db := tbl.WithContext(ctx).
 		Where(tbl.Status.Neq(uint8(model.RSIgnore))).
 		Order(tbl.ID.Desc()).
@@ -54,7 +56,7 @@ func (biz *riskService) Page(ctx context.Context, page param.Pager, scope dynsql
 }
 
 func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack) {
-	db := query.Risk.WithContext(ctx).UnderlyingDB().
+	db := biz.qry.Risk.WithContext(ctx).UnderlyingDB().
 		Scopes(scope.Where).
 		Group("remote_ip, subject")
 
@@ -74,7 +76,7 @@ func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dyns
 
 func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount) {
 	groupBy := scope.GroupColumn()
-	db := query.Risk.WithContext(ctx).UnderlyingDB()
+	db := biz.qry.Risk.WithContext(ctx).UnderlyingDB()
 
 	var count int64
 	if db.Scopes(scope.Where).Distinct(groupBy).Count(&count); count == 0 {
@@ -100,7 +102,7 @@ func (biz *riskService) Recent(ctx context.Context, day int) *param.RecentCharts
 		"GROUP BY a.date, a.risk_type"
 
 	var temps param.RiskRecentTemps
-	query.Risk.WithContext(ctx).
+	biz.qry.Risk.WithContext(ctx).
 		UnderlyingDB().
 		Raw(rawSQL, day).
 		Scan(&temps)
@@ -109,7 +111,7 @@ func (biz *riskService) Recent(ctx context.Context, day int) *param.RecentCharts
 }
 
 func (biz *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
-	ret := query.Risk.WithContext(ctx).
+	ret := biz.qry.Risk.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where).
 		Delete(&model.Risk{})
@@ -120,7 +122,7 @@ func (biz *riskService) Delete(ctx context.Context, scope dynsql.Scope) error {
 }
 
 func (biz *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
-	tbl := query.Risk
+	tbl := biz.qry.Risk
 	col := tbl.Status.ColumnName().String()
 	tbl.WithContext(ctx).
 		UnderlyingDB().
@@ -130,7 +132,7 @@ func (biz *riskService) Ignore(ctx context.Context, scope dynsql.Scope) error {
 }
 
 func (biz *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
-	tbl := query.Risk
+	tbl := biz.qry.Risk
 	col := tbl.Status.ColumnName().String()
 	tbl.WithContext(ctx).
 		UnderlyingDB().
@@ -140,7 +142,7 @@ func (biz *riskService) Process(ctx context.Context, scope dynsql.Scope) error {
 }
 
 func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *bytes.Buffer {
-	tbl := query.Risk
+	tbl := biz.qry.Risk
 	rsk, _ := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id), tbl.Secret.Eq(secret), tbl.SendAlert.Is(true)).
 		First()
@@ -152,7 +154,7 @@ func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *byte
 }
 
 func (biz *riskService) Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error) {
-	tbl := query.Risk
+	tbl := biz.qry.Risk
 	dao := tbl.WithContext(ctx).
 		Distinct(tbl.Payload).
 		Where(tbl.OccurAt.Between(start, end)).

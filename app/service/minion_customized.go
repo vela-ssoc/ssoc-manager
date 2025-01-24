@@ -15,14 +15,18 @@ type MinionCustomizedService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func MinionCustomized() MinionCustomizedService {
-	return &minionCustomizedService{}
+func MinionCustomized(qry *query.Query) MinionCustomizedService {
+	return &minionCustomizedService{
+		qry: qry,
+	}
 }
 
-type minionCustomizedService struct{}
+type minionCustomizedService struct {
+	qry *query.Query
+}
 
 func (svc *minionCustomizedService) List(ctx context.Context) []*model.MinionCustomized {
-	tbl := query.MinionCustomized
+	tbl := svc.qry.MinionCustomized
 	ret, err := tbl.WithContext(ctx).Order(tbl.ID).Find()
 	if err != nil || ret == nil {
 		return make([]*model.MinionCustomized, 0)
@@ -33,7 +37,7 @@ func (svc *minionCustomizedService) List(ctx context.Context) []*model.MinionCus
 
 func (svc *minionCustomizedService) Create(ctx context.Context, req *param.MinionCustomizedCreate) error {
 	// 查询定制总数
-	tbl := query.MinionCustomized
+	tbl := svc.qry.MinionCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
 		return errcode.ErrTooManyCustomized
 	}
@@ -50,13 +54,13 @@ func (svc *minionCustomizedService) Create(ctx context.Context, req *param.Minio
 }
 
 func (svc *minionCustomizedService) Delete(ctx context.Context, id int64) error {
-	tbl := query.MinionCustomized
+	tbl := svc.qry.MinionCustomized
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
 	}
 
-	binTbl := query.MinionBin
+	binTbl := svc.qry.MinionBin
 	if count, _ := binTbl.WithContext(ctx).
 		Where(binTbl.Customized.Eq(dat.Name)).
 		Count(); count != 0 {

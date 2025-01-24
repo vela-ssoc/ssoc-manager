@@ -20,8 +20,9 @@ type EffectService interface {
 	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
 }
 
-func Effect(pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
+func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
 	return &effectService{
+		qry:    qry,
 		pusher: pusher,
 		seq:    seq,
 		task:   task,
@@ -29,6 +30,7 @@ func Effect(pusher push.Pusher, seq SequenceService, task SubstanceTaskService) 
 }
 
 type effectService struct {
+	qry    *query.Query
 	pusher push.Pusher
 	seq    SequenceService
 	task   SubstanceTaskService
@@ -36,7 +38,7 @@ type effectService struct {
 }
 
 func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []*param.EffectSummary) {
-	effTbl := query.Effect
+	effTbl := eff.qry.Effect
 	dao := effTbl.WithContext(ctx).Distinct(effTbl.SubmitID)
 	if kw := page.Keyword(); kw != "" {
 		dao.Where(effTbl.Name.Like(kw))
@@ -112,7 +114,7 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 	subKV := make(map[int64]string, 16)
 
 	if len(subIDs) != 0 {
-		subTbl := query.Substance
+		subTbl := eff.qry.Substance
 		subs, _ := subTbl.WithContext(ctx).
 			Select(subTbl.ID, subTbl.Name).
 			Where(subTbl.ID.In(subIDs...)).
@@ -140,13 +142,13 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 
 	// 名字不能重复
 	name := ec.Name
-	tbl := query.Effect
+	tbl := eff.qry.Effect
 	count, err := tbl.WithContext(ctx).Where(tbl.Name.Eq(name)).Count()
 	if err != nil || count != 0 {
 		return 0, errcode.FmtErrNameExist.Fmt(name)
 	}
 
-	if err = ec.Check(ctx); err != nil {
+	if err = ec.Check(ctx, eff.qry); err != nil {
 		return 0, err
 	}
 	if ec.Enable {
@@ -172,7 +174,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 
 	// 查询原有数据
 	subID, version := eu.ID, eu.Version
-	tbl := query.Effect
+	tbl := eff.qry.Effect
 	effs, err := tbl.WithContext(ctx).
 		Where(tbl.SubmitID.Eq(subID)).
 		Where(tbl.Version.Eq(version)).
@@ -189,7 +191,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		}
 	}
 
-	if err = eu.Check(ctx); err != nil {
+	if err = eu.Check(ctx, eff.qry); err != nil {
 		return 0, err
 	}
 
@@ -207,7 +209,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 		heavy = !eff.equalsStrings(eu.Tags, reduce.Tags) ||
 			!eff.equalsInt64s(eu.Substances, reduce.Substances)
 		if !heavy {
-			light = !heavy && !eff.equalsStrings(eu.Exclusion, reduce.Exclusion)
+			light = !eff.equalsStrings(eu.Exclusion, reduce.Exclusion)
 		}
 	}
 
@@ -218,7 +220,7 @@ func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, us
 	}
 
 	effects := eu.Expand(reduce, userID)
-	err = query.Q.Transaction(func(tx *query.Query) error {
+	err = eff.qry.Transaction(func(tx *query.Query) error {
 		dao := tx.Effect.WithContext(ctx)
 		res, err := dao.Where(tbl.SubmitID.Eq(subID)).Where(tbl.Version.Eq(version)).Delete()
 		if err != nil {
@@ -246,7 +248,7 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
-	tbl := query.Effect
+	tbl := eff.qry.Effect
 	effs, err := tbl.WithContext(ctx).
 		Where(tbl.SubmitID.Eq(submitID)).
 		Find()

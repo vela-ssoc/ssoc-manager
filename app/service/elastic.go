@@ -24,8 +24,9 @@ type ElasticService interface {
 	Detect(ctx context.Context, host, uname, passwd string) []string
 }
 
-func Elastic(pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer, client netutil.HTTPClient) ElasticService {
+func Elastic(qry *query.Query, pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer, client netutil.HTTPClient) ElasticService {
 	return &elasticService{
+		qry:     qry,
 		client:  client,
 		pusher:  pusher,
 		forward: forward,
@@ -34,6 +35,7 @@ func Elastic(pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configure
 }
 
 type elasticService struct {
+	qry     *query.Query
 	client  netutil.HTTPClient
 	forward elastic.Searcher
 	cfg     elastic.Configurer
@@ -46,7 +48,7 @@ func (biz *elasticService) Forward(ctx context.Context, w http.ResponseWriter, r
 
 func (biz *elasticService) Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic) {
 	ret := make([]*model.Elastic, 0, page.Size())
-	tbl := query.Elastic
+	tbl := biz.qry.Elastic
 	db := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
 		db = db.Where(tbl.Host.Like(kw)).
@@ -81,12 +83,12 @@ func (biz *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) 
 	}
 
 	enable := ec.Enable
-	tbl := query.Elastic
+	tbl := biz.qry.Elastic
 	if !enable {
 		return tbl.WithContext(ctx).Create(dat)
 	}
 
-	err := query.Q.Transaction(func(tx *query.Query) error {
+	err := biz.qry.Transaction(func(tx *query.Query) error {
 		txdb := tx.WithContext(ctx).Elastic
 		if _, err := txdb.Where(tbl.Enable.Is(true)).
 			UpdateSimple(tbl.Enable.Value(false)); err != nil {
@@ -105,7 +107,7 @@ func (biz *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) 
 func (biz *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) error {
 	// 先查询原有数据
 	id := eu.ID
-	tbl := query.Elastic
+	tbl := biz.qry.Elastic
 	es, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()
@@ -135,7 +137,7 @@ func (biz *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) 
 			Save(es)
 	}
 
-	err = query.Q.Transaction(func(tx *query.Query) error {
+	err = biz.qry.Transaction(func(tx *query.Query) error {
 		db := tx.Elastic.WithContext(ctx)
 		if _, exx := db.Where(tbl.Enable.Is(true)).
 			Update(tbl.Enable, false); exx != nil {
@@ -156,7 +158,7 @@ func (biz *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) 
 
 // Delete 根据 ID 删除 es 配置
 func (biz *elasticService) Delete(ctx context.Context, id int64) error {
-	tbl := query.Elastic
+	tbl := biz.qry.Elastic
 	db := tbl.WithContext(ctx)
 	es, err := db.Where(tbl.ID.Eq(id)).First()
 	if err != nil {

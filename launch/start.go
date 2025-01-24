@@ -5,11 +5,15 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/vela-ssoc/vela-common-mb/dal/entity"
-	"github.com/vela-ssoc/vela-common-mb/dal/gridfs2"
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/sqldb"
+	"github.com/vela-ssoc/vela-common-mb/stdlog"
 	"github.com/vela-ssoc/vela-common-mb/validate"
+	"github.com/vela-ssoc/vela-manager/applet/brkmux"
+	brkrestapi "github.com/vela-ssoc/vela-manager/applet/broker/restapi"
+	brkservice "github.com/vela-ssoc/vela-manager/applet/broker/service"
 	"github.com/vela-ssoc/vela-manager/applet/manager/restapi"
 	"github.com/vela-ssoc/vela-manager/applet/manager/service"
 	"github.com/vela-ssoc/vela-manager/applet/shipx"
@@ -70,39 +74,55 @@ func Exec(ctx context.Context, cfg *profile.Config) error {
 	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
 
 	if gauss {
-		log.Info("当前连接的是 OpenGauss 信创数据库")
+		log.Warn("当前连接的是 OpenGauss 信创数据库")
 	} else {
-		log.Info("当前连接的是 MySQL 数据库")
+		log.Warn("当前连接的是 MySQL 数据库")
 	}
 	if dbCfg.Migrate { // 迁移合并数据库
-		if err = entity.Migrate(db); err != nil {
+		if err = db.AutoMigrate(model.All()...); err != nil {
 			return err
 		}
 	}
 
 	qry := query.Use(db)
-	gridFS := gridfs.New(qry)
+	shipLog := shipx.NewLog(slog.New(stdlog.Skip(logHandler, 6)))
+	tunMux := ship.Default() // 虚拟通道的 Handler
+	webMux := ship.Default() // Web HTTP Handler
+
+	webMux.Validator, tunMux.Validator = valid, valid
+	webMux.Logger, tunMux.Logger = shipLog, shipLog
+	webMux.NotFound, tunMux.NotFound = shipx.NotFound, shipx.NotFound
+	webMux.HandleError, tunMux.HandleError = shipx.HandleError, shipx.HandleError
+
+	brkGateAPI := brkmux.New(qry, tunMux, cfg, log)
+	brkLink := brkGateAPI.Linker()
 
 	alertServerSvc := service.NewAlertServer(qry, log)
-	gridSvc := service.NewGrid(gridFS, qry, log)
+	brokerSvc := service.NewBroker(brkLink, log)
 	logSvc := service.NewLog(logLevel, gormLevel, log)
-	mgtRouters := []shipx.Router{
+	webRouters := []shipx.Router{
 		restapi.NewAlertServer(alertServerSvc),
-		restapi.NewGrid(gridSvc),
+		restapi.NewBroker(brokerSvc),
 		restapi.NewLog(logSvc),
 		restapi.NewSystem(),
+		brkGateAPI,
 	}
-	mgtMux := ship.Default()
-	mgtMux.Validator = valid
-	mgtMux.Logger = shipx.NewLog(log)
-	mgtMux.HandleError = shipx.HandleError
-	mgtRGB := mgtMux.Group("/api/v1")
-	if err = shipx.BindRouters(mgtRGB, mgtRouters); err != nil {
+	brkPeerSvc := brkservice.NewPeer(qry, log)
+	tunRouters := []shipx.Router{
+		brkrestapi.NewPeer(brkPeerSvc),
+	}
+
+	tunRGB := tunMux.Group("/")
+	if err = shipx.BindRouters(tunRGB, tunRouters); err != nil {
+		return err
+	}
+	webRGB := webMux.Group("/api/v1")
+	if err = shipx.BindRouters(webRGB, webRouters); err != nil {
 		return err
 	}
 
 	srvCfg := cfg.Server
-	mgtSrv := &http.Server{Handler: mgtMux}
+	mgtSrv := &http.Server{Handler: webMux}
 	errs := make(chan error, 1)
 	go serveHTTP(srvCfg, mgtSrv, errs)
 	log.Info("服务准备就绪")

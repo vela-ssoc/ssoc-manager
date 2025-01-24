@@ -53,8 +53,9 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(handler http.Handler, pool gopool.Pool, cfg config.Config) Huber {
+func New(qry *query.Query, handler http.Handler, pool gopool.Pool, cfg config.Config) Huber {
 	hub := &brokerHub{
+		qry:      qry,
 		name:     "manager",
 		handler:  handler,
 		config:   cfg,
@@ -72,6 +73,7 @@ func New(handler http.Handler, pool gopool.Pool, cfg config.Config) Huber {
 }
 
 type brokerHub struct {
+	qry      *query.Query
 	name     string
 	handler  http.Handler
 	config   config.Config
@@ -96,7 +98,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 	}
 
 	// 查询 broker
-	brkTbl := query.Broker
+	brkTbl := hub.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).
 		Where(brkTbl.ID.Eq(id), brkTbl.Secret.Eq(secret)).
 		First()
@@ -112,7 +114,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 	// 查询证书
 	issue.Listen = blink.Listen{Addr: brk.Bind}
 	if certID := brk.CertID; certID != 0 {
-		certTbl := query.Certificate
+		certTbl := hub.qry.Certificate
 		cert, err := certTbl.WithContext(ctx).Where(certTbl.ID.Eq(certID)).First()
 		if err != nil {
 			return issue, nil, err
@@ -142,7 +144,7 @@ func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) 
 	sid := conn.sid
 	defer hub.delConn(sid)
 
-	tbl := query.Broker
+	tbl := hub.qry.Broker
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	info, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(ident.ID), tbl.Status.Is(false)).
@@ -178,7 +180,7 @@ func (hub *brokerHub) ResetDB() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	brk := query.Broker
+	brk := hub.qry.Broker
 	_, err := brk.WithContext(ctx).
 		Where(brk.Status.Is(true)).
 		UpdateColumn(brk.Status, false)

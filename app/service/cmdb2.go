@@ -15,13 +15,15 @@ type Cmdb2Service interface {
 	Rsync(ctx context.Context) error
 }
 
-func Cmdb2(cli cmdb2.Client) Cmdb2Service {
+func Cmdb2(qry *query.Query, cli cmdb2.Client) Cmdb2Service {
 	return &cmdb2Service{
+		qry: qry,
 		cli: cli,
 	}
 }
 
 type cmdb2Service struct {
+	qry *query.Query
 	cli cmdb2.Client
 }
 
@@ -42,7 +44,7 @@ func (biz *cmdb2Service) Rsync(ctx context.Context) error {
 }
 
 func (biz *cmdb2Service) scroll(ctx context.Context, offset int, limit int) ([]string, error) {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	ret := make([]string, 0, limit)
 	err := tbl.WithContext(ctx).
 		Distinct(tbl.Inet).
@@ -82,7 +84,7 @@ func (biz *cmdb2Service) updateCmdb2(ctx context.Context, inets []string, hms ma
 				ops = append(ops, m.Nickname)
 			}
 
-			tbl := query.Minion
+			tbl := biz.qry.Minion
 			dao := tbl.WithContext(ctx)
 			args := []field.AssignExpr{
 				tbl.OrgPath.Value(srv.Department),
@@ -97,7 +99,7 @@ func (biz *cmdb2Service) updateCmdb2(ctx context.Context, inets []string, hms ma
 		{
 			ass := mapstruct.Cmdb2Server(srv)
 			ass.Inet = inet
-			tbl := query.Cmdb2
+			tbl := biz.qry.Cmdb2
 			_ = tbl.WithContext(ctx).Clauses(clause.OnConflict{UpdateAll: true}).Save(ass)
 		}
 	}

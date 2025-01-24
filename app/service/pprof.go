@@ -21,10 +21,11 @@ type PprofService interface {
 	View(ctx context.Context, name string) (http.Handler, error)
 }
 
-func Pprof(dir string, pusher push.Pusher) PprofService {
+func Pprof(qry *query.Query, dir string, pusher push.Pusher) PprofService {
 	nano := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(nano))
 	return &pprofService{
+		qry:    qry,
 		dir:    dir,
 		random: random,
 		pusher: pusher,
@@ -32,6 +33,7 @@ func Pprof(dir string, pusher push.Pusher) PprofService {
 }
 
 type pprofService struct {
+	qry    *query.Query
 	dir    string
 	random *rand.Rand
 	pusher push.Pusher
@@ -40,7 +42,7 @@ type pprofService struct {
 func (svc *pprofService) Load(ctx context.Context, node string, second int) (string, error) {
 	id, _ := strconv.ParseInt(node, 10, 64)
 
-	tbl := query.Minion
+	tbl := svc.qry.Minion
 	dao := tbl.WithContext(ctx).Where(tbl.Inet.Eq(node))
 	if id != 0 {
 		dao.Or(tbl.ID.Eq(id))

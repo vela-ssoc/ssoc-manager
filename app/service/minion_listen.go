@@ -13,14 +13,18 @@ type MinionListenService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen)
 }
 
-func MinionListen() MinionListenService {
-	return &minionListenService{}
+func MinionListen(qry *query.Query) MinionListenService {
+	return &minionListenService{
+		qry: qry,
+	}
 }
 
-type minionListenService struct{}
+type minionListenService struct {
+	qry *query.Query
+}
 
 func (biz *minionListenService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen) {
-	tbl := query.MinionListen
+	tbl := biz.qry.MinionListen
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).
 		UnderlyingDB().

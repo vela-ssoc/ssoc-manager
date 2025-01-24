@@ -17,18 +17,20 @@ type NotifierService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Notifier(pusher push.Pusher) NotifierService {
+func Notifier(qry *query.Query, pusher push.Pusher) NotifierService {
 	return &notifierService{
+		qry:    qry,
 		pusher: pusher,
 	}
 }
 
 type notifierService struct {
+	qry    *query.Query
 	pusher push.Pusher
 }
 
 func (biz *notifierService) Page(ctx context.Context, page param.Pager) (int64, []*model.Notifier) {
-	tbl := query.Notifier
+	tbl := biz.qry.Notifier
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
 		dao = dao.Or(tbl.Name.Like(kw), tbl.Mobile.Like(kw), tbl.Email.Like(kw), tbl.Dong.Like(kw))
@@ -56,7 +58,7 @@ func (biz *notifierService) Create(ctx context.Context, req *param.NotifierCreat
 		RiskCode:  req.RiskCode,
 	}
 
-	err := query.Notifier.WithContext(ctx).Create(dat)
+	err := biz.qry.Notifier.WithContext(ctx).Create(dat)
 	if err == nil {
 		biz.pusher.NotifierReset(ctx)
 	}
@@ -65,7 +67,7 @@ func (biz *notifierService) Create(ctx context.Context, req *param.NotifierCreat
 }
 
 func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdate) error {
-	tbl := query.Notifier
+	tbl := biz.qry.Notifier
 	dat, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
 		First()
@@ -94,7 +96,7 @@ func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdat
 }
 
 func (biz *notifierService) Delete(ctx context.Context, id int64) error {
-	tbl := query.Notifier
+	tbl := biz.qry.Notifier
 	ret, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Delete()
 	if err != nil {
 		return err

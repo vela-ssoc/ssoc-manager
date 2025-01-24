@@ -16,18 +16,20 @@ type EmailService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Email(pusher push.Pusher) EmailService {
+func Email(qry *query.Query, pusher push.Pusher) EmailService {
 	return &emailService{
+		qry:    qry,
 		pusher: pusher,
 	}
 }
 
 type emailService struct {
+	qry    *query.Query
 	pusher push.Pusher
 }
 
 func (biz *emailService) Page(ctx context.Context, page param.Pager) (int64, []*model.Email) {
-	tbl := query.Email
+	tbl := biz.qry.Email
 	dao := tbl.WithContext(ctx).
 		Order(tbl.Enable.Desc(), tbl.ID)
 	if kw := page.Keyword(); kw != "" {
@@ -51,7 +53,7 @@ func (biz *emailService) Create(ctx context.Context, req *param.EmailCreate) err
 		Password: req.Password,
 		Enable:   req.Enable,
 	}
-	tbl := query.Email
+	tbl := biz.qry.Email
 	if err := tbl.WithContext(ctx).Create(dat); err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func (biz *emailService) Create(ctx context.Context, req *param.EmailCreate) err
 func (biz *emailService) Update(ctx context.Context, req *param.EmailUpdate) error {
 	// 查询数据
 	id := req.ID
-	tbl := query.Email
+	tbl := biz.qry.Email
 	dat, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()
@@ -81,7 +83,7 @@ func (biz *emailService) Update(ctx context.Context, req *param.EmailUpdate) err
 	if !req.Enable {
 		err = tbl.WithContext(ctx).Save(dat)
 	} else {
-		err = query.Q.Transaction(func(tx *query.Query) error {
+		err = biz.qry.Transaction(func(tx *query.Query) error {
 			if _, exx := tx.Email.WithContext(ctx).
 				Where(tbl.Enable.Is(true)).
 				UpdateSimple(tbl.Enable.Value(false)); exx != nil {
@@ -100,7 +102,7 @@ func (biz *emailService) Update(ctx context.Context, req *param.EmailUpdate) err
 
 func (biz *emailService) Delete(ctx context.Context, id int64) error {
 	// 查询数据
-	tbl := query.Email
+	tbl := biz.qry.Email
 	dat, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()

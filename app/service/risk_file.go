@@ -13,14 +13,16 @@ type RiskFileService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.RiskFiles)
 }
 
-func RiskFile() RiskFileService {
-	return &riskFileService{}
+func RiskFile(qry *query.Query) RiskFileService {
+	return &riskFileService{qry: qry}
 }
 
-type riskFileService struct{}
+type riskFileService struct {
+	qry *query.Query
+}
 
 func (biz riskFileService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.RiskFiles) {
-	tbl := query.RiskFile
+	tbl := biz.qry.RiskFile
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64
 	if db.Count(&count); count == 0 {

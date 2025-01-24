@@ -28,6 +28,8 @@ tags:
     description: substance lua 脚本
   - name: 配置参数
     description: 配置参数
+  - name: 插件
+    description: 插件
 paths:
   /login/han:
     post:
@@ -1238,7 +1240,9 @@ paths:
       summary: 获取SIEM服务器连接参数
       tags:
         - 配置参数
-      responses: {}
+      responses:
+        '200':
+          description: OK
       operationId: get-siem-server
       description: 获取SIEM服务器连接参数
       requestBody:
@@ -1319,6 +1323,699 @@ paths:
       tags:
         - 配置参数
       description: 删除SIEM服务器连接参数
+  /extension-markets:
+    get:
+      summary: 插件商城-分页搜索插件
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    total: 1
+                    current: 1
+                    size: 100
+                    records:
+                      - id: '1'
+                        name: shell注入检测
+                        category: service
+                        intro: 本插件为测试用途
+                        deprecated: false
+                        latest: 0.0.1
+                        latest_at: '2025-01-08T13:28:06.971+08:00'
+                        created_at: '2025-01-08T13:28:02.981+08:00'
+                        updated_at: '2025-01-08T13:28:09.981+08:00'
+                properties:
+                  total:
+                    type: integer
+                  current:
+                    type: integer
+                  size:
+                    type: integer
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: ID
+                        name:
+                          type: string
+                          description: 名字
+                        category:
+                          type: string
+                          description: 类型
+                          enum:
+                            - service
+                            - task
+                        intro:
+                          type: string
+                          description: 简介
+                        deprecated:
+                          type: boolean
+                          description: 是否弃用
+                        latest:
+                          type: string
+                          description: 最新版本
+                        latest_at:
+                          type: string
+                          description: 最新版本发布时间
+                        created_at:
+                          type: string
+                          description: 创建时间
+                        updated_at:
+                          type: string
+                          description: 更新时间
+                      required:
+                        - id
+                        - name
+              examples:
+                示例:
+                  value:
+                    total: 1
+                    current: 1
+                    size: 100
+                    records:
+                      - id: '1'
+                        name: shell注入检测
+                        category: service
+                        intro: 本插件为测试用途
+                        deprecated: false
+                        latest: 0.0.1
+                        latest_at: '2025-01-08T13:28:06.971+08:00'
+                        created_at: '2025-01-08T13:28:02.981+08:00'
+                        updated_at: '2025-01-08T13:28:09.981+08:00'
+      operationId: get-extension-markets
+      description: 分页搜索插件
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/Keyword'
+        - schema:
+            type: string
+            enum:
+              - service
+              - task
+            example: service
+          in: query
+          name: category
+          description: 分类
+  /extension-market:
+    post:
+      summary: 插件商城-添加插件
+      operationId: post-extension-market
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 注册插件
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: ordp8qeuuzbcw
+                  description: 插件名
+                  example: Log4J 扫描
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: ab75vetvjws3x
+                  description: 插件简介
+                  maxLength: 1000
+                  example: Log4J 扫描吧啦吧啦
+                category:
+                  type: string
+                  x-stoplight:
+                    id: uq73cff7lb8xg
+                  description: 插件类型
+                  example: task
+                  enum:
+                    - service
+                    - task
+                content:
+                  type: string
+                  x-stoplight:
+                    id: khwqe3pkijhdg
+                  description: 插件Lua代码
+                  maxLength: 65535
+                  minLength: 1
+                  example: print("hello")
+                changelog:
+                  type: string
+                  x-stoplight:
+                    id: bw10lxwks6jk8
+                  description: 变更日志记录
+                  maxLength: 65535
+                  example: 本次修复了一些BUG
+              required:
+                - name
+                - category
+                - content
+    delete:
+      summary: 插件商城-删除插件
+      operationId: delete-extension-market
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 删除插件
+      parameters:
+        - $ref: '#/components/parameters/ID'
+    put:
+      summary: 插件商城-修改插件
+      operationId: put-extension-market
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 修改插件
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  x-stoplight:
+                    id: 8foaqxo9xig8q
+                  description: 插件ID
+                  example: '123'
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: fz7jnsyi6rzq8
+                  description: 插件简介
+                  example: Log4J 扫描吧啦吧啦
+                content:
+                  type: string
+                  x-stoplight:
+                    id: lzy7pfk8hnwe4
+                  description: 插件Lua代码
+                  example: print("hello")
+                changelog:
+                  type: string
+                  x-stoplight:
+                    id: 5dqjktptqp16g
+                  maxLength: 65535
+                  description: 变更日志
+                  example: 本次修复了一些BUG，增强用户体验
+              required:
+                - id
+                - intro
+                - content
+                - changelog
+        description: ''
+  /extension-market/records:
+    get:
+      summary: 插件商城-插件代码变更记录
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+      operationId: get-extension-market-records
+      description: 插件代码变更记录
+      parameters:
+        - $ref: '#/components/parameters/ID'
+  /lua-template/preparse:
+    post:
+      summary: 解析插件参数
+      operationId: post-lua-template-preparse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                description: 表单样式
+                items:
+                  x-stoplight:
+                    id: w6wpq55jwnazu
+                  type: object
+      tags:
+        - 插件
+      description: 解析插件参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  x-stoplight:
+                    id: ji22qthg3r429
+                  description: 插件代码
+                  minLength: 1
+                  maxLength: 65535
+              required:
+                - content
+  /lua-template/prerender:
+    post:
+      summary: 渲染插件
+      operationId: post-lua-template-prerender
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                    x-stoplight:
+                      id: smw4ehdcvsv74
+                    description: 代码
+                    maxLength: 65535
+                    minLength: 1
+                  data:
+                    type: object
+                    x-stoplight:
+                      id: xk0qo0l0ev1vp
+                    description: 任意参数
+                required:
+                  - content
+      tags:
+        - 插件
+      description: 渲染插件
+  /task-extensions:
+    get:
+      summary: 任务插件列表
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+      operationId: get-task-extensions
+      description: 任务插件列表
+      parameters:
+        - $ref: '#/components/parameters/PageCurrent'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+    parameters: []
+  /task-extension:
+    post:
+      summary: 创建任务插件
+      operationId: post-task-extension
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: |-
+        创建插件时支持两种方式：
+
+        1. 手动编辑 Lua 代码。
+
+        2. 引用插件商城 `task` 插件。
+
+        引用插件商城的任务，不允许修改 content 内容。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: 808uyljo9inrk
+                  maxLength: 100
+                  minLength: 1
+                  description: 任务名
+                  example: 测试插件
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: qzgbyl65xm9t2
+                  description: 任务简介
+                  maxLength: 1000
+                  example: 这是一个简单的小插件
+                content:
+                  type: string
+                  x-stoplight:
+                    id: 6bp1zpyxlrha3
+                  description: 手动编写的插件（引用插件商城时请忽略该参数）
+                  maxLength: 65535
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: kw7jzqpki04w5
+                  description: 插件商店的插件ID（引用插件商城时请填写该参数）
+              required:
+                - name
+    parameters: []
+  /task-extension/market:
+    post:
+      summary: 扫描插件-从插件商店创建扫描任务
+      operationId: post-task-extension-market
+      responses:
+        '200':
+          description: OK
+      description: 从插件商店创建扫描任务
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: qbkg4qumy986p
+                  description: 插件ID
+                  example: '123'
+                name:
+                  type: string
+                  x-stoplight:
+                    id: oxoyb4sdigvr0
+                  description: 扫描任务名字
+                  example: 我是任务名
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: s5f0gbaap59o8
+                  description: 任务简介
+                  maxLength: 1000
+                  pattern: 这是一些任务简介
+                data:
+                  type: object
+                  x-stoplight:
+                    id: ccgoet5ao8m6r
+                  description: 模板渲染参数
+              required:
+                - extension_id
+                - name
+                - intro
+                - data
+      tags:
+        - 插件
+  /task-extension/code:
+    post:
+      summary: 扫描插件-创建任务插件（阶段一）
+      operationId: post-task-extension-code
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: |-
+        创建任务插件（阶段一）
+
+        `code` 和 `extension_id` 二选一
+
+        `code` 有值代表是手写插件，否则代表从商城勾选的插件。
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: dfkflg6but3a3
+                  minLength: 1
+                  maxLength: 100
+                  example: 我是名字
+                  description: 插件名字
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: o9d95k8mlcqht
+                  example: 这是简介
+                  maxLength: 1000
+                  description: 插件简介
+                code:
+                  type: string
+                  x-stoplight:
+                    id: vw9w89zxlpway
+                  minLength: 1
+                  maxLength: 65535
+                  example: print('HELLO')
+                  description: 插件代码
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: lxhd9xoimm8zn
+                  description: 应用商店ID
+                  example: '123456789'
+                data:
+                  type: object
+                  x-stoplight:
+                    id: sl6qutbe0ebot
+                  description: 应用商店来源的参数绑定
+              required:
+                - name
+    patch:
+      summary: 扫描插件-修改任务插件（阶段一）
+      operationId: patch-task-extension-code
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 修改任务插件（阶段一）
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  x-stoplight:
+                    id: pby70k00ekz9z
+                  example: '123321'
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: 3m5r5ewb2rqvr
+                  example: 这是简单的简介
+                  maxLength: 1000
+                code:
+                  type: string
+                  x-stoplight:
+                    id: 9lwvh93bwknde
+                  example: print(123)
+                extension_id:
+                  type: integer
+                  x-stoplight:
+                    id: 1guujq4x7tu1d
+                  example: 123456789
+                data:
+                  type: object
+                  x-stoplight:
+                    id: x868w9fddshvq
+              required:
+                - id
+  /task-extension/publish:
+    post:
+      summary: 扫描插件-创建任务插件（最后阶段）
+      operationId: post-task-extension-publish
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 创建任务插件（最后阶段）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: zlpg9nl7kb9b4
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: sw3hlxyeg17bh
+                code:
+                  type: string
+                  x-stoplight:
+                    id: awvknxzcngxfc
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: 4d4q8g75f9qu0
+                data:
+                  type: object
+                  x-stoplight:
+                    id: csf3dkvp25h4n
+                timeout:
+                  $ref: '#/components/schemas/Duration'
+                cron:
+                  $ref: '#/components/schemas/Cron'
+                specific_times:
+                  type: array
+                  x-stoplight:
+                    id: bxp5o9iyuz6p5
+                  items:
+                    x-stoplight:
+                      id: khj57mcghur5f
+                    type: string
+                enabled:
+                  type: boolean
+                  x-stoplight:
+                    id: xz09oocogceza
+                push_size:
+                  type: integer
+                  x-stoplight:
+                    id: fn5035sjzno4z
+                filters:
+                  type: array
+                  x-stoplight:
+                    id: 4gycimlhmbame
+                  items:
+                    x-stoplight:
+                      id: tbb01avyg2miw
+                    type: string
+                excludes:
+                  type: array
+                  x-stoplight:
+                    id: waydo83ba93xp
+                  items:
+                    x-stoplight:
+                      id: x8cqlsnwxurjj
+                    type: string
+        description: ''
+    patch:
+      summary: 扫描插件-修改任务插件（最后阶段）
+      operationId: patch-task-extension-publish
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 修改任务插件（最后阶段）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  x-stoplight:
+                    id: i3juma6yo365c
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: y5tfvr3nl05qd
+                code:
+                  type: string
+                  x-stoplight:
+                    id: kwb4wr4zc2fto
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: jsk09a7tsvg6e
+                data:
+                  type: object
+                  x-stoplight:
+                    id: y92l2k7jsakl8
+                timeout:
+                  $ref: '#/components/schemas/Duration'
+                cron:
+                  $ref: '#/components/schemas/Cron'
+                specific_times:
+                  type: array
+                  x-stoplight:
+                    id: e632x6mdybn5q
+                  items:
+                    x-stoplight:
+                      id: 20knm0b8h8t2k
+                    type: string
+                enabled:
+                  type: boolean
+                  x-stoplight:
+                    id: b347cdr8yn0bv
+                push_size:
+                  type: number
+                  x-stoplight:
+                    id: hl8430ffvddnv
+                filters:
+                  type: array
+                  x-stoplight:
+                    id: yo9p1rhrdvkjv
+                  items:
+                    x-stoplight:
+                      id: g7fgaliagfptk
+                    type: string
+                excludes:
+                  type: array
+                  x-stoplight:
+                    id: 0gnnp47x2znt0
+                  items:
+                    x-stoplight:
+                      id: qfjm5bpb57pek
+                    type: string
+  /tag/sidebar:
+    get:
+      summary: 节点标签-查询节点标签
+      tags:
+        - Agent
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  x-stoplight:
+                    id: n5tqi8jyy47ji
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      x-stoplight:
+                        id: j111hnrt4ks6o
+                      description: 标签
+                      example: linux
+                    count:
+                      type: integer
+                      x-stoplight:
+                        id: pxn6w1we8vcl1
+                      description: 节点数量
+                      example: 1
+                  required:
+                    - name
+                    - count
+      operationId: get-tag-sidebar
+      description: 查询节点标签
+      parameters:
+        - schema:
+            type: boolean
+          in: query
+          name: ipv4
+          description: 是否显示内置IPv4标签
+        - schema:
+            type: string
+          in: query
+          name: keyword
+          description: 搜索关键字
 components:
   securitySchemes:
     Authorization:
@@ -1331,7 +2028,52 @@ components:
       type: apiKey
       in: query
       description: 仅 `GET` 方法可以将 Token 带到查询参数中
-  schemas: {}
+  schemas:
+    Duration:
+      title: Duration
+      x-stoplight:
+        id: vdox0f29rvke2
+      type: object
+      description: 时长
+      properties:
+        days:
+          type: integer
+          x-stoplight:
+            id: 2f148zbdgown0
+          description: 天
+          example: 1
+          minimum: 0
+        hours:
+          type: integer
+          x-stoplight:
+            id: g5sgb0lvfozs6
+          description: 小时
+          example: 3
+          minimum: 0
+          maximum: 23
+        minutes:
+          type: integer
+          x-stoplight:
+            id: xh3vayi0h1pqo
+          description: 分钟
+          minimum: 0
+          maximum: 59
+          example: 19
+        seconds:
+          type: integer
+          x-stoplight:
+            id: 0i2fgps0gbedj
+          description: 秒
+          minimum: 0
+          maximum: 59
+          example: 45
+    Cron:
+      title: Cron
+      x-stoplight:
+        id: 5i0xbl85f2l9n
+      type: string
+      description: cron 表达式（分钟级）。
+      example: 0 */6 * * *
   responses:
     ProblemDetails:
       description: 统一错误信息

@@ -31,19 +31,21 @@ type StoreService interface {
 }
 
 type storeService struct {
+	qry    *query.Query
 	pusher push.Pusher
 	store  storage.Storer
 }
 
-func Store(pusher push.Pusher, store storage.Storer) StoreService {
+func Store(qry *query.Query, pusher push.Pusher, store storage.Storer) StoreService {
 	return &storeService{
+		qry:    qry,
 		pusher: pusher,
 		store:  store,
 	}
 }
 
 func (biz *storeService) FindID(ctx context.Context, id string) (*model.Store, error) {
-	tbl := query.Store
+	tbl := biz.qry.Store
 	return tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 }
 
@@ -56,7 +58,7 @@ func (biz *storeService) FindJSON(ctx context.Context, id string, v any) error {
 }
 
 func (biz *storeService) Page(ctx context.Context, page param.Pager) (int64, []*model.Store) {
-	tbl := query.Store
+	tbl := biz.qry.Store
 	count, err := tbl.WithContext(ctx).Count()
 	if err != nil || count == 0 {
 		return 0, nil
@@ -76,7 +78,7 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 	//	return errcode.ErrInvalidData
 	//}
 
-	tbl := query.Store
+	tbl := biz.qry.Store
 	_, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -106,7 +108,7 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 }
 
 func (biz *storeService) Delete(ctx context.Context, id string) error {
-	tbl := query.Store
+	tbl := biz.qry.Store
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		Delete()

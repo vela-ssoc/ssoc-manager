@@ -13,13 +13,13 @@ import (
 	"github.com/vela-ssoc/vela-manager/launch"
 )
 
-func main1() {
+func main() {
 	var version bool
 	var config string
 
 	args := os.Args
 	fset := flag.NewFlagSet(args[0], flag.ExitOnError)
-	fset.BoolVar(&version, "version", false, "打印版本号并退出")
+	fset.BoolVar(&version, "v", false, "打印版本号并退出")
 	fset.StringVar(&config, "c", "resources/config/manager.yaml", "配置文件路径")
 	_ = fset.Parse(args[1:])
 
@@ -40,7 +40,7 @@ func main1() {
 	}
 }
 
-func main() {
+func mainV1() {
 	args := os.Args
 	set := flag.NewFlagSet(args[0], flag.ExitOnError)
 	v := set.Bool("v", false, "打印版本并退出")

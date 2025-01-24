@@ -17,18 +17,20 @@ type EmcService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Emc(pusher push.Pusher) EmcService {
+func Emc(qry *query.Query, pusher push.Pusher) EmcService {
 	return &emcService{
+		qry:    qry,
 		pusher: pusher,
 	}
 }
 
 type emcService struct {
+	qry    *query.Query
 	pusher push.Pusher
 }
 
 func (biz *emcService) Page(ctx context.Context, page param.Pager) (int64, []*model.Emc) {
-	tbl := query.Emc
+	tbl := biz.qry.Emc
 	dao := tbl.WithContext(ctx).
 		Order(tbl.Enable.Desc(), tbl.ID)
 	if kw := page.Keyword(); kw != "" {
@@ -49,12 +51,12 @@ func (biz *emcService) Create(ctx context.Context, ec *param.EmcCreate) error {
 		Name: ec.Name, Host: ec.Host, Account: ec.Account,
 		Token: ec.Token, Enable: ec.Enable,
 	}
-	tbl := query.Emc
+	tbl := biz.qry.Emc
 	if !ec.Enable {
 		return tbl.WithContext(ctx).Create(dat)
 	}
 
-	err := query.Q.Transaction(func(tx *query.Query) error {
+	err := biz.qry.Transaction(func(tx *query.Query) error {
 		if _, exx := tx.WithContext(ctx).Emc.
 			Where(tbl.Enable.Is(true)).
 			UpdateColumnSimple(tbl.Enable.Value(false)); exx != nil {
@@ -74,7 +76,7 @@ func (biz *emcService) Create(ctx context.Context, ec *param.EmcCreate) error {
 
 func (biz *emcService) Update(ctx context.Context, ec *param.EmcUpdate) error {
 	id, enable := ec.ID, ec.Enable
-	tbl := query.Emc
+	tbl := biz.qry.Emc
 	old, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -94,7 +96,7 @@ func (biz *emcService) Update(ctx context.Context, ec *param.EmcUpdate) error {
 		return err
 	}
 
-	err = query.Q.Transaction(func(tx *query.Query) error {
+	err = biz.qry.Transaction(func(tx *query.Query) error {
 		if _, exx := tx.WithContext(ctx).Emc.
 			Where(tbl.Enable.Is(true)).
 			UpdateColumnSimple(tbl.Enable.Value(false)); exx != nil {
@@ -116,7 +118,7 @@ func (biz *emcService) Update(ctx context.Context, ec *param.EmcUpdate) error {
 }
 
 func (biz *emcService) Delete(ctx context.Context, id int64) error {
-	tbl := query.Emc
+	tbl := biz.qry.Emc
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err

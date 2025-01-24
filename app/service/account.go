@@ -13,14 +13,18 @@ type AccountService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionAccount)
 }
 
-func Account() AccountService {
-	return &accountService{}
+func Account(qry *query.Query) AccountService {
+	return &accountService{
+		qry: qry,
+	}
 }
 
-type accountService struct{}
+type accountService struct {
+	qry *query.Query
+}
 
 func (biz *accountService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionAccount) {
-	tbl := query.MinionAccount
+	tbl := biz.qry.MinionAccount
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).
 		UnderlyingDB().

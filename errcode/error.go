@@ -18,6 +18,7 @@ var (
 	ErrDongCode             = ship.ErrBadRequest.Newf("咚咚验证码错误")
 	ErrVerifyCode           = ship.ErrBadRequest.Newf("验证码错误")
 	ErrTotpBound            = ship.ErrBadRequest.Newf("TOTP 已经绑定")
+	ErrGenerateEmptyCode    = ship.ErrBadRequest.Newf("生成代码为空")
 	ErrWithoutDongCode      = ship.ErrBadRequest.Newf("无需发送咚咚验证码")
 	ErrTooManyLoginFailed   = ship.ErrBadRequest.Newf("登录错误次数较多")
 	ErrPassword             = ship.ErrBadRequest.Newf("密码错误")
@@ -54,7 +55,8 @@ func (f formatError) Fmt(a ...any) error {
 }
 
 const (
-	FmtErrNameExist = formatError("名字 %s 已经存在")
-	FmtErrInetExist = formatError("inet %s 已经存在")
-	FmtErrTaskBusy  = formatError("任务繁忙：%d")
+	FmtErrNameExist    = formatError("名字 %s 已经存在")
+	FmtErrInetExist    = formatError("inet %s 已经存在")
+	FmtErrTaskBusy     = formatError("任务繁忙：%d")
+	FmtErrGenerateCode = formatError("生成代码有误：%s")
 )

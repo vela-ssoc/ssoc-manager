@@ -34,11 +34,15 @@ type Pusher interface {
 	SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error
 }
 
-func NewPush(hub linkhub.Huber) Pusher {
-	return &pushImpl{hub: hub}
+func NewPush(qry *query.Query, hub linkhub.Huber) Pusher {
+	return &pushImpl{
+		hub: hub,
+		qry: qry,
+	}
 }
 
 type pushImpl struct {
+	qry *query.Query
 	hub linkhub.Huber
 }
 
@@ -48,7 +52,7 @@ func (pi *pushImpl) TaskTable(_ context.Context, bids []int64, tid int64) {
 
 	req := &accord.TaskTable{TaskID: tid}
 	ret := pi.hub.Multicast(nil, bids, accord.FPTaskTable, req)
-	tbl := query.SubstanceTask
+	tbl := pi.qry.SubstanceTask
 	for ft := range ret {
 		err := ft.Error()
 		if err == nil {

@@ -13,14 +13,18 @@ type PassDNSService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassDNS)
 }
 
-func PassDNS() PassDNSService {
-	return &passDNSService{}
+func PassDNS(qry *query.Query) PassDNSService {
+	return &passDNSService{
+		qry: qry,
+	}
 }
 
-type passDNSService struct{}
+type passDNSService struct {
+	qry *query.Query
+}
 
 func (biz *passDNSService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassDNS) {
-	tbl := query.PassDNS
+	tbl := biz.qry.PassDNS
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64
 	if db.Count(&count); count == 0 {

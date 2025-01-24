@@ -51,7 +51,16 @@ func (rest *tagREST) Update(c *ship.Context) error {
 }
 
 func (rest *tagREST) Sidebar(c *ship.Context) error {
+	req := new(param.TagSidebar)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+
 	ctx := c.Request().Context()
-	res := rest.svc.Sidebar(ctx)
-	return c.JSON(http.StatusOK, res)
+	ret, err := rest.svc.Sidebar(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
 }

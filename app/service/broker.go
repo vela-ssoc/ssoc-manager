@@ -22,20 +22,22 @@ type BrokerService interface {
 	Stats(ctx context.Context) ([]*model.BrokerStat, error)
 }
 
-func Broker() BrokerService {
+func Broker(qry *query.Query) BrokerService {
 	nano := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(nano))
 	return &brokerService{
+		qry:    qry,
 		random: random,
 	}
 }
 
 type brokerService struct {
+	qry    *query.Query
 	random *rand.Rand
 }
 
 func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries) {
-	tbl := query.Broker
+	tbl := biz.qry.Broker
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
 		dao.Where(tbl.Name.Like(kw)).
@@ -53,7 +55,7 @@ func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, pa
 		return count, ret
 	}
 
-	certTbl := query.Certificate
+	certTbl := biz.qry.Certificate
 	certs, _ := certTbl.WithContext(ctx).
 		Omit(certTbl.Certificate, certTbl.PrivateKey).
 		Where(certTbl.ID.In(certIDs...)).
@@ -70,7 +72,7 @@ func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, pa
 }
 
 func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*model.Broker {
-	tbl := query.Broker
+	tbl := biz.qry.Broker
 	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if kw := idx.Keyword(); kw != "" {
 		dao.Or(tbl.Name.Like(kw), tbl.Servername.Like(kw))
@@ -83,7 +85,7 @@ func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*mod
 
 func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) error {
 	if certID := req.CertID; certID != 0 {
-		tbl := query.Certificate
+		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
 		if err != nil || count == 0 {
 			return errcode.ErrCertificate
@@ -108,21 +110,21 @@ func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) e
 		UpdatedAt:   now,
 	}
 
-	return query.Broker.
+	return biz.qry.Broker.
 		WithContext(ctx).
 		Create(brk)
 }
 
 func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) error {
 	if certID := req.CertID; certID != 0 {
-		tbl := query.Certificate
+		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
 		if err != nil || count == 0 {
 			return errcode.ErrCertificate
 		}
 	}
 
-	tbl := query.Broker
+	tbl := biz.qry.Broker
 	brk, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
 		First()
@@ -142,7 +144,7 @@ func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) e
 
 func (biz *brokerService) Delete(ctx context.Context, id int64) error {
 	// 查询节点是否在线，在线的节点目前不允许删除
-	tbl := query.Broker
+	tbl := biz.qry.Broker
 	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -165,7 +167,7 @@ func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
 		" GROUP BY broker_id "
 
 	ret := make([]*param.BrokerGoos, 0, 10)
-	query.Minion.WithContext(ctx).UnderlyingDB().Raw(strSQL).Scan(&ret)
+	biz.qry.Minion.WithContext(ctx).UnderlyingDB().Raw(strSQL).Scan(&ret)
 
 	size := len(ret)
 	if size == 0 {
@@ -188,7 +190,7 @@ func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
 	}
 
 	if len(bids) != 0 {
-		tbl := query.Broker
+		tbl := biz.qry.Broker
 		brks, _ := tbl.WithContext(ctx).
 			Select(tbl.ID, tbl.Name).
 			Where(tbl.ID.In(bids...)).
@@ -205,6 +207,6 @@ func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
 }
 
 func (biz *brokerService) Stats(ctx context.Context) ([]*model.BrokerStat, error) {
-	tbl := query.BrokerStat
+	tbl := biz.qry.BrokerStat
 	return tbl.WithContext(ctx).Order(tbl.ID).Limit(100).Find()
 }

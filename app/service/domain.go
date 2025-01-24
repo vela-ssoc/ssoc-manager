@@ -13,14 +13,18 @@ type DomainService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Domain)
 }
 
-func Domain() DomainService {
-	return &domainService{}
+func Domain(qry *query.Query) DomainService {
+	return &domainService{
+		qry: qry,
+	}
 }
 
-type domainService struct{}
+type domainService struct {
+	qry *query.Query
+}
 
 func (biz *domainService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Domain) {
-	tbl := query.Domain
+	tbl := biz.qry.Domain
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where)

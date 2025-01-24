@@ -17,11 +17,15 @@ type DashService interface {
 	Risksts(ctx context.Context) *param.DashRiskstsResp
 }
 
-func Dash() DashService {
-	return &dashService{}
+func Dash(qry *query.Query) DashService {
+	return &dashService{
+		qry: qry,
+	}
 }
 
-type dashService struct{}
+type dashService struct {
+	qry *query.Query
+}
 
 func (biz *dashService) Status(ctx context.Context) *param.DashStatusResp {
 	var tmp []*struct {
@@ -29,7 +33,7 @@ func (biz *dashService) Status(ctx context.Context) *param.DashStatusResp {
 		Count  int                `gorm:"column:count"`
 	}
 
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	tbl.WithContext(ctx).UnderlyingDB().Select("status", "COUNT(*) AS count").
 		Model(&model.Minion{}).Group("status").Scan(&tmp)
 
@@ -56,14 +60,14 @@ func (biz *dashService) Goos(ctx context.Context) *param.DashGoosVO {
 		"         COUNT(IF(goos = 'darwin', TRUE, NULL))  AS darwin   " +
 		"FROM minion;"
 	ret := new(param.DashGoosVO)
-	query.Minion.WithContext(ctx).UnderlyingDB().Raw(ql).Scan(&ret)
+	biz.qry.Minion.WithContext(ctx).UnderlyingDB().Raw(ql).Scan(&ret)
 
 	return ret
 }
 
 func (biz *dashService) Edition(ctx context.Context) []*param.DashEditionVO {
 	var dats []*param.DashEditionVO
-	query.Minion.WithContext(ctx).UnderlyingDB().
+	biz.qry.Minion.WithContext(ctx).UnderlyingDB().
 		Select("edition", "COUNT(*) AS total").
 		Group("edition").
 		Order("INET_ATON(CONCAT(edition, '.0')) DESC"). // 按照版本号降序
@@ -78,7 +82,7 @@ func (biz *dashService) Evtlvl(ctx context.Context) *param.DashELevelResp {
 		Count int              `gorm:"column:count"`
 	}
 
-	query.Event.WithContext(ctx).UnderlyingDB().
+	biz.qry.Event.WithContext(ctx).UnderlyingDB().
 		Select("level", "COUNT(*) AS count").
 		Group("level").
 		Scan(&tmp)
@@ -105,7 +109,7 @@ func (biz *dashService) Risklvl(ctx context.Context) *param.DashRLevelResp {
 		Level model.RiskLevel `gorm:"column:level"`
 		Count int             `gorm:"column:count"`
 	}
-	query.Risk.WithContext(ctx).UnderlyingDB().
+	biz.qry.Risk.WithContext(ctx).UnderlyingDB().
 		Select("level", "COUNT(*) AS count").
 		Group("level").
 		Scan(&tmp)
@@ -133,7 +137,7 @@ func (biz *dashService) Risksts(ctx context.Context) *param.DashRiskstsResp {
 		Count  int              `gorm:"column:count"`
 	}
 
-	query.Risk.WithContext(ctx).UnderlyingDB().
+	biz.qry.Risk.WithContext(ctx).UnderlyingDB().
 		Select("status", "COUNT(*) AS count").
 		Group("status").
 		Scan(&tmp)

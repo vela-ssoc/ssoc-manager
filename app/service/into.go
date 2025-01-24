@@ -20,9 +20,10 @@ type IntoService interface {
 	AWS(ctx context.Context, w http.ResponseWriter, r *http.Request, node string) error
 }
 
-func Into(hub linkhub.Huber) IntoService {
+func Into(qry *query.Query, hub linkhub.Huber) IntoService {
 	name := hub.Name()
 	ito := &intoService{
+		qry:  qry,
 		name: name,
 		hub:  hub,
 	}
@@ -33,6 +34,7 @@ func Into(hub linkhub.Huber) IntoService {
 }
 
 type intoService struct {
+	qry     *query.Query
 	name    string
 	hub     linkhub.Huber
 	upgrade websocket.Upgrader
@@ -44,7 +46,7 @@ func (ito *intoService) BRR(ctx context.Context, w http.ResponseWriter, r *http.
 		return errcode.ErrNodeNotExist
 	}
 
-	brk := query.Broker
+	brk := ito.qry.Broker
 	broker, err := brk.WithContext(ctx).
 		Select(brk.ID).
 		Where(brk.Status.Is(true)).
@@ -65,7 +67,7 @@ func (ito *intoService) BWS(ctx context.Context, w http.ResponseWriter, r *http.
 		return errcode.ErrNodeNotExist
 	}
 
-	brk := query.Broker
+	brk := ito.qry.Broker
 	broker, err := brk.WithContext(ctx).
 		Select(brk.ID).
 		Where(brk.Status.Is(true)).
@@ -93,7 +95,7 @@ func (ito *intoService) BWS(ctx context.Context, w http.ResponseWriter, r *http.
 }
 
 func (ito *intoService) ARR(ctx context.Context, w http.ResponseWriter, r *http.Request, node string) error {
-	mon := query.Minion
+	mon := ito.qry.Minion
 	db := mon.WithContext(ctx).
 		Select(mon.ID, mon.BrokerID).
 		Where(mon.Inet.Eq(node))
@@ -112,7 +114,7 @@ func (ito *intoService) ARR(ctx context.Context, w http.ResponseWriter, r *http.
 }
 
 func (ito *intoService) AWS(ctx context.Context, w http.ResponseWriter, r *http.Request, node string) error {
-	mon := query.Minion
+	mon := ito.qry.Minion
 	db := mon.WithContext(ctx).
 		Select(mon.ID, mon.BrokerID).
 		Where(mon.Inet.Eq(node))

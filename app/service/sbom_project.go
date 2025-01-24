@@ -13,14 +13,16 @@ type SBOMProjectService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject)
 }
 
-func SBOMProject() SBOMProjectService {
-	return &sbomProjectService{}
+func SBOMProject(qry *query.Query) SBOMProjectService {
+	return &sbomProjectService{
+		qry: qry,
+	}
 }
 
-type sbomProjectService struct{}
+type sbomProjectService struct{ qry *query.Query }
 
 func (biz *sbomProjectService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
-	tbl := query.SBOMProject
+	tbl := biz.qry.SBOMProject
 	db := tbl.WithContext(ctx).
 		Order(tbl.TotalScore.Desc()).
 		UnderlyingDB().

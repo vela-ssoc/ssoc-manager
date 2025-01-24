@@ -17,10 +17,10 @@ type EffectCreate struct {
 	Substances Int64s   `json:"substances" validate:"gte=1,lte=100,unique"`               // 配置
 }
 
-func (ec EffectCreate) Check(ctx context.Context) error {
+func (ec EffectCreate) Check(ctx context.Context, qry *query.Query) error {
 	// 1. 标签必须已经存在
 	tsz := len(ec.Tags)
-	tagTbl := query.MinionTag
+	tagTbl := qry.MinionTag
 	count, _ := tagTbl.WithContext(ctx).
 		Distinct(tagTbl.Tag).
 		Where(tagTbl.Tag.In(ec.Tags...)).
@@ -31,7 +31,7 @@ func (ec EffectCreate) Check(ctx context.Context) error {
 
 	// 2. 配置必须已经存在且全部为公有配置
 	if size := len(ec.Substances); size != 0 {
-		subTbl := query.Substance
+		subTbl := qry.Substance
 		count, _ = subTbl.WithContext(ctx).
 			Where(subTbl.MinionID.Eq(0)).
 			Where(subTbl.ID.In(ec.Substances...)).

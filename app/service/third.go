@@ -25,20 +25,22 @@ type ThirdService interface {
 	List(ctx context.Context, keyword string) []*param.ThirdListItem
 }
 
-func Third(pusher push.Pusher, gfs gridfs.FS) ThirdService {
+func Third(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) ThirdService {
 	return &thirdService{
+		qry:    qry,
 		gfs:    gfs,
 		pusher: pusher,
 	}
 }
 
 type thirdService struct {
+	qry    *query.Query
 	gfs    gridfs.FS
 	pusher push.Pusher
 }
 
 func (biz *thirdService) List(ctx context.Context, keyword string) []*param.ThirdListItem {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if keyword != "" {
 		like := "%" + keyword + "%"
@@ -47,9 +49,9 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 			Or(tbl.Customized.Like(like))
 	}
 	thirds, _ := dao.Find()
-	if len(thirds) == 0 {
-		return []*param.ThirdListItem{}
-	}
+	//if len(thirds) == 0 {
+	//	return []*param.ThirdListItem{}
+	//}
 
 	index := make(map[string][]*model.Third, 16)
 	for _, third := range thirds {
@@ -57,7 +59,7 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 		index[cust] = append(index[cust], third)
 	}
 
-	cTbl := query.ThirdCustomized
+	cTbl := biz.qry.ThirdCustomized
 	custs, _ := cTbl.WithContext(ctx).Find()
 
 	ret := make([]*param.ThirdListItem, 0, len(custs))
@@ -89,7 +91,7 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 }
 
 func (biz *thirdService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Third) {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where)
@@ -111,7 +113,7 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 	// 在 agent 出现不可预知的错误。
 	lower := strings.ToLower(name)
 	ext := filepath.Ext(lower)
-	tbl := query.Third
+	tbl := biz.qry.Third
 	dao := tbl.WithContext(ctx).Where(tbl.Name.Eq(name))
 	if ext == ".zip" {
 		// 如果是可解压文件，那么解压后的名字也不能重复
@@ -122,7 +124,7 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 		return errcode.FmtErrNameExist.Fmt(name)
 	}
 	if customized != "" {
-		cusTbl := query.ThirdCustomized
+		cusTbl := biz.qry.ThirdCustomized
 		count, _ := cusTbl.WithContext(ctx).Where(cusTbl.Name.Eq(customized)).Count()
 		if count == 0 {
 			return errcode.ErrCustomizedNotExists
@@ -158,7 +160,7 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 
 // Download 下载文件
 func (biz *thirdService) Download(ctx context.Context, id int64) (gridfs.File, error) {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	th, err := tbl.WithContext(ctx).
 		Select(tbl.FileID).
 		Where(tbl.ID.Eq(id)).
@@ -171,7 +173,7 @@ func (biz *thirdService) Download(ctx context.Context, id int64) (gridfs.File, e
 }
 
 func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized string, r io.Reader, userID int64) error {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	// 查询原有的数据
 	th, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
@@ -181,7 +183,7 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 	}
 
 	if customized != "" && customized != th.Customized {
-		cusTbl := query.ThirdCustomized
+		cusTbl := biz.qry.ThirdCustomized
 		count, _ := cusTbl.WithContext(ctx).Where(cusTbl.Name.Eq(customized)).Count()
 		if count == 0 {
 			return errcode.ErrCustomizedNotExists
@@ -225,7 +227,7 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 }
 
 func (biz *thirdService) Delete(ctx context.Context, id int64) error {
-	tbl := query.Third
+	tbl := biz.qry.Third
 	// 查询原有的数据
 	th, err := tbl.WithContext(ctx).
 		Select(tbl.FileID).

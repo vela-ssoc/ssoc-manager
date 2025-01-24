@@ -22,14 +22,18 @@ type MinionTaskService interface {
 	RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount)
 }
 
-func MinionTask() MinionTaskService {
-	return &minionTaskService{}
+func MinionTask(qry *query.Query) MinionTaskService {
+	return &minionTaskService{
+		qry: qry,
+	}
 }
 
-type minionTaskService struct{}
+type minionTaskService struct {
+	qry *query.Query
+}
 
 func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList) {
-	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	stmt := db.Table("minion_task AS minion_task").
 		Joins("LEFT JOIN substance st ON st.id = minion_task.substance_id").
 		Scopes(scope.Where).
@@ -51,7 +55,7 @@ func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope 
 }
 
 func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error) {
-	subTbl := query.Substance
+	subTbl := biz.qry.Substance
 	sub, err := subTbl.WithContext(ctx).Where(subTbl.ID.Eq(sid)).First()
 	if err != nil {
 		return nil, err
@@ -60,7 +64,7 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 		return nil, errcode.ErrSubstanceNotExist
 	}
 
-	taskTbl := query.MinionTask
+	taskTbl := biz.qry.MinionTask
 	mt, _ := taskTbl.WithContext(ctx).
 		Where(taskTbl.MinionID.Eq(mid), taskTbl.SubstanceID.Eq(sid)).
 		Order(taskTbl.ID.Desc()).
@@ -96,10 +100,10 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 }
 
 func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error) {
-	monTbl := query.Minion
-	tagTbl := query.MinionTag
-	effTbl := query.Effect
-	taskTbl := query.MinionTask
+	monTbl := biz.qry.Minion
+	tagTbl := biz.qry.MinionTag
+	effTbl := biz.qry.Effect
+	taskTbl := biz.qry.MinionTask
 
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.Inet, monTbl.Unload).
@@ -119,7 +123,7 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 			Find()
 		subIDs := model.Effects(effs).Exclusion(mon.Inet)
 		if len(subIDs) != 0 {
-			subTbl := query.Substance
+			subTbl := biz.qry.Substance
 			dats, exx := subTbl.WithContext(ctx).
 				Omit(subTbl.Chunk).
 				Where(subTbl.MinionID.Eq(mid)).
@@ -177,7 +181,7 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 }
 
 func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather) {
-	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	ctSQL := db.Model(&model.MinionTask{}).
 		Select("name", "COUNT(*) count").
 		Group("name")
@@ -250,7 +254,7 @@ func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
 		"FROM minion_task"
 
 	res := new(param.TaskCount)
-	db := query.MinionTask.WithContext(ctx).UnderlyingDB()
+	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	db.Raw(rawSQL).Scan(&res)
 
 	return res
@@ -260,7 +264,7 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 	size := pager.Size()
 	ret := make([]*param.TaskRCount, 0, size)
 
-	tbl := query.MinionTask
+	tbl := biz.qry.MinionTask
 	count, _ := tbl.WithContext(ctx).
 		Distinct(tbl.SubstanceID).
 		Where(tbl.SubstanceID.Neq(0)).
@@ -275,7 +279,7 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 		" GROUP BY substance_id " +
 		" ORDER BY count " +
 		" DESC LIMIT ?, ? "
-	query.MinionTask.
+	biz.qry.MinionTask.
 		WithContext(ctx).
 		UnderlyingDB().
 		Scopes(pager.DBScope(count)).
@@ -293,7 +297,7 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 		sids = append(sids, sid)
 	}
 	if len(sids) != 0 {
-		stbl := query.Substance
+		stbl := biz.qry.Substance
 		subs, _ := stbl.WithContext(ctx).
 			Select(stbl.ID, stbl.Name, stbl.Desc).
 			Where(stbl.ID.In(sids...)).

@@ -31,21 +31,23 @@ type MinionService interface {
 	BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error
 }
 
-func Minion(cmdbw cmdb.Client, pusher push.Pusher) MinionService {
+func Minion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher) MinionService {
 	return &minionService{
+		qry:    qry,
 		cmdbw:  cmdbw,
 		pusher: pusher,
 	}
 }
 
 type minionService struct {
+	qry    *query.Query
 	cmdbw  cmdb.Client
 	pusher push.Pusher
 }
 
 func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary) {
-	tagTbl := query.MinionTag
-	monTbl := query.Minion
+	tagTbl := biz.qry.MinionTag
+	monTbl := biz.qry.Minion
 	dao := monTbl.WithContext(ctx).
 		Distinct(monTbl.ID).
 		LeftJoin(tagTbl, monTbl.ID.EqCol(tagTbl.MinionID)).
@@ -82,7 +84,7 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 		Find(); len(tags) != 0 {
 		tagMap = model.MinionTags(tags).ToMap()
 	}
-	infoTbl := query.SysInfo
+	infoTbl := biz.qry.SysInfo
 	if infos, _ := infoTbl.WithContext(ctx).Where(infoTbl.ID.In(monIDs...)).Find(); len(infos) != 0 {
 		infoMap = model.SysInfos(infos).ToMap()
 	}
@@ -121,7 +123,7 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 }
 
 func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDetail, error) {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	dat := new(param.MinionDetail)
 	if err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
@@ -129,13 +131,13 @@ func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDe
 		return nil, err
 	}
 
-	tagTbl := query.MinionTag
+	tagTbl := biz.qry.MinionTag
 	dat.Tags, _ = tagTbl.WithContext(ctx).Where(tagTbl.MinionID.Eq(id)).Find()
 	if dat.Tags == nil {
 		dat.Tags = []*model.MinionTag{}
 	}
 
-	infoTbl := query.SysInfo
+	infoTbl := biz.qry.SysInfo
 	info, _ := infoTbl.WithContext(ctx).Where(infoTbl.ID.Eq(id)).First()
 	if info != nil {
 		dat.Release = info.Release
@@ -160,7 +162,7 @@ func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDe
 }
 
 func (biz *minionService) Drop(ctx context.Context, id int64) error {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -171,7 +173,7 @@ func (biz *minionService) Drop(ctx context.Context, id int64) error {
 
 	// 查询该节点关联的标签
 	var tags []string
-	tagTbl := query.MinionTag
+	tagTbl := biz.qry.MinionTag
 	if err = tagTbl.WithContext(ctx).
 		Distinct(tagTbl.Tag).
 		Where(tagTbl.MinionID.Eq(id)).
@@ -179,8 +181,8 @@ func (biz *minionService) Drop(ctx context.Context, id int64) error {
 		return err
 	}
 
-	subTbl := query.Substance
-	if err = query.Q.Transaction(func(tx *query.Query) error {
+	subTbl := biz.qry.Substance
+	if err = biz.qry.Transaction(func(tx *query.Query) error {
 		if _, exx := tx.WithContext(ctx).MinionTag.
 			Where(tagTbl.MinionID.Eq(id)).Delete(); exx != nil {
 			return exx
@@ -196,34 +198,34 @@ func (biz *minionService) Drop(ctx context.Context, id int64) error {
 		return err
 	}
 
-	cmdbTbl := query.Cmdb
+	cmdbTbl := biz.qry.Cmdb
 	_, _ = cmdbTbl.WithContext(ctx).Where(cmdbTbl.ID.Eq(id)).Delete()
-	infTbl := query.SysInfo
+	infTbl := biz.qry.SysInfo
 	_, _ = infTbl.WithContext(ctx).Where(infTbl.ID.Eq(id)).Delete()
-	evtTbl := query.Event
+	evtTbl := biz.qry.Event
 	_, _ = evtTbl.WithContext(ctx).Where(evtTbl.MinionID.Eq(id)).Delete()
-	rskTbl := query.Risk
+	rskTbl := biz.qry.Risk
 	_, _ = rskTbl.WithContext(ctx).Where(rskTbl.MinionID.Eq(id)).Delete()
 
-	accTbl := query.MinionAccount
+	accTbl := biz.qry.MinionAccount
 	_, _ = accTbl.WithContext(ctx).Where(accTbl.MinionID.Eq(id)).Delete()
-	grpTbl := query.MinionGroup
+	grpTbl := biz.qry.MinionGroup
 	_, _ = grpTbl.WithContext(ctx).Where(grpTbl.MinionID.Eq(id)).Delete()
-	lisTbl := query.MinionListen
+	lisTbl := biz.qry.MinionListen
 	_, _ = lisTbl.WithContext(ctx).Where(lisTbl.MinionID.Eq(id)).Delete()
-	lonTbl := query.MinionListen
+	lonTbl := biz.qry.MinionListen
 	_, _ = lonTbl.WithContext(ctx).Where(lonTbl.MinionID.Eq(id)).Delete()
-	procTbl := query.MinionProcess
+	procTbl := biz.qry.MinionProcess
 	_, _ = procTbl.WithContext(ctx).Where(procTbl.MinionID.Eq(id)).Delete()
-	taskTbl := query.MinionTask
+	taskTbl := biz.qry.MinionTask
 	_, _ = taskTbl.WithContext(ctx).Where(taskTbl.MinionID.Eq(id)).Delete()
 
 	// 清理该节点的 SBOM 信息
-	bomMonTbl := query.SBOMMinion
+	bomMonTbl := biz.qry.SBOMMinion
 	_, _ = bomMonTbl.WithContext(ctx).Where(bomMonTbl.ID.Eq(id)).Delete()
-	bomPjtTbl := query.SBOMProject
+	bomPjtTbl := biz.qry.SBOMProject
 	_, _ = bomPjtTbl.WithContext(ctx).Where(bomPjtTbl.MinionID.Eq(id)).Delete()
-	bomComTbl := query.SBOMComponent
+	bomComTbl := biz.qry.SBOMComponent
 	_, _ = bomComTbl.WithContext(ctx).Where(bomComTbl.MinionID.Eq(id)).Delete()
 
 	size := len(tags)
@@ -253,7 +255,7 @@ func (biz *minionService) Drop(ctx context.Context, id int64) error {
 		return nil
 	}
 	// 删除 effect
-	effTbl := query.Effect
+	effTbl := biz.qry.Effect
 	_, err = effTbl.WithContext(ctx).Where(effTbl.Tag.In(wildTags...)).Delete()
 
 	return err
@@ -266,7 +268,7 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 	}
 
 	// 检查IPv4是否重复
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	ipv4 := inet.String()
 	if count, err := tbl.WithContext(ctx).
 		Where(tbl.Inet.Eq(ipv4)).
@@ -291,7 +293,7 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 		tags = append(tags, &model.MinionTag{Tag: mc.Arch, MinionID: mon.ID, Kind: model.TkLifelong})
 	}
 
-	_ = query.MinionTag.WithContext(ctx).Create(tags...)
+	_ = biz.qry.MinionTag.WithContext(ctx).Create(tags...)
 	_ = biz.cmdbw.FetchAndSave(ctx, mon.ID, ipv4)
 
 	return nil
@@ -299,7 +301,7 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 
 func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
 	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
-		tbl := query.Minion
+		tbl := biz.qry.Minion
 		deleted := uint8(model.MSDelete)
 		_, _ = tbl.WithContext(ctx).
 			Where(tbl.Status.Neq(deleted), tbl.ID.In(mids...)).
@@ -315,12 +317,12 @@ func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes 
 }
 
 func (biz *minionService) CSV(ctx context.Context) sheet.CSVStreamer {
-	read := sheet.MinionCSV(ctx, 500, true)
+	read := sheet.MinionCSV(ctx, biz.qry, 500, true)
 	return sheet.NewCSV(read)
 }
 
 func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Status, tbl.BrokerID).
 		Where(tbl.ID.Eq(mid)).First()
@@ -331,7 +333,7 @@ func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
 		return errcode.ErrNodeStatus
 	}
 
-	binTbl := query.MinionBin
+	binTbl := biz.qry.MinionBin
 	bin, err := binTbl.WithContext(ctx).Where(binTbl.ID.Eq(binID)).First()
 	if err != nil {
 		return err
@@ -359,7 +361,7 @@ func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes [
 }
 
 func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) error {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.Status, tbl.BrokerID).
 		Where(tbl.ID.Eq(mid)).
@@ -379,7 +381,7 @@ func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) er
 
 func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) error {
 	// 查询节点信息
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Status, tbl.BrokerID, tbl.Unload, tbl.Inet).
 		Where(tbl.ID.Eq(mid)).
@@ -407,7 +409,7 @@ func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) er
 
 func (biz *minionService) BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error {
 	fn := func(ctx context.Context, bid int64, mids []int64) error {
-		err := query.Q.Transaction(func(tx *query.Query) error {
+		err := biz.qry.Transaction(func(tx *query.Query) error {
 			ll := int8(model.TkLifelong)
 			tbl := tx.MinionTag
 			dao := tbl.WithContext(ctx)
@@ -443,7 +445,7 @@ func (biz *minionService) batchFunc(
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	tbl, tagTbl := query.Minion, query.MinionTag
+	tbl, tagTbl := biz.qry.Minion, biz.qry.MinionTag
 	deleted := uint8(model.MSDelete)
 	dao := tbl.WithContext(ctx).
 		Distinct(tbl.ID).

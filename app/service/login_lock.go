@@ -19,14 +19,16 @@ type LoginLockService interface {
 	Passed(ctx context.Context, uname string)
 }
 
-func LoginLock(gap time.Duration, num int) LoginLockService {
+func LoginLock(qry *query.Query, gap time.Duration, num int) LoginLockService {
 	return &loginLockService{
+		qry: qry,
 		gap: gap,
 		num: num,
 	}
 }
 
 type loginLockService struct {
+	qry *query.Query
 	gap time.Duration
 	num int
 }
@@ -37,7 +39,7 @@ func (lck *loginLockService) Limited(ctx context.Context, uname string) bool {
 	}
 
 	afterAt := time.Now().Add(-lck.gap)
-	tbl := query.LoginLock
+	tbl := lck.qry.LoginLock
 	count, err := tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
 		Where(tbl.CreatedAt.Gte(afterAt)).
@@ -48,11 +50,11 @@ func (lck *loginLockService) Limited(ctx context.Context, uname string) bool {
 
 func (lck *loginLockService) Failed(ctx context.Context, uname string) {
 	dat := &model.LoginLock{Username: uname}
-	_ = query.LoginLock.WithContext(ctx).Create(dat)
+	_ = lck.qry.LoginLock.WithContext(ctx).Create(dat)
 }
 
 func (lck *loginLockService) Passed(ctx context.Context, uname string) {
-	tbl := query.LoginLock
+	tbl := lck.qry.LoginLock
 	_, _ = tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
 		Delete()

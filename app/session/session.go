@@ -54,7 +54,7 @@ func Cast(v any) *Ident {
 }
 
 // DBSess 数据库存放 session 管理器
-func DBSess(interval time.Duration) Session {
+func DBSess(qry *query.Query, interval time.Duration) Session {
 	if interval <= 0 {
 		interval = time.Hour
 	} else if interval < time.Minute {
@@ -62,6 +62,7 @@ func DBSess(interval time.Duration) Session {
 	}
 
 	return &sessDB{
+		qry:      qry,
 		interval: interval,
 		timeout:  10 * time.Second,
 	}
@@ -69,6 +70,7 @@ func DBSess(interval time.Duration) Session {
 
 // sessDB 数据库存放 session 管理器
 type sessDB struct {
+	qry      *query.Query
 	interval time.Duration // session 有效活动间隔
 	timeout  time.Duration
 }
@@ -83,7 +85,7 @@ func (ssd *sessDB) GetSession(token string) (any, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ssd.timeout)
 	defer cancel()
 
-	tbl := query.User
+	tbl := ssd.qry.User
 	dao := tbl.WithContext(ctx)
 	user, err := dao.Where(tbl.Enable.Is(true)).
 		Where(dao.Or(tbl.Token.Eq(token)).Or(tbl.AccessKey.Eq(token))).
@@ -142,7 +144,7 @@ func (ssd *sessDB) SetSession(token string, val any) error {
 	defer cancel()
 
 	now := sql.NullTime{Valid: true, Time: time.Now()}
-	tbl := query.User
+	tbl := ssd.qry.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(info.ID)).
 		Where(tbl.Enable.Is(true)).
@@ -156,7 +158,7 @@ func (ssd *sessDB) DelSession(token string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), ssd.timeout)
 	defer cancel()
 
-	tbl := query.User
+	tbl := ssd.qry.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.Token.Eq(token)).
 		UpdateColumnSimple(tbl.Token.Value(""))
@@ -168,7 +170,7 @@ func (ssd *sessDB) Destroy(id int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), ssd.timeout)
 	defer cancel()
 
-	tbl := query.User
+	tbl := ssd.qry.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		UpdateColumn(tbl.Token, "")

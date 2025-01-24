@@ -24,8 +24,9 @@ type SubstanceService interface {
 	Command(ctx context.Context, mid int64, cmd string) error
 }
 
-func Substance(pusher push.Pusher, digest DigestService, task SubstanceTaskService) SubstanceService {
+func Substance(qry *query.Query, pusher push.Pusher, digest DigestService, task SubstanceTaskService) SubstanceService {
 	return &substanceService{
+		qry:    qry,
 		pusher: pusher,
 		digest: digest,
 		task:   task,
@@ -33,6 +34,7 @@ func Substance(pusher push.Pusher, digest DigestService, task SubstanceTaskServi
 }
 
 type substanceService struct {
+	qry    *query.Query
 	mutex  sync.Mutex
 	pusher push.Pusher
 	digest DigestService
@@ -40,7 +42,7 @@ type substanceService struct {
 }
 
 func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*param.IDName {
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
 		Where(tbl.MinionID.Eq(0))
@@ -55,7 +57,7 @@ func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*
 }
 
 func (biz *substanceService) Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary) {
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	dao := tbl.WithContext(ctx).
 		Where(tbl.MinionID.Eq(0)) // minion_id = 0 就是公有配置
 	if kw := page.Keyword(); kw != "" {
@@ -92,7 +94,7 @@ func (biz *substanceService) Page(ctx context.Context, page param.Pager) (int64,
 }
 
 func (biz *substanceService) Detail(ctx context.Context, id int64) (*model.Substance, error) {
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if dat != nil && dat.Links == nil {
 		dat.Links = []string{}
@@ -106,10 +108,10 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	name, mid := sc.Name, sc.MinionID
 
 	var bid int64
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	if mid != 0 {
 		// 检查节点
-		monTbl := query.Minion
+		monTbl := biz.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.Status, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
@@ -170,7 +172,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 
 	// 1. 查询数据库中原有的数据
 	id, version := su.ID, su.Version
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	sub, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()
@@ -197,7 +199,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 			Updates(sub); err != nil || !change {
 			return 0, err
 		}
-		monTbl := query.Minion
+		monTbl := biz.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
@@ -218,7 +220,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		return 0, err
 	}
 
-	effTbl := query.Effect
+	effTbl := biz.qry.Effect
 	var tags []string
 	err = effTbl.WithContext(ctx).
 		Distinct(effTbl.Tag).
@@ -234,7 +236,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 
 func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 	// 查询数据
-	subTbl := query.Substance
+	subTbl := biz.qry.Substance
 	dat, err := subTbl.WithContext(ctx).
 		Select(subTbl.ID, subTbl.MinionID, subTbl.Name).
 		Where(subTbl.ID.Eq(id)).
@@ -247,7 +249,7 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 	if mid == 0 { // 公有配置删除前检查
 		// 1. 公有配置发布后不能被删除
 		var count int64
-		effTbl := query.Effect
+		effTbl := biz.qry.Effect
 		if count, err = effTbl.WithContext(ctx).
 			Where(effTbl.EffectID.Eq(id)).
 			Count(); err != nil || count != 0 {
@@ -262,7 +264,7 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 
 	// 私有配置通知节点
 	if mid != 0 {
-		monTbl := query.Minion
+		monTbl := biz.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
@@ -279,7 +281,7 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 // 该配置必须在该 agent 上发布且已启用，注意要防止越权重启。
 func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 	// 检查 minion 节点
-	monTbl := query.Minion
+	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).
@@ -293,7 +295,7 @@ func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 	}
 
 	// 1. 查询配置是否存在
-	tbl := query.Substance
+	tbl := biz.qry.Substance
 	sub, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.MinionID).
 		Where(tbl.ID.Eq(sid)).
@@ -313,7 +315,7 @@ func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 // Resync 重新同步节点上的配置状态
 func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
 	// 检查 minion 节点
-	monTbl := query.Minion
+	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).
@@ -334,7 +336,7 @@ func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
 // Command 向指定节点发送指令
 func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string) error {
 	// 检查 minion 节点
-	monTbl := query.Minion
+	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).

@@ -23,14 +23,16 @@ type DeployService interface {
 	OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error)
 }
 
-func Deploy(store storage.Storer, gfs gridfs.FS) DeployService {
+func Deploy(qry *query.Query, store storage.Storer, gfs gridfs.FS) DeployService {
 	return &deployService{
+		qry:   qry,
 		store: store,
 		gfs:   gfs,
 	}
 }
 
 type deployService struct {
+	qry   *query.Query
 	store storage.Storer
 	gfs   gridfs.FS
 }
@@ -42,7 +44,7 @@ func (biz *deployService) LAN(ctx context.Context) string {
 
 func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error) {
 	// 查询 broker 节点信息
-	brkTbl := query.Broker
+	brkTbl := biz.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(req.BrokerID)).First()
 	if err != nil {
 		return nil, err
@@ -113,7 +115,7 @@ func (biz *deployService) Script(ctx context.Context, goos string, data *modview
 }
 
 func (biz *deployService) matchBinary(ctx context.Context, req *param.DeployMinionDownload) (*model.MinionBin, error) {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	if binID := req.ID; binID != 0 { // 如果显式指定了 id，则按照 ID 匹配。
 		bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(binID)).First()
 		if err != nil {

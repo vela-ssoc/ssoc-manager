@@ -12,14 +12,18 @@ type MinionAccountService interface {
 	Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount)
 }
 
-func MinionAccount() MinionAccountService {
-	return &minionAccountService{}
+func MinionAccount(qry *query.Query) MinionAccountService {
+	return &minionAccountService{
+		qry: qry,
+	}
 }
 
-type minionAccountService struct{}
+type minionAccountService struct {
+	qry *query.Query
+}
 
 func (biz *minionAccountService) Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount) {
-	tbl := query.MinionAccount
+	tbl := biz.qry.MinionAccount
 	dao := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc())
 	if mid != 0 {

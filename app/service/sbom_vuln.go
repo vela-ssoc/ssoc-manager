@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	"gorm.io/gorm/clause"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"gorm.io/gorm/clause"
 )
 
 type SBOMVulnService interface {
@@ -18,14 +17,14 @@ type SBOMVulnService interface {
 	Purl(ctx context.Context, req *param.ReportPurl) error
 }
 
-func SBOMVuln() SBOMVulnService {
-	return &sbomVulnService{}
+func SBOMVuln(qry *query.Query) SBOMVulnService {
+	return &sbomVulnService{qry: qry}
 }
 
-type sbomVulnService struct{}
+type sbomVulnService struct{ qry *query.Query }
 
 func (biz *sbomVulnService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln) {
-	tbl := query.SBOMVuln
+	tbl := biz.qry.SBOMVuln
 	db := tbl.WithContext(ctx).
 		Order(tbl.Score.Desc()).
 		UnderlyingDB().
@@ -43,8 +42,8 @@ func (biz *sbomVulnService) Page(ctx context.Context, page param.Pager, scope dy
 }
 
 func (biz *sbomVulnService) Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject) {
-	comTbl := query.SBOMComponent
-	tbl := query.SBOMProject
+	comTbl := biz.qry.SBOMComponent
+	tbl := biz.qry.SBOMProject
 	subSQL := comTbl.WithContext(ctx).
 		Distinct(comTbl.ProjectID).
 		Where(comTbl.PURL.Eq(purl))
@@ -64,7 +63,7 @@ func (biz *sbomVulnService) Project(ctx context.Context, page param.Pager, purl 
 }
 
 func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln {
-	tbl := query.SBOMVuln
+	tbl := biz.qry.SBOMVuln
 	ret, _ := tbl.WithContext(ctx).
 		Where(tbl.ID.Gt(offsetID)).
 		Limit(size).
@@ -83,7 +82,7 @@ func (biz *sbomVulnService) Purl(ctx context.Context, req *param.ReportPurl) err
 	for _, p := range ps {
 		dats = append(dats, &model.Purl{ID: p})
 	}
-	tbl := query.Purl
+	tbl := biz.qry.Purl
 
 	return tbl.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: false}).Save(dats...)
 }

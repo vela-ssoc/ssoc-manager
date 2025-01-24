@@ -23,21 +23,23 @@ type BrokerBinaryService interface {
 	Open(ctx context.Context, bid, fid int64, eth net.Addr, host string) (gridfs.File, error)
 }
 
-func BrokerBinary(gfs gridfs.FS, store storage.Storer) BrokerBinaryService {
+func BrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) BrokerBinaryService {
 	return &brokerBinaryService{
+		qry:   qry,
 		gfs:   gfs,
 		store: store,
 	}
 }
 
 type brokerBinaryService struct {
+	qry       *query.Query
 	gfs       gridfs.FS
 	store     storage.Storer
 	uploading atomic.Bool
 }
 
 func (biz *brokerBinaryService) Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin) {
-	tbl := query.BrokerBin
+	tbl := biz.qry.BrokerBin
 	dao := tbl.WithContext(ctx).Order(tbl.Semver.Desc(), tbl.UpdatedAt.Desc())
 	if kw := page.Keyword(); kw != "" {
 		dao.Where(tbl.Name.Like(kw)).Or(tbl.Changelog.Like(kw))
@@ -58,7 +60,7 @@ func (biz *brokerBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	}
 	defer biz.uploading.Store(false)
 
-	tbl := query.BrokerBin
+	tbl := biz.qry.BrokerBin
 	semver := string(req.Semver)
 	if count, _ := tbl.WithContext(ctx).
 		Where(tbl.Semver.Eq(semver), tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
@@ -98,7 +100,7 @@ func (biz *brokerBinaryService) Create(ctx context.Context, req *param.NodeBinar
 }
 
 func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
-	tbl := query.BrokerBin
+	tbl := biz.qry.BrokerBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -112,13 +114,13 @@ func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
 }
 
 func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr net.Addr, host string) (gridfs.File, error) {
-	tbl := query.Broker
+	tbl := biz.qry.Broker
 	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(bid)).First()
 	if err != nil {
 		return nil, err
 	}
 
-	binTbl := query.BrokerBin
+	binTbl := biz.qry.BrokerBin
 	bin, err := binTbl.WithContext(ctx).Where(binTbl.ID.Eq(fid)).First()
 	if err != nil {
 		return nil, err

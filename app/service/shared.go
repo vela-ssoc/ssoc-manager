@@ -20,15 +20,17 @@ type SharedService interface {
 	Update(ctx context.Context, req *param.SharedUpdate) error
 }
 
-func Shared() SharedService {
-	return new(sharedService)
+func Shared(qry *query.Query) SharedService {
+	return &sharedService{qry: qry}
 }
 
-type sharedService struct{}
+type sharedService struct {
+	qry *query.Query
+}
 
 func (svc *sharedService) Buckets(ctx context.Context) []string {
 	ret := make([]string, 0, 1024)
-	tbl := query.KVData
+	tbl := svc.qry.KVData
 	_ = tbl.WithContext(ctx).
 		Distinct(tbl.Bucket).
 		Limit(10000).
@@ -38,7 +40,7 @@ func (svc *sharedService) Buckets(ctx context.Context) []string {
 }
 
 func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData) {
-	tbl := query.KVData
+	tbl := svc.qry.KVData
 	db := tbl.WithContext(ctx).
 		Order(tbl.UpdatedAt.Desc()).
 		UnderlyingDB().
@@ -57,7 +59,7 @@ func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dyns
 // Sweep 清除 kv 数据。
 func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 	now := time.Now()
-	tbl := query.KVData
+	tbl := svc.qry.KVData
 	if bucket == "" { // 仅清理过期的数据。
 		_, err := tbl.WithContext(ctx).
 			Where(tbl.Lifetime.Gt(0), tbl.ExpiredAt.Lt(now)).
@@ -65,7 +67,7 @@ func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 		return err
 	}
 
-	auditTbl := query.KVAudit
+	auditTbl := svc.qry.KVAudit
 	dataCond := []gen.Condition{tbl.Bucket.Eq(bucket)}
 	auditCond := []gen.Condition{auditTbl.Bucket.Eq(bucket)}
 	if key != "" {
@@ -82,7 +84,7 @@ func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 }
 
 func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit) {
-	tbl := query.KVAudit
+	tbl := svc.qry.KVAudit
 	stmt := tbl.WithContext(ctx).
 		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key))
 	count, _ := stmt.Count()
@@ -96,7 +98,7 @@ func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, 
 }
 
 func (svc *sharedService) Update(ctx context.Context, req *param.SharedUpdate) error {
-	tbl := query.KVData
+	tbl := svc.qry.KVData
 	bucket, key := req.Bucket, req.Key
 
 	now := time.Now()

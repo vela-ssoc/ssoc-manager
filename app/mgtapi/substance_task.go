@@ -13,7 +13,7 @@ import (
 	"gorm.io/gen/field"
 )
 
-func SubstanceTask(svc service.SubstanceTaskService) route.Router {
+func SubstanceTask(qry *query.Query, svc service.SubstanceTaskService) route.Router {
 	inetKey := "inet"
 	bnameKey := "broker_name"
 	reasonKey := "reason"
@@ -31,7 +31,7 @@ func SubstanceTask(svc service.SubstanceTaskService) route.Router {
 		).
 		Build()
 
-	dao := query.SubstanceTask
+	dao := qry.SubstanceTask
 	likes := map[string]field.String{
 		inetKey:   dao.Inet,
 		bnameKey:  dao.BrokerName,

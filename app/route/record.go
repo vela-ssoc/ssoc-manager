@@ -11,12 +11,16 @@ type Recorder interface {
 	Save(context.Context, *model.Oplog) error
 }
 
-func NewRecord() Recorder {
-	return &record{}
+func NewRecord(qry *query.Query) Recorder {
+	return &record{
+		qry: qry,
+	}
 }
 
-type record struct{}
+type record struct {
+	qry *query.Query
+}
 
-func (*record) Save(ctx context.Context, oplog *model.Oplog) error {
-	return query.Oplog.WithContext(ctx).Create(oplog)
+func (rcd *record) Save(ctx context.Context, oplog *model.Oplog) error {
+	return rcd.qry.Oplog.WithContext(ctx).Create(oplog)
 }

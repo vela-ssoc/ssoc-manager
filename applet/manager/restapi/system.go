@@ -73,7 +73,7 @@ func (sys *System) parseBannerHTML() (*template.Template, error) {
     <title>BANNER</title>
 </head>
 <body>
-<pre id="app"></pre>
+<pre id="app" style="font-family: monospace, serif; font-size: smaller;"></pre>
 
 <script type="module">
     import {AnsiUp} from 'https://cdn.jsdelivr.net/npm/ansi_up/ansi_up.min.js'

@@ -17,14 +17,16 @@ type ThirdCustomizedService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func ThirdCustomized() ThirdCustomizedService {
-	return &thirdCustomizedService{}
+func ThirdCustomized(qry *query.Query) ThirdCustomizedService {
+	return &thirdCustomizedService{qry: qry}
 }
 
-type thirdCustomizedService struct{}
+type thirdCustomizedService struct {
+	qry *query.Query
+}
 
 func (svc *thirdCustomizedService) List(ctx context.Context) []*model.ThirdCustomized {
-	tbl := query.ThirdCustomized
+	tbl := svc.qry.ThirdCustomized
 	ret, err := tbl.WithContext(ctx).Order(tbl.ID).Find()
 	if err != nil || ret == nil {
 		return make([]*model.ThirdCustomized, 0)
@@ -34,7 +36,7 @@ func (svc *thirdCustomizedService) List(ctx context.Context) []*model.ThirdCusto
 
 func (svc *thirdCustomizedService) Create(ctx context.Context, req *param.ThirdCustomizedCreate) error {
 	// 查询定制总数
-	tbl := query.ThirdCustomized
+	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
 		return errcode.ErrTooManyCustomized
 	}
@@ -52,7 +54,7 @@ func (svc *thirdCustomizedService) Create(ctx context.Context, req *param.ThirdC
 
 func (svc *thirdCustomizedService) Update(ctx context.Context, req *param.ThirdCustomizedUpdate) error {
 	// 查询定制总数
-	tbl := query.ThirdCustomized
+	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
 		return errcode.ErrTooManyCustomized
 	}
@@ -68,13 +70,13 @@ func (svc *thirdCustomizedService) Update(ctx context.Context, req *param.ThirdC
 }
 
 func (svc *thirdCustomizedService) Delete(ctx context.Context, id int64) error {
-	tbl := query.ThirdCustomized
+	tbl := svc.qry.ThirdCustomized
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
 	}
 
-	thrTbl := query.Third
+	thrTbl := svc.qry.Third
 	if count, _ := thrTbl.WithContext(ctx).
 		Where(thrTbl.Customized.Eq(dat.Name)).
 		Count(); count != 0 {

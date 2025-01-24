@@ -20,18 +20,20 @@ type MinionLogonService interface {
 	// Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error)
 }
 
-func MinionLogon(es elastic.Searcher) MinionLogonService {
+func MinionLogon(qry *query.Query, es elastic.Searcher) MinionLogonService {
 	return &minionLogonService{
-		es: es,
+		qry: qry,
+		es:  es,
 	}
 }
 
 type minionLogonService struct {
-	es elastic.Searcher
+	qry *query.Query
+	es  elastic.Searcher
 }
 
 func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon) {
-	tbl := query.MinionLogon
+	tbl := biz.qry.MinionLogon
 	db := tbl.WithContext(ctx).
 		Where(tbl.Ignore.Is(false)).
 		Order(tbl.ID.Desc()).
@@ -49,7 +51,7 @@ func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope
 }
 
 func (biz *minionLogonService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionLogonAttack) {
-	tbl := query.MinionLogon
+	tbl := biz.qry.MinionLogon
 	db := tbl.WithContext(ctx).
 		Where(tbl.Ignore.Is(false)).
 		Group(tbl.Addr, tbl.Msg).
@@ -78,7 +80,7 @@ func (biz *minionLogonService) Recent(ctx context.Context, days int) param.Minio
 		" GROUP BY a.date, a.msg"
 
 	var temps param.MinionRecentTemps
-	query.MinionLogon.
+	biz.qry.MinionLogon.
 		WithContext(ctx).
 		UnderlyingDB().
 		Raw(rawSQL, days).
@@ -90,7 +92,7 @@ func (biz *minionLogonService) Recent(ctx context.Context, days int) param.Minio
 }
 
 func (biz *minionLogonService) History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon) {
-	tbl := query.MinionLogon
+	tbl := biz.qry.MinionLogon
 	dao := tbl.WithContext(ctx)
 	if mid != 0 {
 		dao = dao.Where(tbl.MinionID.Eq(mid))
@@ -111,7 +113,7 @@ func (biz *minionLogonService) History(ctx context.Context, page param.Pager, mi
 }
 
 func (biz *minionLogonService) Ignore(ctx context.Context, id int64) error {
-	tbl := query.MinionLogon
+	tbl := biz.qry.MinionLogon
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id), tbl.Ignore.Is(false)).
 		UpdateSimple(tbl.Ignore.Value(true))

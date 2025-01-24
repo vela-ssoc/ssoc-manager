@@ -11,8 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func MinionCSV(ctx context.Context, limit int, bom bool) CSVReader {
+func MinionCSV(ctx context.Context, qry *query.Query, limit int, bom bool) CSVReader {
 	return &minionCSVReader{
+		qry:   qry,
 		ctx:   ctx,
 		limit: limit,
 		bom:   bom,
@@ -20,6 +21,7 @@ func MinionCSV(ctx context.Context, limit int, bom bool) CSVReader {
 }
 
 type minionCSVReader struct {
+	qry     *query.Query
 	ctx     context.Context
 	current int
 	limit   int
@@ -46,7 +48,7 @@ func (r *minionCSVReader) Next() ([][]string, error) {
 	offset := r.current * r.limit
 	r.current++
 
-	tbl := query.Minion
+	tbl := r.qry.Minion
 	mons, _, err := tbl.WithContext(r.ctx).FindByPage(offset, r.limit)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

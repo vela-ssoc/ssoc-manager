@@ -13,14 +13,18 @@ type ProcessService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionProcess)
 }
 
-func Process() ProcessService {
-	return &processService{}
+func Process(qry *query.Query) ProcessService {
+	return &processService{
+		qry: qry,
+	}
 }
 
-type processService struct{}
+type processService struct {
+	qry *query.Query
+}
 
 func (biz *processService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionProcess) {
-	tbl := query.MinionProcess
+	tbl := biz.qry.MinionProcess
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).
 		UnderlyingDB().

@@ -32,7 +32,7 @@ type VerifyService interface {
 	Submit(ctx context.Context, uname, captID, dongCode string) error
 }
 
-func Verify(minute int, dcli dong.Client, store storage.Storer, slog logback.Logger) VerifyService {
+func Verify(qry *query.Query, minute int, dcli dong.Client, store storage.Storer, slog logback.Logger) VerifyService {
 	capt := captcha.NewCaptcha()
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if minute < 1 || minute > 10 {
@@ -40,6 +40,7 @@ func Verify(minute int, dcli dong.Client, store storage.Storer, slog logback.Log
 	}
 
 	return &verifyService{
+		qry:    qry,
 		slog:   slog,
 		minute: minute,
 		dcli:   dcli,
@@ -52,6 +53,7 @@ func Verify(minute int, dcli dong.Client, store storage.Storer, slog logback.Log
 }
 
 type verifyService struct {
+	qry    *query.Query
 	slog   logback.Logger
 	minute int // 验证码有效分钟
 	dcli   dong.Client
@@ -74,7 +76,7 @@ func (vs *verifyService) Picture(ctx context.Context, uname string) (*param.Auth
 		points[i] = dots[i]
 	}
 
-	tbl := query.User
+	tbl := vs.qry.User
 	user, _ := tbl.WithContext(ctx).
 		Select(tbl.Dong).
 		Where(tbl.Enable.Is(true)).
@@ -122,7 +124,7 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 	view.Minute = vs.minute
 
 	// 查询用户信息
-	tbl := query.User
+	tbl := vs.qry.User
 	user, err := tbl.WithContext(ctx).
 		Select(tbl.Dong).
 		Where(tbl.Enable.Is(true)).

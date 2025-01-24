@@ -8,27 +8,31 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"gorm.io/gen"
+	"gorm.io/gen/field"
 	"gorm.io/gorm/clause"
 )
 
 type TagService interface {
 	Indices(ctx context.Context, idx param.Indexer) []string
 	Update(ctx context.Context, id int64, tags []string) error
-	Sidebar(ctx context.Context) []*param.NameCount
+	Sidebar(ctx context.Context, req *param.TagSidebar) (param.NameCounts, error)
 }
 
-func Tag(pusher push.Pusher) TagService {
+func Tag(qry *query.Query, pusher push.Pusher) TagService {
 	return &tagService{
+		qry:    qry,
 		pusher: pusher,
 	}
 }
 
 type tagService struct {
+	qry    *query.Query
 	pusher push.Pusher
 }
 
 func (biz *tagService) Indices(ctx context.Context, idx param.Indexer) []string {
-	tbl := query.MinionTag
+	tbl := biz.qry.MinionTag
 
 	dao := tbl.WithContext(ctx).
 		Distinct(tbl.Tag).
@@ -47,7 +51,7 @@ func (biz *tagService) Indices(ctx context.Context, idx param.Indexer) []string 
 }
 
 func (biz *tagService) Update(ctx context.Context, id int64, tags []string) error {
-	monTbl := query.Minion
+	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.Status, monTbl.BrokerID, monTbl.Inet).
 		Where(monTbl.ID.Eq(id)).
@@ -59,14 +63,14 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 		return errcode.ErrNodeStatus
 	}
 
-	tbl := query.MinionTag
+	tbl := biz.qry.MinionTag
 	// 查询现有的 tags
 	olds, err := tbl.WithContext(ctx).Where(tbl.MinionID.Eq(id)).Find()
 	if err != nil {
 		return err
 	}
 	news := model.MinionTags(olds).Manual(id, tags)
-	err = query.Q.Transaction(func(tx *query.Query) error {
+	err = biz.qry.Transaction(func(tx *query.Query) error {
 		table := tx.WithContext(ctx).MinionTag
 		if _, exx := table.Where(tbl.MinionID.Eq(id)).
 			Delete(); exx != nil {
@@ -84,20 +88,34 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 	return err
 }
 
-func (biz *tagService) Sidebar(ctx context.Context) []*param.NameCount {
-	tbl := query.MinionTag
-	lifelong := int8(model.TkLifelong)
-	ipv4 := "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
-	ret := make([]*param.NameCount, 0, 100)
-	tbl.WithContext(ctx).
-		Where(tbl.Kind.Neq(lifelong)).
-		Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(ipv4)).
-		Group(tbl.Tag).
-		Order(tbl.Tag).
-		Limit(1000).
-		UnderlyingDB().
-		Select("COUNT(*) AS count", "`minion_tag`.`tag` AS name").
-		Scan(&ret)
+func (biz *tagService) Sidebar(ctx context.Context, req *param.TagSidebar) (param.NameCounts, error) {
+	tbl := biz.qry.MinionTag
+	dao := tbl.WithContext(ctx)
+	var conds []gen.Condition
+	if kw := req.Keyword; kw != "" {
+		kw = "%" + kw + "%"
+		conds = append(conds, tbl.Tag.Like(kw))
+	}
+	if !req.IPv4 {
+		lifelong := int8(model.TkLifelong)
+		regex := "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+		or := field.Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(regex))
+		conds = append(conds, tbl.Kind.Neq(lifelong), or)
+	}
 
-	return ret
+	ret := make(param.NameCounts, 0, 100)
+	name, count := ret.Aliases()
+	nameAlias := name.ColumnName().String()
+	countAlias := count.ColumnName().String()
+
+	if err := dao.Where(conds...).
+		Select(tbl.Tag.As(nameAlias), tbl.Tag.Count().As(countAlias)).
+		Group(tbl.Tag).
+		Order(count.Desc()).
+		Limit(100).
+		Scan(&ret); err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }

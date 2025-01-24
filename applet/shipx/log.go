@@ -46,6 +46,8 @@ func (s *shipLog) logf(level slog.Level, format string, args ...any) {
 		return
 	}
 
+	// s.log.Log(context.Background(), level, format, args...)
+
 	var not bool
 	attrs := make([]slog.Attr, 0, size)
 	for _, arg := range args {

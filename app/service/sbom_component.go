@@ -15,14 +15,18 @@ type SBOMComponentService interface {
 	Count(ctx context.Context, page param.Pager) (int64, []*param.NameCount)
 }
 
-func SBOMComponent() SBOMComponentService {
-	return &sbomComponentService{}
+func SBOMComponent(qry *query.Query) SBOMComponentService {
+	return &sbomComponentService{
+		qry: qry,
+	}
 }
 
-type sbomComponentService struct{}
+type sbomComponentService struct {
+	qry *query.Query
+}
 
 func (biz *sbomComponentService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMComponent) {
-	tbl := query.SBOMComponent
+	tbl := biz.qry.SBOMComponent
 	db := tbl.WithContext(ctx).
 		Order(tbl.TotalScore.Desc()).
 		UnderlyingDB().
@@ -40,7 +44,7 @@ func (biz *sbomComponentService) Page(ctx context.Context, page param.Pager, sco
 }
 
 func (biz *sbomComponentService) Project(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
-	tbl := query.SBOMComponent
+	tbl := biz.qry.SBOMComponent
 	db := tbl.WithContext(ctx).UnderlyingDB()
 	subSQL := db.Model(&model.SBOMComponent{}).
 		Distinct("project_id").
@@ -59,7 +63,7 @@ func (biz *sbomComponentService) Project(ctx context.Context, page param.Pager, 
 
 func (biz *sbomComponentService) Count(ctx context.Context, page param.Pager) (int64, []*param.NameCount) {
 	ret := make([]*param.NameCount, 0, 10)
-	tbl := query.SBOMComponent
+	tbl := biz.qry.SBOMComponent
 	count, _ := tbl.WithContext(ctx).Distinct(tbl.Name).Count()
 	if count == 0 {
 		return 0, ret

@@ -28,8 +28,9 @@ type AuthService interface {
 	Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error)
 }
 
-func Auth(verify VerifyService, lock LoginLockService, user UserService, oauth oauth2.Client) AuthService {
+func Auth(qry *query.Query, verify VerifyService, lock LoginLockService, user UserService, oauth oauth2.Client) AuthService {
 	return &authService{
+		qry:    qry,
 		verify: verify,
 		lock:   lock,
 		user:   user,
@@ -38,6 +39,7 @@ func Auth(verify VerifyService, lock LoginLockService, user UserService, oauth o
 }
 
 type authService struct {
+	qry    *query.Query
 	verify VerifyService
 	lock   LoginLockService
 	user   UserService
@@ -103,7 +105,7 @@ func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string
 		UID:       uid,
 		CreatedAt: time.Now(),
 	}
-	tbl := query.AuthTemp
+	tbl := svc.qry.AuthTemp
 	if _, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(user.ID)).Delete(); err != nil {
 		return "", false, err
 	}
@@ -116,12 +118,12 @@ func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string
 
 func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error) {
 	now := time.Now()
-	tempTbl := query.AuthTemp
+	tempTbl := svc.qry.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
 	if err != nil || temp.Expired(now, 3*time.Minute) {
 		return nil, errcode.ErrUnauthorized
 	}
-	userTbl := query.User
+	userTbl := svc.qry.User
 	user, err := userTbl.WithContext(ctx).
 		Where(userTbl.ID.Eq(temp.ID), userTbl.Enable.Is(true)).
 		First()
@@ -147,12 +149,12 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 
 func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.User, error) {
 	now := time.Now()
-	tempTbl := query.AuthTemp
+	tempTbl := svc.qry.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
 	if err != nil || temp.Expired(now, 3*time.Minute) {
 		return nil, errcode.ErrUnauthorized
 	}
-	userTbl := query.User
+	userTbl := svc.qry.User
 	user, err := userTbl.WithContext(ctx).
 		Where(userTbl.ID.Eq(temp.ID), userTbl.Enable.Is(true)).
 		First()
@@ -179,7 +181,7 @@ func (svc *authService) Oauth(ctx context.Context, req *param.AuthOauth) (*model
 	}
 
 	jobNumber := userinfo.SUB
-	tbl := query.User
+	tbl := svc.qry.User
 	user, err := tbl.WithContext(ctx).Where(tbl.Dong.Eq(jobNumber)).First()
 	if err != nil || !user.Enable {
 		return nil, errcode.ErrUnauthorized

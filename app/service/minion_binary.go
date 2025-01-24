@@ -25,20 +25,22 @@ type MinionBinaryService interface {
 	Update(ctx context.Context, req *param.MinionBinaryUpdate) error
 }
 
-func MinionBinary(pusher push.Pusher, gfs gridfs.FS) MinionBinaryService {
+func MinionBinary(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) MinionBinaryService {
 	return &minionBinaryService{
+		qry:    qry,
 		pusher: pusher,
 		gfs:    gfs,
 	}
 }
 
 type minionBinaryService struct {
+	qry    *query.Query
 	pusher push.Pusher
 	gfs    gridfs.FS
 }
 
 func (biz *minionBinaryService) Page1(ctx context.Context, page param.Pager) (int64, []*model.MinionBin) {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
 		dao.Where(tbl.Name.Like(kw)).
@@ -59,7 +61,7 @@ func (biz *minionBinaryService) Page1(ctx context.Context, page param.Pager) (in
 }
 
 func (biz *minionBinaryService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionBin) {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	db := tbl.WithContext(ctx).
 		Order(tbl.Weight.Desc()).
 		UnderlyingDB().
@@ -77,7 +79,7 @@ func (biz *minionBinaryService) Page(ctx context.Context, page param.Pager, scop
 }
 
 func (biz *minionBinaryService) Deprecate(ctx context.Context, id int64) error {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -97,7 +99,7 @@ func (biz *minionBinaryService) Deprecate(ctx context.Context, id int64) error {
 
 func (biz *minionBinaryService) Delete(ctx context.Context, id int64) error {
 	// 先查询数据
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	dao := tbl.WithContext(ctx).Where(tbl.ID.Eq(id))
 	old, err := dao.First()
 	if err != nil {
@@ -121,7 +123,7 @@ func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	defer file.Close()
 
 	semver := string(req.Semver)
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	// 检查该发行版是否已经存在
 	count, err := tbl.WithContext(ctx).
 		Where(tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch), tbl.Semver.Eq(semver), tbl.Customized.Eq(req.Customized)).
@@ -161,7 +163,7 @@ func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinar
 }
 
 func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
@@ -180,7 +182,7 @@ func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
 
 func (biz *minionBinaryService) Classify(ctx context.Context) ([]*param.MinionBinaryClassify, error) {
 	// 查询定制化版本的种类
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 
 	bins, err := tbl.WithContext(ctx).
 		Select(tbl.Goos, tbl.Arch, tbl.Customized).
@@ -211,7 +213,7 @@ func (biz *minionBinaryService) Classify(ctx context.Context) ([]*param.MinionBi
 }
 
 func (biz *minionBinaryService) Download(ctx context.Context, id int64) (gridfs.File, error) {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return nil, err
@@ -221,7 +223,7 @@ func (biz *minionBinaryService) Download(ctx context.Context, id int64) (gridfs.
 }
 
 func (biz *minionBinaryService) Update(ctx context.Context, req *param.MinionBinaryUpdate) error {
-	tbl := query.MinionBin
+	tbl := biz.qry.MinionBin
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
 		UpdateSimple(
@@ -239,7 +241,7 @@ func (biz *minionBinaryService) sendRelease(bin *model.MinionBin) {
 
 	semver := string(bin.Semver)
 	deleted := uint8(model.MSDelete)
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.BrokerID).
 		Where(

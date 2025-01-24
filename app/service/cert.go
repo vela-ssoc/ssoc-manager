@@ -19,14 +19,18 @@ type CertService interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-func Cert() CertService {
-	return &certService{}
+func Cert(qry *query.Query) CertService {
+	return &certService{
+		qry: qry,
+	}
 }
 
-type certService struct{}
+type certService struct {
+	qry *query.Query
+}
 
 func (biz *certService) Page(ctx context.Context, pager param.Pager) (int64, []*model.Certificate) {
-	tbl := query.Certificate
+	tbl := biz.qry.Certificate
 	dao := tbl.WithContext(ctx).
 		Order(tbl.ID)
 	if kw := pager.Keyword(); kw != "" {
@@ -42,7 +46,7 @@ func (biz *certService) Page(ctx context.Context, pager param.Pager) (int64, []*
 }
 
 func (biz *certService) Indices(ctx context.Context, idx param.Indexer) param.IDNames {
-	tbl := query.Certificate
+	tbl := biz.qry.Certificate
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
 		Order(tbl.ID)
@@ -100,13 +104,13 @@ func (biz *certService) Create(ctx context.Context, dat *param.CertCreate) error
 		NotAfter:       cert.NotAfter,
 	}
 
-	return query.Certificate.
+	return biz.qry.Certificate.
 		WithContext(ctx).
 		Create(insert)
 }
 
 func (biz *certService) Update(ctx context.Context, dat *param.CertUpdate) error {
-	tbl := query.Certificate
+	tbl := biz.qry.Certificate
 	old, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.CreatedAt).
 		Where(tbl.ID.Eq(dat.ID)).
@@ -164,7 +168,7 @@ func (biz *certService) Update(ctx context.Context, dat *param.CertUpdate) error
 }
 
 func (biz *certService) Delete(ctx context.Context, id int64) error {
-	tbl := query.Certificate
+	tbl := biz.qry.Certificate
 	_, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.CreatedAt).
 		Where(tbl.ID.Eq(id)).
@@ -174,7 +178,7 @@ func (biz *certService) Delete(ctx context.Context, id int64) error {
 	}
 
 	// 检查证书是否被使用
-	brkTbl := query.Broker
+	brkTbl := biz.qry.Broker
 	count, err := brkTbl.WithContext(ctx).Where(brkTbl.CertID.Eq(id)).Count()
 	if err != nil || count != 0 {
 		return errcode.ErrCertUsedByBroker

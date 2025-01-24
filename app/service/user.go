@@ -37,20 +37,22 @@ type UserService interface {
 	Totp(ctx context.Context, uid int64) error
 }
 
-func User(digest DigestService, sso ssoauth.Client) UserService {
+func User(qry *query.Query, digest DigestService, sso ssoauth.Client) UserService {
 	return &userService{
+		qry:    qry,
 		digest: digest,
 		sso:    sso,
 	}
 }
 
 type userService struct {
+	qry    *query.Query
 	digest DigestService
 	sso    ssoauth.Client
 }
 
 func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {
-	tbl := query.User
+	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable, tbl.AccessKey)
 	if kw := page.Keyword(); kw != "" {
@@ -69,7 +71,7 @@ func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, para
 }
 
 func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) param.UserSummaries {
-	tbl := query.User
+	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
 	if kw := indexer.Keyword(); kw != "" {
@@ -83,7 +85,7 @@ func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) para
 }
 
 func (biz *userService) Authenticate(ctx context.Context, uname, passwd string) (*model.User, error) {
-	tbl := query.User
+	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
 		Where(tbl.Enable.Is(true)).
@@ -108,7 +110,7 @@ func (biz *userService) Authenticate(ctx context.Context, uname, passwd string) 
 }
 
 func (biz *userService) Delete(ctx context.Context, id int64) error {
-	tbl := query.User
+	tbl := biz.qry.User
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		Delete()
@@ -123,7 +125,7 @@ func (biz *userService) Delete(ctx context.Context, id int64) error {
 
 func (biz *userService) Create(ctx context.Context, req *param.UserCreate, cid int64) error {
 	uname := req.Username
-	tbl := query.User
+	tbl := biz.qry.User
 	if count, _ := tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
 		Count(); count != 0 {
@@ -152,7 +154,7 @@ func (biz *userService) Create(ctx context.Context, req *param.UserCreate, cid i
 
 func (biz *userService) Sudo(ctx context.Context, req *param.UserSudo) (bool, error) {
 	// 查询用户信息
-	tbl := query.User
+	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).First()
 	if err != nil {
 		return false, err
@@ -180,7 +182,7 @@ func (biz *userService) Sudo(ctx context.Context, req *param.UserSudo) (bool, er
 }
 
 func (biz *userService) Passwd(ctx context.Context, id int64, original string, password string) error {
-	tbl := query.User
+	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()
@@ -207,7 +209,7 @@ func (biz *userService) Passwd(ctx context.Context, id int64, original string, p
 }
 
 func (biz *userService) AccessKey(ctx context.Context, id int64) error {
-	tbl := query.User
+	tbl := biz.qry.User
 	if count, _ := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Count(); count == 0 {
 		return errcode.ErrNotExist
 	}
@@ -229,7 +231,7 @@ func (biz *userService) AccessKey(ctx context.Context, id int64) error {
 }
 
 func (biz *userService) Totp(ctx context.Context, uid int64) error {
-	tbl := query.User
+	tbl := biz.qry.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(uid)).
 		UpdateSimple(tbl.TotpBind.Value(false), tbl.TotpSecret.Value(""))

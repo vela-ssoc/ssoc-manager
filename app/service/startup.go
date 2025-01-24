@@ -15,20 +15,22 @@ type StartupService interface {
 	Update(ctx context.Context, req *model.Startup) error
 }
 
-func Startup(store storage.Storer, pusher push.Pusher) StartupService {
+func Startup(qry *query.Query, store storage.Storer, pusher push.Pusher) StartupService {
 	return &startupService{
+		qry:    qry,
 		store:  store,
 		pusher: pusher,
 	}
 }
 
 type startupService struct {
+	qry    *query.Query
 	store  storage.Storer
 	pusher push.Pusher
 }
 
 func (biz *startupService) Detail(ctx context.Context, id int64) (*model.Startup, error) {
-	tbl := query.Startup
+	tbl := biz.qry.Startup
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err == nil {
 		return dat, nil
@@ -46,7 +48,7 @@ func (biz *startupService) Detail(ctx context.Context, id int64) (*model.Startup
 
 func (biz *startupService) Update(ctx context.Context, req *model.Startup) error {
 	// 查询节点状态
-	monTbl := query.Minion
+	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(req.ID)).
@@ -59,7 +61,7 @@ func (biz *startupService) Update(ctx context.Context, req *model.Startup) error
 	}
 
 	// 更新 startup
-	tbl := query.Startup
+	tbl := biz.qry.Startup
 	err = tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).Save(req)
 	if err == nil {
 		biz.pusher.Startup(ctx, mon.BrokerID, req.ID)

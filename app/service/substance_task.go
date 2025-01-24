@@ -25,8 +25,9 @@ type SubstanceTaskService interface {
 	Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
 }
 
-func SubstanceTask(seq SequenceService, pusher push.Pusher) SubstanceTaskService {
+func SubstanceTask(qry *query.Query, seq SequenceService, pusher push.Pusher) SubstanceTaskService {
 	return &substanceTaskService{
+		qry:     qry,
 		seq:     seq,
 		pusher:  pusher,
 		timeout: time.Hour,
@@ -34,6 +35,7 @@ func SubstanceTask(seq SequenceService, pusher push.Pusher) SubstanceTaskService
 }
 
 type substanceTaskService struct {
+	qry     *query.Query
 	seq     SequenceService
 	pusher  push.Pusher
 	timeout time.Duration
@@ -56,7 +58,7 @@ func (biz *substanceTaskService) Histories(ctx context.Context, page param.Pager
 }
 
 func (biz *substanceTaskService) page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	dao := tbl.WithContext(ctx).
 		Order(tbl.TaskID.Desc(), tbl.ID)
 	if id != 0 {
@@ -131,7 +133,7 @@ func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *param
 		"COUNT(IF(executed AND failed, TRUE, NULL)) AS failed " +
 		"FROM substance_task " +
 		"WHERE task_id = ?"
-	db := query.SubstanceTask.
+	db := biz.qry.SubstanceTask.
 		WithContext(ctx).
 		UnderlyingDB()
 	db.Raw(rawSQL, tid).Scan(ret)
@@ -148,7 +150,7 @@ func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page
 		return 0, nil
 	}
 
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	dao := tbl.WithContext(ctx)
 	cond := []gen.Condition{
 		dao.Where(tbl.TaskID.Eq(tid)),
@@ -179,7 +181,7 @@ func (biz *substanceTaskService) BusyError(ctx context.Context) error {
 
 func (biz *substanceTaskService) currentTaskID(ctx context.Context) int64 {
 	cat := time.Now().Add(-biz.timeout)
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	tsk, err := tbl.WithContext(ctx).
 		Where(tbl.CreatedAt.Gte(cat), tbl.Executed.Is(false)).
 		Order(tbl.ID.Desc()).
@@ -199,7 +201,7 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 	if du < 7*24*time.Hour {
 		du = 7 * 24 * time.Hour
 	}
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	_, _ = tbl.WithContext(ctx).
 		Where(tbl.CreatedAt.Lt(time.Now().Add(-du))).
 		Delete()
@@ -207,8 +209,8 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 	// 查询相关节点
 	limit := 500
 	var offsetID int64
-	tagTbl := query.MinionTag
-	monTbl := query.Minion
+	tagTbl := biz.qry.MinionTag
+	monTbl := biz.qry.Minion
 	bmap := make(map[int64]struct{}, 16)
 
 	for {
@@ -272,7 +274,7 @@ func (biz *substanceTaskService) insertInetTasks(tid int64, inets []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), biz.timeout)
 	defer cancel()
 
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	minions, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Inet, tbl.BrokerID, tbl.BrokerName).
 		Where(tbl.Inet.In(inets...)).
@@ -309,7 +311,7 @@ func (biz *substanceTaskService) insertInetTask(ctx context.Context, tid int64, 
 		hm[bid] = struct{}{}
 	}
 
-	tbl := query.SubstanceTask
+	tbl := biz.qry.SubstanceTask
 	err := tbl.WithContext(ctx).Create(rows...)
 
 	ret := make([]int64, 0, len(hm))

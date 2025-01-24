@@ -18,14 +18,18 @@ type RiskIPService interface {
 	Import(ctx context.Context, rii *param.RiskIPImport) error
 }
 
-func RiskIP() RiskIPService {
-	return &riskIPService{}
+func RiskIP(qry *query.Query) RiskIPService {
+	return &riskIPService{
+		qry: qry,
+	}
 }
 
-type riskIPService struct{}
+type riskIPService struct {
+	qry *query.Query
+}
 
 func (biz *riskIPService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskIP) {
-	tbl := query.RiskIP
+	tbl := biz.qry.RiskIP
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where)
@@ -41,14 +45,14 @@ func (biz *riskIPService) Page(ctx context.Context, page param.Pager, scope dyns
 }
 
 func (biz *riskIPService) Delete(ctx context.Context, ids []int64) error {
-	tbl := query.RiskIP
+	tbl := biz.qry.RiskIP
 	_, err := tbl.WithContext(ctx).Where(tbl.ID.In(ids...)).Delete()
 	return err
 }
 
 func (biz *riskIPService) Create(ctx context.Context, rc *param.RiskIPCreate) error {
 	dats := rc.Models()
-	tbl := query.RiskIP
+	tbl := biz.qry.RiskIP
 	return tbl.WithContext(ctx).
 		Clauses(clause.OnConflict{DoNothing: true}).
 		Create(dats...)
@@ -62,7 +66,7 @@ func (biz *riskIPService) Update(ctx context.Context, rc *param.RiskIPUpdate) er
 		Origin:   rc.Origin,
 		BeforeAt: rc.BeforeAt,
 	}
-	tbl := query.RiskIP
+	tbl := biz.qry.RiskIP
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(rc.ID)).
 		Updates(dat)
@@ -77,7 +81,7 @@ func (biz *riskIPService) Import(ctx context.Context, rii *param.RiskIPImport) e
 		conflict.DoNothing = false
 		conflict.DoUpdates = clause.AssignmentColumns([]string{"origin", "before_at", "updated_at"})
 	}
-	tbl := query.RiskIP
+	tbl := biz.qry.RiskIP
 
 	return tbl.WithContext(ctx).
 		Clauses(conflict).

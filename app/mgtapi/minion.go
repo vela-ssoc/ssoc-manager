@@ -15,7 +15,7 @@ import (
 	"gorm.io/gen/field"
 )
 
-func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
+func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) route.Router {
 	const (
 		idKey         = "minion.id"
 		tagKey        = "minion_tag.tag"
@@ -74,9 +74,9 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 			idcCol, ibuCol, commentCol, brkCol, dutyCol, catCol, upCol, idCol).
 		Build()
 
-	tbl := query.Minion
+	tbl := qry.Minion
 	likes := map[string]field.String{
-		tagKey:        query.MinionTag.Tag,
+		tagKey:        qry.MinionTag.Tag,
 		inetKey:       tbl.Inet,
 		editionKey:    tbl.Edition,
 		idcKey:        tbl.IDC,
@@ -89,6 +89,7 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 	}
 
 	return &minionREST{
+		qry:   qry,
 		hub:   hub,
 		svc:   svc,
 		table: table,
@@ -97,6 +98,7 @@ func Minion(hub linkhub.Huber, svc service.MinionService) route.Router {
 }
 
 type minionREST struct {
+	qry   *query.Query
 	hub   linkhub.Huber
 	svc   service.MinionService
 	table dynsql.Table

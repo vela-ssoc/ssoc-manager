@@ -11,14 +11,18 @@ type CmdbService interface {
 	Detail(ctx context.Context, id int64) *model.Cmdb2
 }
 
-func Cmdb() CmdbService {
-	return &cmdbService{}
+func Cmdb(qry *query.Query) CmdbService {
+	return &cmdbService{
+		qry: qry,
+	}
 }
 
-type cmdbService struct{}
+type cmdbService struct {
+	qry *query.Query
+}
 
 func (biz *cmdbService) Detail(ctx context.Context, id int64) *model.Cmdb2 {
-	tbl := query.Minion
+	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.Inet).
 		Where(tbl.ID.Eq(id)).
@@ -28,7 +32,7 @@ func (biz *cmdbService) Detail(ctx context.Context, id int64) *model.Cmdb2 {
 	}
 	inet := mon.Inet
 
-	cmdb2Tbl := query.Cmdb2
+	cmdb2Tbl := biz.qry.Cmdb2
 	dat, _ := cmdb2Tbl.WithContext(ctx).Where(cmdb2Tbl.Inet.Eq(inet)).First()
 
 	return dat

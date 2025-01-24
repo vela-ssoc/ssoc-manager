@@ -14,7 +14,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Risk(svc service.RiskService) route.Router {
+func Risk(qry *query.Query, svc service.RiskService) route.Router {
 	riskTypeCol := dynsql.StringColumn("risk_type", "风险类型").Build()
 	subjectCol := dynsql.StringColumn("subject", "主题").Build()
 	inetCol := dynsql.StringColumn("inet", "终端 IP").Build()
@@ -43,6 +43,7 @@ func Risk(svc service.RiskService) route.Router {
 }
 
 type riskREST struct {
+	qry   *query.Query
 	svc   service.RiskService
 	table dynsql.Table
 }
@@ -152,7 +153,7 @@ func (rest *riskREST) Pie(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	tx := query.Risk.WithContext(ctx).UnderlyingDB()
+	tx := rest.qry.Risk.WithContext(ctx).UnderlyingDB()
 	if rtype != "" {
 		tx = tx.Where("risk_type = ?", rtype)
 	}

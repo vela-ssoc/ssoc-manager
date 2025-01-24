@@ -13,14 +13,18 @@ type RiskDNSService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskDNS)
 }
 
-func RiskDNS() RiskDNSService {
-	return &riskDNSService{}
+func RiskDNS(qry *query.Query) RiskDNSService {
+	return &riskDNSService{
+		qry: qry,
+	}
 }
 
-type riskDNSService struct{}
+type riskDNSService struct {
+	qry *query.Query
+}
 
 func (biz *riskDNSService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskDNS) {
-	tbl := query.RiskDNS
+	tbl := biz.qry.RiskDNS
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64
 	if db.Count(&count); count == 0 {
