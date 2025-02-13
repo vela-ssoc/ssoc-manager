@@ -23,14 +23,14 @@
 package jsonc
 
 const (
-	charESCAPE   = 92
-	charQUOTE    = 34
-	charSPACE    = 32
-	charTAB      = 9
-	charNEWLINE  = 10
-	charASTERISK = 42
-	charSLASH    = 47
-	charHASH     = 35
+	charEscape   = '\\'
+	charQuote    = '"'
+	charSpace    = ' '
+	charTab      = 9
+	charNewline  = 10
+	charAsterisk = '*'
+	charSlash    = '/'
+	charHash     = '#'
 )
 
 func Translate(s []byte) []byte {
@@ -39,9 +39,9 @@ func Translate(s []byte) []byte {
 	var escaped bool
 
 	j := make([]byte, len(s))
-	comment := &commentData{}
+	comment := new(commentData)
 	for _, ch := range s {
-		if ch == charESCAPE || escaped {
+		if ch == charEscape || escaped {
 			if !comment.startted {
 				j[i] = ch
 				i++
@@ -49,13 +49,13 @@ func Translate(s []byte) []byte {
 			escaped = !escaped
 			continue
 		}
-		if ch == charQUOTE && !comment.startted {
+		if ch == charQuote && !comment.startted {
 			quote = !quote
 		}
-		if (ch == charSPACE || ch == charTAB) && !quote {
+		if (ch == charSpace || ch == charTab) && !quote {
 			continue
 		}
-		if ch == charNEWLINE {
+		if ch == charNewline {
 			if comment.isSingleLined {
 				comment.stop()
 			}
@@ -67,26 +67,26 @@ func Translate(s []byte) []byte {
 			continue
 		}
 		if comment.startted {
-			if ch == charASTERISK && !comment.isSingleLined {
+			if ch == charAsterisk && !comment.isSingleLined {
 				comment.canEnd = true
 				continue
 			}
-			if comment.canEnd && ch == charSLASH && !comment.isSingleLined {
+			if comment.canEnd && ch == charSlash && !comment.isSingleLined {
 				comment.stop()
 				continue
 			}
 			comment.canEnd = false
 			continue
 		}
-		if comment.canStart && (ch == charASTERISK || ch == charSLASH) {
+		if comment.canStart && (ch == charAsterisk || ch == charSlash) {
 			comment.start(ch)
 			continue
 		}
-		if ch == charSLASH {
+		if ch == charSlash {
 			comment.canStart = true
 			continue
 		}
-		if ch == charHASH {
+		if ch == charHash {
 			comment.start(ch)
 			continue
 		}
@@ -111,5 +111,5 @@ func (c *commentData) stop() {
 
 func (c *commentData) start(ch byte) {
 	c.startted = true
-	c.isSingleLined = ch == charSLASH || ch == charHASH
+	c.isSingleLined = ch == charSlash || ch == charHash
 }

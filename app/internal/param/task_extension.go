@@ -81,7 +81,7 @@ type TaskExtensionUpdatePublish struct {
 	PushSize      int             `json:"push_size"           validate:"gte=1,lte=10000"`
 	Timeout       model.Duration  `json:"timeout"`
 	Cron          string          `json:"cron"                validate:"omitempty,cron"`
-	SpecificTimes []time.Time     `json:"specific_times"      validate:"lte=100"`
+	SpecificTimes Times           `json:"specific_times"      validate:"lte=100"`
 	Enabled       bool            `json:"enabled"`
 	Filters       Strings         `json:"filters"             validate:"lte=100,dive,required,lte=100"`
 	Excludes      Strings         `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
@@ -96,4 +96,15 @@ func (s Strings) Value() (driver.Value, error) {
 func (s *Strings) Scan(src any) error {
 	bs, _ := src.([]byte)
 	return json.Unmarshal(bs, s)
+}
+
+type Times []time.Time
+
+func (ts *Times) Scan(src any) error {
+	bs, _ := src.([]byte)
+	return json.Unmarshal(bs, ts)
+}
+
+func (ts Times) Value() (driver.Value, error) {
+	return json.Marshal(ts)
 }

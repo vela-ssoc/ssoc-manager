@@ -2016,6 +2016,50 @@ paths:
           in: query
           name: keyword
           description: 搜索关键字
+  /task-executes:
+    get:
+      summary: 分页查询任务执行记录
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      operationId: get-task-executes
+      description: 分页查询任务执行记录
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - $ref: '#/components/parameters/keyword'
+  /task-execute/items:
+    get:
+      summary: 分页查询任务执行记录的节点列表
+      tags:
+        - 插件
+      responses: {}
+      operationId: get-task-execute-items
+      description: 分页查询任务执行记录的节点列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - schema:
+            type: integer
+            example: 123456
+          in: query
+          name: task_id
+          description: 任务ID
+          required: true
+        - schema:
+            type: integer
+            example: 111444555
+          in: query
+          name: exec_id
+          description: 执行ID
+          required: true
 components:
   securitySchemes:
     Authorization:
@@ -2204,6 +2248,36 @@ components:
       schema:
         type: boolean
       description: 是否倒序，结合 order 使用
+    page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 1
+        example: 1
+        minimum: 0
+      description: 页码
+    size:
+      name: size
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 10
+        example: 10
+        minimum: 0
+        maximum: 1000
+      description: 每页显示条数
+    keyword:
+      name: keyword
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 255
+        example: 测试
+      description: 模糊搜索关键字
   requestBodies: {}
 security:
   - Authorization: []

@@ -7,6 +7,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/request"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -23,6 +24,7 @@ type TaskExtension struct {
 func (tim *TaskExtension) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-extensions").Data(route.Ignore()).GET(tim.page)
 	// bearer.Route("/task-extension/market").Data(route.Ignore()).POST(tim.fromMarket)
+	bearer.Route("/task-extension/filter").Data(route.Ignore()).GET(tim.testFilter)
 	bearer.Route("/task-extension/code").
 		Data(route.Ignore()).POST(tim.createCode).
 		Data(route.Ignore()).PATCH(tim.updateCode)
@@ -107,4 +109,23 @@ func (tim *TaskExtension) updatePublish(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 
 	return tim.svc.UpdatePublish(ctx, req, cu)
+}
+
+func (tim *TaskExtension) testFilter(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return tim.svc.TestF(ctx, req.ID)
+}
+
+func (tim *TaskExtension) History(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+
+	return nil
 }

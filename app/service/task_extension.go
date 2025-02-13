@@ -16,20 +16,24 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/app/service/internal/taskexec"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen/field"
 )
 
-func NewTaskExtension(qry *query.Query, crontab *cronv3.Crontab) *TaskExtension {
+func NewTaskExtension(qry *query.Query, hub linkhub.Huber, crontab *cronv3.Crontab) *TaskExtension {
 	return &TaskExtension{
 		qry:     qry,
+		hub:     hub,
 		crontab: crontab,
 	}
 }
 
 type TaskExtension struct {
 	qry     *query.Query
+	hub     linkhub.Huber
 	crontab *cronv3.Crontab // 定时器
 }
 
@@ -118,7 +122,17 @@ func (tim *TaskExtension) FromCode(ctx context.Context, req *param.TaskExtension
 }
 
 func (tim *TaskExtension) Delete(ctx context.Context, id int64) error {
-	return nil
+	tbl := tim.qry.TaskExtension
+	_, err := tbl.WithContext(ctx).
+		Where(tbl.ID.Eq(id)).
+		Delete()
+
+	return err
+}
+
+func (tim *TaskExtension) TestF(ctx context.Context, id int64) error {
+	exec := taskexec.New(tim.qry, tim.hub)
+	return exec.Exec(ctx, id)
 }
 
 func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []*model.TaskExtension) {
@@ -136,25 +150,6 @@ func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []
 	dats, _ := dao.Scopes(page.Scope(count)).Find()
 
 	return count, dats
-}
-
-func (tim *TaskExtension) Release(ctx context.Context, req *param.TaskExtensionRelease) error {
-	//tbl := tim.qry.TaskExtension
-	//dao := tbl.WithContext(ctx)
-	//taskExt, err := dao.Where(tbl.ID.Eq(req.ID)).First()
-	//if err != nil {
-	//	return err
-	//}
-
-	return nil
-}
-
-func (tim *TaskExtension) CreateRelease(ctx context.Context) error {
-	return nil
-}
-
-func (tim *TaskExtension) UpdateRelease(ctx context.Context) error {
-	return nil
 }
 
 func (tim *TaskExtension) CreateCode(ctx context.Context, req *param.TaskExtensionCreateCode, cu *session.Ident) (*model.TaskExtension, error) {
@@ -310,6 +305,11 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExte
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
+	if cron := req.Cron; cron != "" {
+		data.Cron = cron
+	} else if sts := req.SpecificTimes; len(sts) != 0 {
+		data.SpecificTimes = sts
+	}
 
 	if code != "" {
 		sum := sha1.Sum([]byte(code))
@@ -359,7 +359,23 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExte
 		return errcode.ErrGenerateEmptyCode
 	}
 
-	return tim.qry.TaskExtension.WithContext(ctx).Create(data)
+	taskExtensionDo := tim.qry.TaskExtension.WithContext(ctx)
+	if err = taskExtensionDo.Create(data); err != nil || !enabled {
+		return err
+	}
+
+	cronName := tim.taskName(data.ID)
+	if cron := req.Cron; cron != "" {
+		tim.crontab.AddFunc(cronName, cron, tim.execute(data.ID))
+	} else if sts := req.SpecificTimes; len(sts) != 0 {
+		times := cronv3.NewSpecificTimes(sts)
+		tim.crontab.Schedule(cronName, times, tim.execute(data.ID))
+	} else {
+		exec := taskexec.New(tim.qry, tim.hub)
+		_ = exec.Exec(ctx, data.ExecID)
+	}
+
+	return nil
 }
 
 func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExtensionUpdatePublish, cu *session.Ident) error {
@@ -382,6 +398,13 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExte
 		tbl.UpdatedAt.Value(now),
 		tbl.Filters.Value(req.Filters),
 		tbl.Excludes.Value(req.Excludes),
+	}
+	if cron := req.Cron; cron != "" {
+		updates = append(updates, tbl.Cron.Value(cron), tbl.SpecificTimes.Value(nil))
+	} else if sts := req.SpecificTimes; len(sts) != 0 {
+		updates = append(updates, tbl.SpecificTimes.Value(sts), tbl.Cron.Value(""))
+	} else {
+		updates = append(updates, tbl.Cron.Value(""), tbl.SpecificTimes.Value(nil))
 	}
 
 	if old.Code != "" && code != "" {
@@ -450,4 +473,10 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExte
 
 func (tim *TaskExtension) taskName(id int64) string {
 	return "task-extension:" + strconv.FormatInt(id, 10)
+}
+
+func (tim *TaskExtension) execute(id int64) func() {
+	return func() {
+		taskexec.New(tim.qry, tim.hub).Exec(context.Background(), id)
+	}
 }

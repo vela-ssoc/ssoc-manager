@@ -80,6 +80,8 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 		model.SIEMServer{},
 		model.ExtensionMarket{},
 		model.ExtensionRecord{},
+		model.TaskExecute{},
+		model.TaskExecuteItem{},
 		model.TaskExtension{},
 	}
 	if err = db.AutoMigrate(tables...); err != nil {
@@ -206,7 +208,11 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	extensionMarketAPI := mgtapi.NewExtensionMarket(extensionMarketSvc)
 	extensionMarketAPI.Route(anon, bearer, basic)
 
-	taskExtensionSvc := service.NewTaskExtension(qry, crontab)
+	taskExecuteSvc := service.NewTaskExecute(qry)
+	taskExecuteAPI := mgtapi.NewTaskExecute(taskExecuteSvc)
+	taskExecuteAPI.Route(anon, bearer, basic)
+
+	taskExtensionSvc := service.NewTaskExtension(qry, huber, crontab)
 	taskExtensionAPI := mgtapi.NewTaskExtension(taskExtensionSvc)
 	taskExtensionAPI.Route(anon, bearer, basic)
 
