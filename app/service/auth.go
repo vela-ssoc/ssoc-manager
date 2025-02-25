@@ -12,7 +12,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/totp"
 	"github.com/vela-ssoc/vela-manager/errcode"
-	"github.com/vela-ssoc/vela-manager/oauth2"
+	"github.com/vela-ssoc/vela-manager/integration/oauth"
 )
 
 // AuthService 认证模块业务层
@@ -28,7 +28,7 @@ type AuthService interface {
 	Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error)
 }
 
-func Auth(qry *query.Query, verify VerifyService, lock LoginLockService, user UserService, oauth oauth2.Client) AuthService {
+func Auth(qry *query.Query, verify VerifyService, lock LoginLockService, user UserService, oauth oauth.Client) AuthService {
 	return &authService{
 		qry:    qry,
 		verify: verify,
@@ -43,7 +43,7 @@ type authService struct {
 	verify VerifyService
 	lock   LoginLockService
 	user   UserService
-	oauth  oauth2.Client
+	oauth  oauth.Client
 }
 
 func (svc *authService) Picture(ctx context.Context, uname string) (*param.AuthPicture, error) {

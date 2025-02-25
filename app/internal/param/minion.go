@@ -3,9 +3,8 @@ package param
 import (
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/dynsql"
 )
 
 type MinionCreate struct {
@@ -15,25 +14,25 @@ type MinionCreate struct {
 }
 
 type MinionSummary struct {
-	ID         int64              `json:"id,string"`
-	Inet       string             `json:"inet"`
-	Goos       string             `json:"goos"`
-	Edition    string             `json:"edition"`
-	Status     model.MinionStatus `json:"status"`
-	CPUCore    int                `json:"cpu_core"`
-	MemTotal   int                `json:"mem_total"`
-	MemFree    int                `json:"mem_free"`
-	DiskTotal  int                `json:"disk_total"`
-	DiskFree   int                `json:"disk_free"`
-	IDC        string             `json:"idc"`
-	IBu        string             `json:"ibu"`
-	Comment    string             `json:"comment"`
-	BrokerName string             `json:"broker_name"`
-	Unload     bool               `json:"unload"` // 是否不加载配置模式
-	Uptime     time.Time          `json:"uptime"` // 最近一次上线时间
-	Unstable   bool               `json:"unstable"`
-	Customized string             `json:"customized"`
-	Tags       []string           `json:"tags"`
+	ID         int64              `json:"id,string"   gorm:"column:id"`
+	Inet       string             `json:"inet"        gorm:"column:inet"`
+	Goos       string             `json:"goos"        gorm:"column:goos"`
+	Edition    string             `json:"edition"     gorm:"column:edition"`
+	Status     model.MinionStatus `json:"status"      gorm:"column:status"`
+	CPUCore    int                `json:"cpu_core"    gorm:"-"`
+	MemTotal   int                `json:"mem_total"   gorm:"-"`
+	MemFree    int                `json:"mem_free"    gorm:"-"`
+	DiskTotal  int                `json:"disk_total"  gorm:"-"`
+	DiskFree   int                `json:"disk_free"   gorm:"-"`
+	IDC        string             `json:"idc"         gorm:"column:idc"`
+	IBu        string             `json:"ibu"         gorm:"column:ibu"`
+	Comment    string             `json:"comment"     gorm:"column:comment"`
+	BrokerName string             `json:"broker_name" gorm:"column:broker_name"`
+	Unload     bool               `json:"unload"      gorm:"column:unload"`
+	Uptime     time.Time          `json:"uptime"      gorm:"column:uptime"`
+	Unstable   bool               `json:"unstable"    gorm:"column:unstable"`
+	Customized string             `json:"customized"  gorm:"column:customized"`
+	Tags       []string           `json:"tags"        gorm:"-"`
 }
 
 type MinionDetail struct {

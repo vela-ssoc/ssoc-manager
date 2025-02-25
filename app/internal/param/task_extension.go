@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 )
 
@@ -85,6 +87,13 @@ type TaskExtensionUpdatePublish struct {
 	Enabled       bool            `json:"enabled"`
 	Filters       Strings         `json:"filters"             validate:"lte=100,dive,required,lte=100"`
 	Excludes      Strings         `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
+}
+
+type TaskExtensionPublishFilter struct {
+	request.Keywords
+	request.CondWhereInputs
+	Tags    []string `json:"tags"    validate:"lte=1000"`
+	TagMode bool     `json:"tag_mode"`
 }
 
 type Strings []string

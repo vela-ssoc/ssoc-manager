@@ -23,7 +23,6 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 		editionKey    = "minion.edition"
 		idcKey        = "minion.idc"
 		ibuKey        = "minion.ibu"
-		commentKey    = "minion.`comment`"
 		customizedKey = "minion.customized"
 		statusKey     = "minion.status"
 		unloadKey     = "minion.unload"
@@ -43,7 +42,6 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 	verCol := dynsql.StringColumn(editionKey, "版本").Build()
 	idcCol := dynsql.StringColumn(idcKey, "机房").Build()
 	ibuCol := dynsql.StringColumn(ibuKey, "部门").Build()
-	commentCol := dynsql.StringColumn(commentKey, "描述").Build()
 	customizedCol := dynsql.StringColumn(customizedKey, "定制版本").Build()
 	statusEnums := dynsql.IntEnum().Set(1, "未激活").Set(2, "离线").
 		Set(3, "在线").Set(4, "已删除")
@@ -70,9 +68,10 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 	upCol := dynsql.TimeColumn(uptimeKey, "上线时间").Build()
 
 	table := dynsql.Builder().
-		Filters(tagCol, inetCol, goosCol, archCol, customizedCol, statusCol, unloadCol, verCol,
-			idcCol, ibuCol, commentCol, brkCol, dutyCol, catCol, upCol, idCol).
-		Build()
+		Filters(
+			tagCol, inetCol, goosCol, archCol, customizedCol, statusCol, unloadCol,
+			verCol, idcCol, ibuCol, brkCol, dutyCol, catCol, upCol, idCol,
+		).Build()
 
 	tbl := qry.Minion
 	likes := map[string]field.String{
@@ -81,7 +80,6 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 		editionKey:    tbl.Edition,
 		idcKey:        tbl.IDC,
 		ibuKey:        tbl.IBu,
-		commentKey:    tbl.Comment,
 		goosKey:       tbl.Goos,
 		archKey:       tbl.Arch,
 		brokerNameKey: tbl.BrokerName,
@@ -106,8 +104,8 @@ type minionREST struct {
 }
 
 func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
-	bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page)
+	// bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
+	// bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/minion").
 		Data(route.Ignore()).GET(rest.Detail).
 		Data(route.Named("新增 agent 节点")).POST(rest.Create).

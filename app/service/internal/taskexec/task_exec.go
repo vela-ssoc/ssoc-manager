@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"gorm.io/gen/field"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"gorm.io/gen"
+	"gorm.io/gen/field"
 )
 
 func New(qry *query.Query, hub linkhub.Huber) *TaskExec {
@@ -62,10 +61,10 @@ func (te *TaskExec) whereSQL(ctx context.Context, filters, excludes []string) []
 }
 
 func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
-	now := time.Now()
+	startedAt := time.Now()
 	var finished bool
 	var execID int64
-	status := model.TaskExecuteStatus{CreatedAt: now, UpdatedAt: now}
+	status := model.TaskExecuteStatus{CreatedAt: startedAt, UpdatedAt: startedAt}
 	brokerIDs := make(map[int64]int, 8)
 	err := te.qry.Transaction(func(tx *query.Query) error {
 		taskExtension, minion := tx.TaskExtension, tx.Minion
@@ -104,17 +103,29 @@ func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
 			Excludes:      task.Excludes,
 			CreatedBy:     task.CreatedBy,
 			UpdatedBy:     task.UpdatedBy,
-			CreatedAt:     now,
-			UpdatedAt:     now,
+			CreatedAt:     startedAt,
+			UpdatedAt:     startedAt,
 		}
 		if err = taskExecuteDo.Create(execute); err != nil {
 			return err
+		}
+
+		timeout := task.Timeout.Duration()
+		if timeout <= time.Minute {
+			timeout = 3 * time.Minute
+		} else if timeout > time.Hour {
+			timeout = 10*time.Minute + timeout
+		} else {
+			timeout = 2 * timeout
 		}
 
 		execID = execute.ID
 		const batchSize = 500
 		var buf []*model.Minion
 		if err = minionDo.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
+			now := time.Now()
+			expiredAt := now.Add(timeout)
+
 			items := make([]*model.TaskExecuteItem, 0, batchSize)
 			for _, m := range buf {
 				brokerIDs[m.BrokerID] += 1
@@ -125,6 +136,7 @@ func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
 					Inet:       m.Inet,
 					BrokerID:   m.BrokerID,
 					BrokerName: m.BrokerName,
+					ExpiredAt:  expiredAt,
 					CreatedAt:  now,
 					UpdatedAt:  now,
 				}
@@ -137,7 +149,7 @@ func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
 		}
 
 		_, err = taskExtensionDo.Where(taskExtension.ID.Eq(taskID)).
-			UpdateSimple(taskExtension.Status.Value(status), taskExtension.ExecID.Value(execID))
+			UpdateSimple(taskExtension.Status.Value(status), taskExtension.Finished.Value(false), taskExtension.ExecID.Value(execID))
 
 		return err
 	})
@@ -179,7 +191,76 @@ func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
 	taskExecute := te.qry.TaskExecute
 	taskExecute.WithContext(ctx).Where(taskExecute.ID.Eq(execID)).UpdateSimple(taskExecute.Status.Value(status), taskExecute.Finished.Value(finished))
 
+	if !finished {
+		go te.watchResult(24*time.Hour, taskID, execID, status)
+	}
+
 	return nil
+}
+
+func (te *TaskExec) watchResult(timeout time.Duration, taskID, execID int64, status model.TaskExecuteStatus) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	startedAt := time.Now()
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case now := <-ticker.C:
+			status.UpdatedAt = now
+			if te.scanResult(ctx, taskID, execID, status) {
+				return
+			}
+
+			if sub := now.Sub(startedAt); sub > time.Minute {
+				ticker.Reset(15 * time.Second)
+			} else if sub > 10*time.Minute {
+				ticker.Reset(30 * time.Second)
+			}
+		}
+	}
+}
+
+func (te *TaskExec) scanResult(ctx context.Context, taskID, execID int64, status model.TaskExecuteStatus) bool {
+	type countData struct {
+		Succeed int `gorm:"column:succeed"`
+		Failed  int `gorm:"column:failed"`
+		Total   int `gorm:"column:total"`
+	}
+	rawSQL := "SELECT COUNT(CASE WHEN finished = TRUE AND succeed = TRUE THEN TRUE END)  AS succeed," +
+		"    COUNT(CASE WHEN finished = TRUE AND succeed = FALSE THEN TRUE END) AS failed," +
+		"    COUNT(*)                                                           AS total " +
+		"FROM task_execute_item " +
+		"WHERE exec_id = ?"
+	data := new(countData)
+	taskExecuteItem := te.qry.TaskExecuteItem
+	err := taskExecuteItem.WithContext(ctx).
+		UnderlyingDB().
+		Raw(rawSQL, execID).
+		Scan(data).
+		Error
+	if err != nil {
+		return false
+	}
+
+	status.Total = data.Total
+	status.Succeed = data.Succeed
+	status.Failed = data.Failed
+	finished := data.Succeed+data.Failed >= data.Total
+
+	taskExecute := te.qry.TaskExecute
+	taskExtension := te.qry.TaskExtension
+	taskExtension.WithContext(ctx).
+		Where(taskExtension.ID.Eq(taskID), taskExtension.ExecID.Eq(execID)).
+		UpdateSimple(taskExtension.Status.Value(status), taskExtension.Finished.Value(finished))
+	taskExecute.WithContext(ctx).Where(taskExecute.ID.Eq(execID), taskExecute.TaskID.Eq(taskID)).
+		UpdateSimple(taskExecute.Status.Value(status), taskExecute.Finished.Value(finished))
+
+	return finished
 }
 
 // TaskExecuteData 任务执行时 broker 向 agent 下发的任务内容。
@@ -215,8 +296,8 @@ type TaskExecuteData struct {
 // TaskExecuteResult 任务执行完毕后 agent 向 broker 发送的回执。
 // agent 执行任务完后主动向 broker 发起一个 http 请求。
 type TaskExecuteResult struct {
-	ID     int64 `json:"id"`
-	ExecID int64 `json:"exec_id"`
-	// Result 响应结果
-	Result json.RawMessage `json:"result"`
+	ID      int64           `json:"id"`      // 任务 ID
+	ExecID  int64           `json:"exec_id"` // 执行 ID
+	Succeed int             `json:"succeed"` // 是否执行成功
+	Result  json.RawMessage `json:"result"`  // 成功结果（如果有的话）
 }

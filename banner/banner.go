@@ -22,6 +22,24 @@ func ANSI(w io.Writer) {
 		hostname, username, workdir, compileAt, commitAt, path, revision)
 }
 
+// SupportedANSI 通过客户端 UserAgent 判断是否支持 ANSI 字符。
+//
+// https://github.com/chubin/wttr.in/blob/355a515b1f9ea31b193cb9c1d3cef5e5dff07de9/internal/processor/processor.go#L24-L41
+// https://github.com/chubin/wttr.in/blob/355a515b1f9ea31b193cb9c1d3cef5e5dff07de9/internal/processor/processor.go#L322-L332
+func SupportedANSI(userAgent string) bool {
+	ua := strings.ToLower(userAgent)
+	for _, command := range []string{
+		"curl", "httpie", "lwp-request", "wget", "python-httpx", "python-requests",
+		"openbsd ftp", "powershell", "fetch", "aiohttp", "http_get", "xh", "nushell",
+	} {
+		if strings.Contains(ua, command) {
+			return true
+		}
+	}
+
+	return false
+}
+
 const ansiLogo = "\033[1;33m" +
 	"   ______________  _____  \n" +
 	"  / ___/ ___/ __ \\/ ___/ \n" +

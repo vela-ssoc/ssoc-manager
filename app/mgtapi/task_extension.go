@@ -23,6 +23,7 @@ type TaskExtension struct {
 
 func (tim *TaskExtension) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-extensions").Data(route.Ignore()).GET(tim.page)
+	bearer.Route("/task-extension").Data(route.Ignore()).DELETE(tim.remove)
 	// bearer.Route("/task-extension/market").Data(route.Ignore()).POST(tim.fromMarket)
 	bearer.Route("/task-extension/filter").Data(route.Ignore()).GET(tim.testFilter)
 	bearer.Route("/task-extension/code").
@@ -121,11 +122,12 @@ func (tim *TaskExtension) testFilter(c *ship.Context) error {
 	return tim.svc.TestF(ctx, req.ID)
 }
 
-func (tim *TaskExtension) History(c *ship.Context) error {
+func (tim *TaskExtension) remove(c *ship.Context) error {
 	req := new(request.Int64ID)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
+	ctx := c.Request().Context()
 
-	return nil
+	return tim.svc.Delete(ctx, req.ID)
 }

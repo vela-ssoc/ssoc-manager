@@ -14,7 +14,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"github.com/vela-ssoc/vela-manager/infra/config"
 	"github.com/vela-ssoc/vela-manager/profile"
 	"github.com/xgfone/ship/v5"
 	"golang.org/x/time/rate"
@@ -128,7 +127,6 @@ func (m *Mux) join(c *ship.Context) error {
 		Listen: Listen{
 			Addr: brk.Bind,
 		},
-		Logger:   config.Logger{},
 		Database: dbms.Config{},
 		Section:  Section{},
 	}

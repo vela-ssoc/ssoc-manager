@@ -3,20 +3,18 @@ package blink
 import (
 	"encoding/json"
 
-	"github.com/vela-ssoc/vela-common-mb/dbms"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
-	"github.com/vela-ssoc/vela-manager/infra/config"
+	"github.com/vela-ssoc/vela-manager/profile"
 )
 
 // Issue broker 节点认证成功后返回的信息
 type Issue struct {
-	Name     string        `json:"name"`     // broker 名字
-	Passwd   []byte        `json:"passwd"`   // 通信加解密密钥
-	Listen   Listen        `json:"listen"`   // 服务监听配置
-	Logger   config.Logger `json:"logger"`   // 日志配置
-	Database dbms.Config   `json:"database"` // 数据库配置
-	SIEM     config.SIEM   `json:"siem"`     // 对接 siem
-	Section  Section       `json:"section"`
+	Name     string           `json:"name"`     // broker 名字
+	Passwd   []byte           `json:"passwd"`   // 通信加解密密钥
+	Listen   Listen           `json:"listen"`   // 服务监听配置
+	Logger   profile.Logger   `json:"logger"`   // 日志配置
+	Database profile.Database `json:"database"` // 数据库配置
+	Section  Section          `json:"section"`
 }
 
 // String fmt.Stringer

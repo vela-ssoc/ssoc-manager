@@ -1682,6 +1682,17 @@ paths:
               required:
                 - name
     parameters: []
+    delete:
+      summary: 删除任务插件
+      operationId: delete-task-extension
+      responses:
+        '200':
+          description: OK
+      tags:
+        - 插件
+      description: 删除任务插件
+      parameters:
+        - $ref: '#/components/parameters/ID'
   /task-extension/market:
     post:
       summary: 扫描插件-从插件商店创建扫描任务
@@ -2040,7 +2051,9 @@ paths:
       summary: 分页查询任务执行记录的节点列表
       tags:
         - 插件
-      responses: {}
+      responses:
+        '200':
+          description: OK
       operationId: get-task-execute-items
       description: 分页查询任务执行记录的节点列表
       parameters:
@@ -2060,6 +2073,18 @@ paths:
           name: exec_id
           description: 执行ID
           required: true
+  /task-execute:
+    delete:
+      summary: 删除任务执行记录
+      operationId: delete-task-execute
+      responses:
+        '200':
+          description: OK
+      description: 删除任务执行记录
+      tags:
+        - 插件
+      parameters:
+        - $ref: '#/components/parameters/ID'
 components:
   securitySchemes:
     Authorization:

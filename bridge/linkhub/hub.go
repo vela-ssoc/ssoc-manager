@@ -20,7 +20,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
-	"github.com/vela-ssoc/vela-manager/infra/config"
+	"github.com/vela-ssoc/vela-manager/profile"
 )
 
 var (
@@ -53,7 +53,7 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(qry *query.Query, handler http.Handler, pool gopool.Pool, cfg config.Config) Huber {
+func New(qry *query.Query, handler http.Handler, pool gopool.Pool, cfg *profile.Config) Huber {
 	hub := &brokerHub{
 		qry:      qry,
 		name:     "manager",
@@ -76,7 +76,7 @@ type brokerHub struct {
 	qry      *query.Query
 	name     string
 	handler  http.Handler
-	config   config.Config
+	config   *profile.Config
 	client   netutil.HTTPClient
 	forward  netutil.Forwarder
 	streamer netutil.Streamer
@@ -130,8 +130,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 
 	issue.Name, issue.Passwd = brk.Name, passwd
 	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
-	issue.SIEM = hub.config.SIEM
-	issue.Section.CDN = hub.config.Section.CDN
+	issue.Section.CDN = hub.config.Server.CDN
 
 	return issue, nil, nil
 }

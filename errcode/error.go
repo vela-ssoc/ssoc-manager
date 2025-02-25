@@ -42,6 +42,7 @@ var (
 	ErrInetAddress          = ship.ErrBadRequest.Newf("inet 地址无效")
 	ErrAlreadyExist         = ship.ErrBadRequest.Newf("数据已存在")
 	ErrNotExist             = ship.ErrBadRequest.Newf("数据不存在")
+	ErrEditRunningTask      = ship.ErrBadRequest.Newf("任务运行中不允许修改")
 )
 
 type Errorf interface {

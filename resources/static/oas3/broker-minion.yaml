@@ -1,0 +1,152 @@
+openapi: 3.1.0
+x-stoplight:
+  id: mlmbob1yaykxs
+info:
+  title: Broker 与 Agent 接口交互文档
+  version: 25.2.14
+  summary: 本接口文档用于定义 ssoc 项目 broker 与 agent 节点之间的接口数据交互。
+  description: 本接口文档用于定义 `ssoc` 项目 broker 与 agent 节点之间的接口数据交互。
+  contact:
+    name: WangZY
+    url: 'https://github.com/vela-ssoc'
+    email: nil@example.com
+  termsOfService: 'https://github.com/vela-ssoc'
+servers:
+  - url: 'http://172.31.61.168:8082/api/v1'
+    description: 开发环境BROKER
+  - url: /api/v1
+    description: 当前服务
+tags:
+  - name: ⤵️ Broker 调用 Agent
+    description: Broker 调用 Agent 接口
+  - name: ⤴️ Agent 调用 Broker
+    description: Agent 调用 Broker 接口
+paths:
+  /agent/task/push:
+    post:
+      summary: 单次任务下发
+      operationId: post-agent-task-push
+      responses:
+        '200':
+          description: OK
+      description: '单次任务下发。Agent 执行完任务后请调用 [【单次任务执行结果上报】](post-broker-task-report)。'
+      tags:
+        - ⤵️ Broker 调用 Agent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  x-stoplight:
+                    id: n0xag2p85ttn4
+                  description: 任务ID
+                  example: 150403586
+                exec_id:
+                  type: integer
+                  x-stoplight:
+                    id: 96b4dz13l2930
+                  example: 1110647087104
+                  description: 执行ID，每条任务可以被多次触发执行，每次执行时，都会生成一个唯一执行ID。
+                name:
+                  type: string
+                  x-stoplight:
+                    id: cxb0paetuhst5
+                  description: 任务名（不要依赖任务名作唯一性标识）
+                  example: 周浦 Log4J 扫描任务
+                intro:
+                  type: string
+                  x-stoplight:
+                    id: 2iufqp3t8e5pv
+                  description: 任务简介
+                  example: 这里是任务说明简介，帮助用户理解该程序。
+                code:
+                  type: string
+                  x-stoplight:
+                    id: rv8bkdtp32ctg
+                  description: Lua 执行脚本
+                  example: print ("Hello World!")
+                code_sha1:
+                  type: string
+                  x-stoplight:
+                    id: wi6ykh83euy2i
+                  example: 60276e28748021db42fa4abe6253c64b5c4c0957
+                  description: Lua 脚本的 SHA1 校验值
+                timeout:
+                  type: integer
+                  x-stoplight:
+                    id: yej6gc3qyedbe
+                  description: 任务执行超时控制，单位纳秒（可以用 `time.Duration` 类型接收）。该值可能小于等于 0，即：未设置超时时间。那么 agent 端也应该根据经验设置一个合理的超时时间作为兜底策略，防止任务无限期运行。
+                  example: 300000000000
+              required:
+                - id
+                - exec_id
+                - name
+                - code
+                - code_sha1
+        description: ''
+  /broker/task/report:
+    post:
+      summary: 单次任务执行结果上报
+      operationId: post-broker-task-report
+      responses:
+        '200':
+          description: OK
+      tags:
+        - ⤴️ Agent 调用 Broker
+      description: '该接口是执行完 [【单次任务下发】](post-agent-task-push) 后结果上报接口。'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  x-stoplight:
+                    id: 0xuqhaj6zuxjj
+                  description: 任务ID
+                  example: 150403586
+                exec_id:
+                  type: integer
+                  x-stoplight:
+                    id: izfqdoz59ca9p
+                  example: 1110647087104
+                  description: 执行ID
+                succeed:
+                  type: boolean
+                  x-stoplight:
+                    id: 6meplsvvytrt0
+                  description: 是否执行成功，由 agent 端来定性该任务是成功还是失败。
+                reason:
+                  type: string
+                  x-stoplight:
+                    id: b96usl7mkccej
+                  description: 错误信息或其它附加消息
+                  example: 运行超时
+                result:
+                  type: object
+                  x-stoplight:
+                    id: g4oz70ant8739
+                  description: 任务运行结果，任意 JSON 格式数据（可以无结果）
+              required:
+                - id
+                - exec_id
+                - succeed
+            examples:
+              示例:
+                value:
+                  id: 150403586
+                  exec_id: 1110647087104
+                  succeed: true
+                  reason: 任务超时
+                  result:
+                    os: Windows Server 2025 Datacenter Evaluation
+                    cpu: Intel(R) Core(TM) i5-8500 CPU @ 3.00GHz   3.00 GHz
+                    inet: 172.31.25.54
+components:
+  schemas: {}
+  securitySchemes: {}
+  requestBodies: {}

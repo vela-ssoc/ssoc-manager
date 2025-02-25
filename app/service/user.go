@@ -10,9 +10,9 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/integration/casauth"
 	"gorm.io/gen/field"
 )
 
@@ -37,7 +37,7 @@ type UserService interface {
 	Totp(ctx context.Context, uid int64) error
 }
 
-func User(qry *query.Query, digest DigestService, sso ssoauth.Client) UserService {
+func User(qry *query.Query, digest DigestService, sso casauth.Client) UserService {
 	return &userService{
 		qry:    qry,
 		digest: digest,
@@ -48,7 +48,7 @@ func User(qry *query.Query, digest DigestService, sso ssoauth.Client) UserServic
 type userService struct {
 	qry    *query.Query
 	digest DigestService
-	sso    ssoauth.Client
+	sso    casauth.Client
 }
 
 func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {

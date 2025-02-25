@@ -37,6 +37,9 @@ type TaskExtension struct {
 	crontab *cronv3.Crontab // 定时器
 }
 
+func (tim *TaskExtension) Init(ctx context.Context) {
+}
+
 func (tim *TaskExtension) FromMarket(ctx context.Context, req *param.TaskExtensionFromMarket, cu *session.Ident) error {
 	eid, now := req.ExtensionID, time.Now()
 	mktTbl := tim.qry.ExtensionMarket
@@ -371,8 +374,7 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExte
 		times := cronv3.NewSpecificTimes(sts)
 		tim.crontab.Schedule(cronName, times, tim.execute(data.ID))
 	} else {
-		exec := taskexec.New(tim.qry, tim.hub)
-		_ = exec.Exec(ctx, data.ExecID)
+		go tim.execute(data.ID)()
 	}
 
 	return nil
@@ -388,6 +390,10 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExte
 	old, err := dao.Where(tbl.ID.Eq(req.ID)).First()
 	if err != nil {
 		return err
+	}
+	// 立即执行的任务，运行中不允许修改。
+	if !old.Finished && old.Status != nil && old.Cron == "" && len(old.SpecificTimes) == 0 {
+		return errcode.ErrEditRunningTask
 	}
 
 	updates := []field.AssignExpr{
@@ -463,12 +469,24 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExte
 		return errcode.ErrGenerateEmptyCode
 	}
 
-	_, err = tim.qry.TaskExtension.
+	if _, err = tim.qry.TaskExtension.
 		WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
-		UpdateSimple(updates...)
+		UpdateSimple(updates...); err != nil || !req.Enabled {
+		return err
+	}
 
-	return err
+	cronName := tim.taskName(req.ID)
+	if cron := req.Cron; cron != "" {
+		tim.crontab.AddFunc(cronName, cron, tim.execute(req.ID))
+	} else if sts := req.SpecificTimes; len(sts) != 0 {
+		times := cronv3.NewSpecificTimes(sts)
+		tim.crontab.Schedule(cronName, times, tim.execute(req.ID))
+	} else {
+		go tim.execute(req.ID)()
+	}
+
+	return nil
 }
 
 func (tim *TaskExtension) taskName(id int64) string {

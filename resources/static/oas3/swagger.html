@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Swagger</title>
+    <!--<link rel="icon" href="spec/favicon.ico">-->
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css"/>
+</head>
+<body>
+
+<!--
+
+div{
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin: -50px 0 0 -50px;
+}
+
+-->
+
+<div id="prompt" style="width: 700px; height: auto; margin: 0 auto;">
+    <div style="font-size: 24px">
+        正在打开接口文档，请稍候.....
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+    </div>
+
+    <div>
+        如果网页长时间停留此处，请检查 swagger-ui-bundle.js 和 swagger-ui-standalone-preset.js
+        是否加载成功。<br/><br/><br/>
+
+
+        本项目的 SwaggerUI 采用的是 <a
+            href="https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/installation.md#unpkg"
+            target="_blank"> unpkg
+        方式部署</a>，
+        该方式部署的 javascript 资源来源于<a href="https://unpkg.com" target="_blank"> unpkg 网站 </a>，由于 unpkg
+        在国外，偶尔出现访问波动。
+        等待一段时间后即可恢复正常。
+        <br/>
+        <br/>
+        <br/>
+        如果你是开发者，可采用<a
+            href="https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/installation.md#plain-old-htmlcssjs-standalone"
+            target="_blank">本地离线</a>方式部署，
+        访问就不会受到 unpkg 网站的影响。
+    </div>
+</div>
+
+
+<div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js" crossorigin></script>
+<script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js" crossorigin></script>
+
+<script>
+    const queries = new URLSearchParams(window.location.search);
+    const spec = queries.get('spec');
+
+    window.onload = () => {
+        window.ui = SwaggerUIBundle({
+            url: spec,
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            // layout: "StandaloneLayout",
+            layout: "BaseLayout",
+        });
+        // 加载成功后隐藏提示语
+        document.getElementById("prompt").style.display = "none";
+    };
+</script>
+</body>
+</html>

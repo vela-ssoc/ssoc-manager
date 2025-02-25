@@ -7,19 +7,30 @@
     // 证书和私钥，当两个都有值时，才会以 https 启动服务。
     "cert": "resources/tls/server.pem",
     "pkey": "resources/tls/server.key",
+    // 登录用户 session 有效期。
+    "session": "72h",
+    // 文件下载节点缓存路径。
+    "cdn": "resources/cdn",
     // 虚拟主机头，留空代表不校验主机头。
     "vhosts": [
       "ssoc.example.com",
       "10.34.56.78"
     ]
   },
+  "oauth": {
+    "cas": "",
+    "url": "",
+    "client_id": "",
+    "client_secret": "",
+    "redirect_url": ""
+  },
   "database": {
     // Data Source Name 数据库数据源。
     // 支持配置 OpenGauss 和 MySQL，会根据 dsn 字段自适应数据库。
+    // Example:
+    //    - OpenGauss: opengauss://username:password@db.example.com:15432/ssoc
+    //    - MySQL: username:password@tcp(db.example.com:3306)/ssoc?parseTime=True&timeout=10s
     "dsn": "opengauss://username:password@db.example.com:15432/ssoc",
-    // MySQL 示例：
-    // "dsn": "username:password@tcp(db.example.com:3306)/ssoc?parseTime=True&timeout=10s"
-    // ------------------------------------------------------------------
     // 日志输出级别：DEBUG INFO WARN ERROR，不填写则按照 logger.level 输出。
     // 和 logger 公用一个日志输出位置。
     "level": "WARN",

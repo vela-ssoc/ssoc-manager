@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/infra/config"
+	"github.com/vela-ssoc/vela-manager/profile"
 )
 
 type application struct {
-	cfg     config.Config
+	cfg     *profile.Config
 	handler http.Handler
 	parent  context.Context
 }

@@ -2,8 +2,9 @@ package launch
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,13 +16,12 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
+	"github.com/vela-ssoc/vela-common-mb/httpx"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
-	"github.com/vela-ssoc/vela-common-mb/integration/ssoauth"
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mb/sqldb"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
@@ -33,71 +33,80 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/applet/shipx"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
-	"github.com/vela-ssoc/vela-manager/httpx"
-	"github.com/vela-ssoc/vela-manager/infra/config"
-	"github.com/vela-ssoc/vela-manager/infra/profile"
-	"github.com/vela-ssoc/vela-manager/oauth2"
+	"github.com/vela-ssoc/vela-manager/confload"
+	"github.com/vela-ssoc/vela-manager/integration/casauth"
+	"github.com/vela-ssoc/vela-manager/integration/oauth"
+	"github.com/vela-ssoc/vela-manager/profile"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func Run(ctx context.Context, path string, log logback.Logger) error {
-	var cfg config.Config
-	if err := profile.Load(path, &cfg); err != nil {
-		return err
-	}
-
-	app, err := newApp(ctx, cfg, log)
+func Run(ctx context.Context, path string) error {
+	cfg, err := profile.JSONC(path)
 	if err != nil {
 		return err
 	}
 
-	return app.run()
+	return runApp(ctx, cfg)
 }
 
-func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*application, error) {
-	dbCfg := cfg.Database
-	zapLog := cfg.Logger.Zap()
-	log.Replace(zapLog)
+func runApp(ctx context.Context, cfg *profile.Config) error {
+	logCfg := cfg.Logger
+	logWriter := logCfg.Writer()
+	//goland:noinspection GoUnhandledErrorResult
+	defer logWriter.Close()
+	logLevel := new(slog.LevelVar) // 可动态修改的日志级别
+	if err := logLevel.UnmarshalText([]byte(logCfg.Level)); err != nil {
+		logLevel.Set(slog.LevelInfo)
+	}
+	logOption := &slog.HandlerOptions{AddSource: true, Level: logLevel}
+	logHandler := slog.NewJSONHandler(logWriter, logOption)
+	log := slog.New(logHandler)
+	log.Info("日志组件初始化完毕")
 
-	ormLog, _ := sqldb.NewLog(os.Stdout, logger.Config{LogLevel: logger.Info})
-	ormCfg := &gorm.Config{Logger: ormLog}
-	db, _, err := sqldb.Open(dbCfg.DSN, slog.Default(), ormCfg)
+	dbCfg := cfg.Database
+	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: cfg.GormLevel()})
+	gormCfg := &gorm.Config{Logger: gormLog}
+	db, gauss, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	sdb, err := db.DB()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer sdb.Close() // 程序结束时断开数据库连接。
 
-	tables := []any{
-		model.AlertServer{},
-		model.SIEMServer{},
-		model.ExtensionMarket{},
-		model.ExtensionRecord{},
-		model.TaskExecute{},
-		model.TaskExecuteItem{},
-		model.TaskExtension{},
+	sdb.SetMaxOpenConns(dbCfg.MaxOpenConn)
+	sdb.SetMaxIdleConns(dbCfg.MaxIdleConn)
+	sdb.SetConnMaxLifetime(dbCfg.MaxLifeTime.Duration())
+	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
+
+	if gauss {
+		log.Warn("当前连接的是 OpenGauss 信创数据库")
+	} else {
+		log.Warn("当前连接的是 MySQL 数据库")
 	}
-	if err = db.AutoMigrate(tables...); err != nil {
-		return nil, err
+	if dbCfg.Migrate { // 迁移合并数据库
+		if err = db.WithContext(ctx).AutoMigrate(model.All()...); err != nil {
+			return err
+		}
 	}
 
 	qry := query.Use(db)
-	secCfg := cfg.Section
-
 	var gfs gridfs.FS
-	if dir := secCfg.CDN; dir == "" {
+	if dir := cfg.Server.CDN; dir == "" {
 		gfs = gridfs.NewFS(sdb)
 	} else {
 		cdn := filepath.Clean(dir)
 		if err = os.MkdirAll(cdn, os.ModePerm); err != nil {
-			return nil, err
+			return err
 		}
 		gfs = gridfs.NewCache(sdb, cdn)
 	}
@@ -110,11 +119,11 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	recordMid := middle.Oplog(routeRecord)
 
 	prob := problem.NewHandle(name)
-	sess := session.DBSess(qry, secCfg.Sess)
+	sess := session.DBSess(qry, cfg.Server.Session.Duration())
 	valid := validate.New()
 
 	sh := ship.Default()
-	sh.Logger = log
+	sh.Logger = shipx.NewLog(log)
 	sh.Session = sess
 	sh.Validator = valid
 	sh.NotFound = prob.NotFound
@@ -139,9 +148,16 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 
 	// 初始化协程池
 	pool := gopool.NewV2(8192)
-	crontab := cronv3.New()
-	crontab.Start()
-	defer crontab.Stop()
+	crond := cronv3.New(log)
+	crond.Start()
+	defer crond.Stop()
+	{
+		buf := make([]byte, 50)
+		_, _ = rand.Read(buf)
+		bgName := "background-cleanup-" + hex.EncodeToString(buf)
+		spec := cronv3.NewPeriodicallyTimes(time.Hour)
+		crond.Schedule(bgName, spec, crond.Cleanup)
+	}
 
 	// ==========[ broker begin ] ==========
 	brkmux := ship.Default()
@@ -162,9 +178,12 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	blinkREST := mgtapi.Blink(brkHandle) // 构造 REST 层
 	blinkREST.Route(anon, bearer, basic) // 注册路由用于调用
 	if err = huber.ResetDB(); err != nil {
-		return nil, err
+		return err
 	}
 	// ==========[ broker end ] ==========
+
+	httpClient := httpx.NewClient()
+	casClient := casauth.NewClient(confload.NewCASConfig(cfg.Oauth.CAS), httpClient, log)
 
 	emcService := service.Emc(qry, pusher)
 	emcREST := mgtapi.Emc(emcService)
@@ -174,24 +193,21 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	ssoCfg := ssoauth.NewConfigure(store)
-	ssoCli := ssoauth.NewClient(ssoCfg, client, log)
-	userService := service.User(qry, digestService, ssoCli)
+	userService := service.User(qry, digestService, casClient)
 	userREST := mgtapi.User(userService)
 	userREST.Route(anon, bearer, basic)
 
 	verifyService := service.Verify(qry, 3, dongCli, store, log) // 验证码 3 分钟有效期
 	loginLockService := service.LoginLock(qry, time.Hour, 10)    // 每小时错误 10 次就锁定账户
 
-	httpxCli := httpx.Client{Client: http.DefaultClient}
-	oauthCli := oauth2.NewClient(cfg.Oauth, httpxCli)
-
-	authService := service.Auth(qry, verifyService, loginLockService, userService, oauthCli)
+	oauthCfg := confload.NewOauthConfig(cfg.Oauth.URL, cfg.Oauth.ClientID, cfg.Oauth.ClientSecret, cfg.Oauth.RedirectURL)
+	oauthClient := oauth.NewClient(oauthCfg, httpClient, log)
+	authService := service.Auth(qry, verifyService, loginLockService, userService, oauthClient)
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 
 	cmdbCfg := cmdb.NewConfigure(store)
-	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client, log)
+	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client)
 	minionService := service.Minion(qry, cmdbClient, pusher)
 	minionREST := mgtapi.Minion(qry, huber, minionService)
 	minionREST.Route(anon, bearer, basic)
@@ -208,11 +224,19 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	extensionMarketAPI := mgtapi.NewExtensionMarket(extensionMarketSvc)
 	extensionMarketAPI.Route(anon, bearer, basic)
 
-	taskExecuteSvc := service.NewTaskExecute(qry)
+	taskExecuteSvc := service.NewTaskExecute(qry, log)
 	taskExecuteAPI := mgtapi.NewTaskExecute(taskExecuteSvc)
 	taskExecuteAPI.Route(anon, bearer, basic)
 
-	taskExtensionSvc := service.NewTaskExtension(qry, huber, crontab)
+	{
+		crond.Schedule("timeout", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {
+			cctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+			defer cancel()
+			taskExecuteSvc.TimeoutMonitor(cctx)
+		})
+	}
+
+	taskExtensionSvc := service.NewTaskExtension(qry, huber, crond)
 	taskExtensionAPI := mgtapi.NewTaskExtension(taskExtensionSvc)
 	taskExtensionAPI.Route(anon, bearer, basic)
 
@@ -365,6 +389,12 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	minionCustomizedREST := mgtapi.MinionCustomized(minionCustomizedService)
 	minionCustomizedREST.Route(anon, bearer, basic)
 
+	minionFilterSvc, err := service.NewMinionFilter(qry)
+	if err != nil {
+		return err
+	}
+	mgtapi.NewMinionFilter(minionFilterSvc).Route(anon, bearer, basic)
+
 	emailService := service.Email(qry, pusher)
 	emailREST := mgtapi.Email(emailService)
 	emailREST.Route(anon, bearer, basic)
@@ -382,7 +412,7 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 	synchro := vulnsync.New(db, sona)
 	mgtapi.Manual(synchro).Route(anon, bearer, basic)
 
-	cmdb2Client := cmdb2.NewClient(cfg.Section.Cmdb2, client)
+	cmdb2Client := cmdb2.NewClient(cfg.Cmdb2, client)
 	cmdb2Service := service.Cmdb2(qry, cmdb2Client)
 	mgtapi.Cmdb2(cmdb2Service).Route(anon, bearer, basic)
 
@@ -402,5 +432,5 @@ func newApp(ctx context.Context, cfg config.Config, log logback.Logger) (*applic
 		parent:  ctx,
 	}
 
-	return app, nil
+	return app.run()
 }

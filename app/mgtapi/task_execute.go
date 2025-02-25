@@ -21,6 +21,7 @@ type TaskExecute struct {
 
 func (tex *TaskExecute) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-executes").Data(route.Ignore()).GET(tex.page)
+	bearer.Route("/task-execute").Data(route.Ignore()).DELETE(tex.remove)
 	bearer.Route("/task-execute/items").Data(route.Ignore()).GET(tex.items)
 }
 
@@ -50,4 +51,14 @@ func (tex *TaskExecute) items(c *ship.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, res)
+}
+
+func (tex *TaskExecute) remove(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return tex.svc.Remove(ctx, req.ID)
 }

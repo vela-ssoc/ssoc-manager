@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"log/slog"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
-	"github.com/vela-ssoc/vela-common-mb/logback"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/modview"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -32,7 +32,7 @@ type VerifyService interface {
 	Submit(ctx context.Context, uname, captID, dongCode string) error
 }
 
-func Verify(qry *query.Query, minute int, dcli dong.Client, store storage.Storer, slog logback.Logger) VerifyService {
+func Verify(qry *query.Query, minute int, dcli dong.Client, store storage.Storer, log *slog.Logger) VerifyService {
 	capt := captcha.NewCaptcha()
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if minute < 1 || minute > 10 {
@@ -41,7 +41,7 @@ func Verify(qry *query.Query, minute int, dcli dong.Client, store storage.Storer
 
 	return &verifyService{
 		qry:    qry,
-		slog:   slog,
+		log:    log,
 		minute: minute,
 		dcli:   dcli,
 		store:  store,
@@ -54,7 +54,7 @@ func Verify(qry *query.Query, minute int, dcli dong.Client, store storage.Storer
 
 type verifyService struct {
 	qry    *query.Query
-	slog   logback.Logger
+	log    *slog.Logger
 	minute int // 验证码有效分钟
 	dcli   dong.Client
 	store  storage.Storer
@@ -136,7 +136,7 @@ func (vs *verifyService) DongCode(ctx context.Context, uname, captID string, vie
 
 	title, body := vs.store.LoginDong(ctx, view)
 	if err = vs.dcli.Send(ctx, []string{user.Dong}, nil, title, body); err != nil {
-		vs.slog.Warnf("发送咚咚验证码错误：%s", err)
+		vs.log.WarnContext(ctx, "发送咚咚验证码错误", slog.Any("error", err))
 	}
 
 	return err
