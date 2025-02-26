@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
@@ -119,7 +120,7 @@ func (rest *minionLogonREST) Alert(*ship.Context) error {
 }
 
 func (rest *minionLogonREST) Ignore(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

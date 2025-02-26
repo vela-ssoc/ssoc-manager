@@ -3,10 +3,12 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -43,7 +45,7 @@ func (eff *effectREST) Page(c *ship.Context) error {
 }
 
 func (eff *effectREST) Create(c *ship.Context) error {
-	var req param.EffectCreate
+	var req mrequest.EffectCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -54,7 +56,7 @@ func (eff *effectREST) Create(c *ship.Context) error {
 	if err != nil {
 		return err
 	}
-	res := &param.IntID{
+	res := &request.Int64ID{
 		ID: taskID,
 	}
 
@@ -62,7 +64,7 @@ func (eff *effectREST) Create(c *ship.Context) error {
 }
 
 func (eff *effectREST) Update(c *ship.Context) error {
-	var req param.EffectUpdate
+	var req mrequest.EffectUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -73,7 +75,7 @@ func (eff *effectREST) Update(c *ship.Context) error {
 	if err != nil {
 		return err
 	}
-	res := &param.IntID{
+	res := &request.Int64ID{
 		ID: taskID,
 	}
 
@@ -81,7 +83,7 @@ func (eff *effectREST) Update(c *ship.Context) error {
 }
 
 func (eff *effectREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -91,7 +93,7 @@ func (eff *effectREST) Delete(c *ship.Context) error {
 	if err != nil {
 		return err
 	}
-	res := &param.IntID{ID: tid}
+	res := &request.Int64ID{ID: tid}
 
 	return c.JSON(http.StatusOK, res)
 }
@@ -109,7 +111,7 @@ func (eff *effectREST) Progress(c *ship.Context) error {
 }
 
 func (eff *effectREST) Progresses(c *ship.Context) error {
-	var req param.EffectProgressesRequest
+	var req mrequest.EffectProgressesRequest
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

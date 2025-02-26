@@ -3,9 +3,11 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -56,7 +58,7 @@ func (rest *certREST) Indices(c *ship.Context) error {
 }
 
 func (rest *certREST) Create(c *ship.Context) error {
-	var req param.CertCreate
+	var req mrequest.CertCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func (rest *certREST) Create(c *ship.Context) error {
 }
 
 func (rest *certREST) Update(c *ship.Context) error {
-	var req param.CertUpdate
+	var req mrequest.CertUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -78,7 +80,7 @@ func (rest *certREST) Update(c *ship.Context) error {
 }
 
 func (rest *certREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

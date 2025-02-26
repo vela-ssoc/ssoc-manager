@@ -12,15 +12,15 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
-	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/modview"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/wenlng/go-captcha/captcha"
 )
 
 type VerifyService interface {
 	// Picture 生成图片验证码
-	Picture(ctx context.Context, uname string) (*param.AuthPicture, error)
+	Picture(ctx context.Context, uname string) (*mrequest.AuthPicture, error)
 
 	// Verify 验证图片验证码是否正确，并返回是否需要多因子认证
 	Verify(ctx context.Context, uname, captID string, points []*image.Point) (factor bool, err error)
@@ -65,7 +65,7 @@ type verifyService struct {
 	valids map[string]*validInfo
 }
 
-func (vs *verifyService) Picture(ctx context.Context, uname string) (*param.AuthPicture, error) {
+func (vs *verifyService) Picture(ctx context.Context, uname string) (*mrequest.AuthPicture, error) {
 	dots, lb64, sb64, captID, err := vs.capt.Generate()
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (vs *verifyService) Picture(ctx context.Context, uname string) (*param.Auth
 	}
 
 	vs.storeValidInfo(points, uname, captID, factor)
-	pic := &param.AuthPicture{
+	pic := &mrequest.AuthPicture{
 		ID:    captID,
 		Board: lb64,
 		Thumb: sb64,

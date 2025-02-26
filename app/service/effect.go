@@ -6,18 +6,20 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type EffectService interface {
-	Page(ctx context.Context, page param.Pager) (int64, []*param.EffectSummary)
-	Create(ctx context.Context, ec *param.EffectCreate, userID int64) (int64, error)
-	Update(ctx context.Context, eu *param.EffectUpdate, userID int64) (int64, error)
+	Page(ctx context.Context, page param.Pager) (int64, []*mrequest.EffectSummary)
+	Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error)
+	Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error)
 	Delete(ctx context.Context, submitID int64) (int64, error)
-	Progress(ctx context.Context, tid int64) *param.EffectProgress
-	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
+	Progress(ctx context.Context, tid int64) *mrequest.EffectProgress
+	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
 }
 
 func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
@@ -37,7 +39,7 @@ type effectService struct {
 	mutex  sync.RWMutex
 }
 
-func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []*param.EffectSummary) {
+func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []*mrequest.EffectSummary) {
 	effTbl := eff.qry.Effect
 	dao := effTbl.WithContext(ctx).Distinct(effTbl.SubmitID)
 	if kw := page.Keyword(); kw != "" {
@@ -64,8 +66,8 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 	}
 
 	tagMap := make(map[int64]map[string]struct{}, size)
-	idx := make(map[int64]*param.EffectSummary, size)
-	ret := make([]*param.EffectSummary, 0, size)
+	idx := make(map[int64]*mrequest.EffectSummary, size)
+	ret := make([]*mrequest.EffectSummary, 0, size)
 
 	subIDs := make([]int64, 0, 20)
 	subMap := make(map[int64]struct{}, 20)
@@ -75,15 +77,15 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 		id, tag, eid := e.SubmitID, e.Tag, e.EffectID
 		sm, ok := idx[id]
 		if !ok {
-			sm = &param.EffectSummary{
+			sm = &mrequest.EffectSummary{
 				ID:         id,
 				Name:       e.Name,
 				Tags:       make([]string, 0, 10),
 				Enable:     e.Enable,
 				Version:    e.Version,
 				Exclusion:  e.Exclusion,
-				Compounds:  make([]*param.IDName, 0, 10),
-				Substances: make([]*param.IDName, 0, 10),
+				Compounds:  make(request.IDNames, 0, 10),
+				Substances: make(request.IDNames, 0, 10),
 				CreatedAt:  e.CreatedAt,
 				UpdatedAt:  e.UpdatedAt,
 			}
@@ -101,7 +103,7 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 		}
 		if _, exist := effSubMap[id][eid]; !exist {
 			effSubMap[id][eid] = struct{}{}
-			sm.Substances = append(sm.Substances, &param.IDName{ID: eid})
+			sm.Substances = append(sm.Substances, &request.IDName{ID: eid})
 		}
 
 		if _, exist := subMap[eid]; !exist {
@@ -136,7 +138,7 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 	return count, ret
 }
 
-func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, userID int64) (int64, error) {
+func (eff *effectService) Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
@@ -168,7 +170,7 @@ func (eff *effectService) Create(ctx context.Context, ec *param.EffectCreate, us
 	return eff.task.AsyncTags(ctx, ec.Tags)
 }
 
-func (eff *effectService) Update(ctx context.Context, eu *param.EffectUpdate, userID int64) (int64, error) {
+func (eff *effectService) Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
@@ -272,12 +274,12 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 }
 
 // Progress 任务进度
-func (eff *effectService) Progress(ctx context.Context, tid int64) *param.EffectProgress {
+func (eff *effectService) Progress(ctx context.Context, tid int64) *mrequest.EffectProgress {
 	return eff.task.Progress(ctx, tid)
 }
 
 // Progresses 获取当前最后一次运行的任务信息
-func (eff *effectService) Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask) {
+func (eff *effectService) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
 	return eff.task.Progresses(ctx, tid, page)
 }
 

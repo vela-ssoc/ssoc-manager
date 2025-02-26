@@ -3,11 +3,12 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
-	"github.com/vela-ssoc/vela-manager/param/request"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -24,8 +25,6 @@ type TaskExtension struct {
 func (tim *TaskExtension) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-extensions").Data(route.Ignore()).GET(tim.page)
 	bearer.Route("/task-extension").Data(route.Ignore()).DELETE(tim.remove)
-	// bearer.Route("/task-extension/market").Data(route.Ignore()).POST(tim.fromMarket)
-	bearer.Route("/task-extension/filter").Data(route.Ignore()).GET(tim.testFilter)
 	bearer.Route("/task-extension/code").
 		Data(route.Ignore()).POST(tim.createCode).
 		Data(route.Ignore()).PATCH(tim.updateCode)
@@ -48,7 +47,7 @@ func (tim *TaskExtension) page(c *ship.Context) error {
 }
 
 func (tim *TaskExtension) fromMarket(c *ship.Context) error {
-	req := new(param.TaskExtensionFromMarket)
+	req := new(mrequest.TaskExtensionFromMarket)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -59,7 +58,7 @@ func (tim *TaskExtension) fromMarket(c *ship.Context) error {
 }
 
 func (tim *TaskExtension) createCode(c *ship.Context) error {
-	req := new(param.TaskExtensionCreateCode)
+	req := new(mrequest.TaskExtensionCreateCode)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -75,7 +74,7 @@ func (tim *TaskExtension) createCode(c *ship.Context) error {
 }
 
 func (tim *TaskExtension) updateCode(c *ship.Context) error {
-	req := new(param.TaskExtensionUpdateCode)
+	req := new(mrequest.TaskExtensionUpdateCode)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (tim *TaskExtension) updateCode(c *ship.Context) error {
 }
 
 func (tim *TaskExtension) createPublish(c *ship.Context) error {
-	req := new(param.TaskExtensionCreatePublish)
+	req := new(mrequest.TaskExtensionCreatePublish)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -102,7 +101,7 @@ func (tim *TaskExtension) createPublish(c *ship.Context) error {
 }
 
 func (tim *TaskExtension) updatePublish(c *ship.Context) error {
-	req := new(param.TaskExtensionUpdatePublish)
+	req := new(mrequest.TaskExtensionUpdatePublish)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -110,16 +109,6 @@ func (tim *TaskExtension) updatePublish(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 
 	return tim.svc.UpdatePublish(ctx, req, cu)
-}
-
-func (tim *TaskExtension) testFilter(c *ship.Context) error {
-	req := new(request.Int64ID)
-	if err := c.BindQuery(req); err != nil {
-		return err
-	}
-	ctx := c.Request().Context()
-
-	return tim.svc.TestF(ctx, req.ID)
 }
 
 func (tim *TaskExtension) remove(c *ship.Context) error {

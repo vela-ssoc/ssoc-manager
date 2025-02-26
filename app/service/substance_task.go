@@ -11,14 +11,15 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen"
 )
 
 type SubstanceTaskService interface {
 	AsyncTags(ctx context.Context, tags []string) (int64, error)
 	AsyncInets(ctx context.Context, inets []string) (int64, error)
-	Progress(ctx context.Context, tid int64) *param.EffectProgress
-	Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask)
+	Progress(ctx context.Context, tid int64) *mrequest.EffectProgress
+	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
 	BusyError(ctx context.Context) error
 
 	Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
@@ -118,8 +119,8 @@ func (biz *substanceTaskService) AsyncInets(ctx context.Context, inets []string)
 	return tid, nil
 }
 
-func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *param.EffectProgress {
-	ret := new(param.EffectProgress)
+func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *mrequest.EffectProgress {
+	ret := new(mrequest.EffectProgress)
 	if tid <= 0 {
 		tid = biz.currentTaskID(ctx)
 	}
@@ -142,7 +143,7 @@ func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *param
 }
 
 // Progresses 获取当前最后一次运行的任务信息
-func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page param.Pager) (int64, []*model.SubstanceTask) {
+func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
 	if tid <= 0 {
 		tid = biz.currentTaskID(ctx)
 	}

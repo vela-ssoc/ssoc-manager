@@ -7,15 +7,17 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type CertService interface {
 	Page(ctx context.Context, pager param.Pager) (int64, []*model.Certificate)
-	Indices(ctx context.Context, idx param.Indexer) param.IDNames
-	Create(ctx context.Context, dat *param.CertCreate) error
-	Update(ctx context.Context, dat *param.CertUpdate) error
+	Indices(ctx context.Context, idx param.Indexer) request.IDNames
+	Create(ctx context.Context, dat *mrequest.CertCreate) error
+	Update(ctx context.Context, dat *mrequest.CertUpdate) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -45,7 +47,7 @@ func (biz *certService) Page(ctx context.Context, pager param.Pager) (int64, []*
 	return count, dats
 }
 
-func (biz *certService) Indices(ctx context.Context, idx param.Indexer) param.IDNames {
+func (biz *certService) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
 	tbl := biz.qry.Certificate
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
@@ -54,13 +56,13 @@ func (biz *certService) Indices(ctx context.Context, idx param.Indexer) param.ID
 		dao.Where(tbl.Name.Like(kw))
 	}
 
-	var dats param.IDNames
+	var dats request.IDNames
 	_ = dao.Scopes(idx.Scope).Scan(&dats)
 
 	return dats
 }
 
-func (biz *certService) Create(ctx context.Context, dat *param.CertCreate) error {
+func (biz *certService) Create(ctx context.Context, dat *mrequest.CertCreate) error {
 	// 检查证书与私钥是否匹配
 	pair, err := tls.X509KeyPair([]byte(dat.Certificate), []byte(dat.PrivateKey))
 	if err != nil || len(pair.Certificate) == 0 {
@@ -109,7 +111,7 @@ func (biz *certService) Create(ctx context.Context, dat *param.CertCreate) error
 		Create(insert)
 }
 
-func (biz *certService) Update(ctx context.Context, dat *param.CertUpdate) error {
+func (biz *certService) Update(ctx context.Context, dat *mrequest.CertUpdate) error {
 	tbl := biz.qry.Certificate
 	old, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.CreatedAt).

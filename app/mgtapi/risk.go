@@ -7,10 +7,12 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -158,7 +160,7 @@ func (rest *riskREST) Pie(c *ship.Context) error {
 		tx = tx.Where("risk_type = ?", rtype)
 	}
 
-	res := &param.PieTopN{TopN: make([]*param.NameCount, 0, topN)}
+	res := &mrequest.PieTopN{TopN: make(request.NameCounts, 0, topN)}
 	var count int64
 	if tx.Count(&count); count == 0 {
 		return c.JSON(http.StatusOK, res)
@@ -233,7 +235,7 @@ func (rest *riskREST) Process(c *ship.Context) error {
 }
 
 func (rest *riskREST) HTML(c *ship.Context) error {
-	var req param.ViewHTML
+	var req mrequest.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -246,14 +248,12 @@ func (rest *riskREST) HTML(c *ship.Context) error {
 }
 
 func (rest *riskREST) Payloads(c *ship.Context) error {
-	var req param.RiskPayloadRequest
+	var req mrequest.RiskPayloadRequest
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	pager := req.Pager()
-
 	days := req.Days
 	if days <= 0 {
 		days = 1
@@ -261,11 +261,10 @@ func (rest *riskREST) Payloads(c *ship.Context) error {
 	now := time.Now()
 	start := now.Add(-time.Duration(days) * time.Hour * 24)
 
-	count, ret, err := rest.svc.Payloads(ctx, pager, start, now, req.RiskType)
+	ret, err := rest.svc.Payloads(ctx, req.Pages, start, now, req.RiskType)
 	if err != nil {
 		return err
 	}
-	res := pager.Result(count, ret)
 
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, ret)
 }

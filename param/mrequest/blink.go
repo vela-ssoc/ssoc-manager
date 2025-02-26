@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 type BlinkAlert struct {
 	UserIDs  []string `json:"user_ids"`

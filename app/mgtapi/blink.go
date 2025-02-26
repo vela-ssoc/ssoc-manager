@@ -1,9 +1,9 @@
 package mgtapi
 
 import (
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -27,7 +27,7 @@ func (lnk *blinkREST) Join(c *ship.Context) error {
 }
 
 func (lnk *blinkREST) Alert(c *ship.Context) error {
-	req := new(param.BlinkAlert)
+	req := new(mrequest.BlinkAlert)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"mime/multipart"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type NodeBinaryCreate struct {
@@ -30,7 +31,7 @@ type MinionBinaryStructure struct {
 }
 
 type MinionBinaryUpdate struct {
-	IntID
+	request.Int64ID
 	Changelog string `json:"changelog" validate:"lte=65500"`
 	Caution   string `json:"caution"   validate:"lte=65500"`
 	Ability   string `json:"ability"   validate:"lte=65500"`

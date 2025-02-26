@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 import "github.com/vela-ssoc/vela-common-mb/dal/model"
 

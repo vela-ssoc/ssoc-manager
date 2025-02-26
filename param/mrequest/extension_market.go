@@ -1,6 +1,9 @@
-package param
+package mrequest
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import (
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+)
 
 type ExtensionMarketCreate struct {
 	Name      string `json:"name"      validate:"required,lte=100"`
@@ -21,7 +24,7 @@ type ExtensionMarketPage struct {
 }
 
 type ExtensionMarketUpdate struct {
-	IntID
+	request.Int64ID
 	Intro     string `json:"intro"     validate:"lte=1000"`
 	Content   string `json:"content"   validate:"required,lte=65535"`
 	Changelog string `json:"changelog" validate:"lte=65535"`

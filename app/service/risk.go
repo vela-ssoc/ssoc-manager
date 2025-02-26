@@ -8,21 +8,24 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/vela-common-mb/param/response"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type RiskService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Risk)
-	Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack)
-	Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount)
-	Recent(ctx context.Context, day int) *param.RecentCharts
+	Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*mrequest.RiskAttack)
+	Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, request.NameCounts)
+	Recent(ctx context.Context, day int) *mrequest.RecentCharts
 	Delete(ctx context.Context, scope dynsql.Scope) error
 	Ignore(ctx context.Context, scope dynsql.Scope) error
 	Process(ctx context.Context, scope dynsql.Scope) error
 	HTML(ctx context.Context, id int64, secret string) *bytes.Buffer
-	Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error)
+	Payloads(ctx context.Context, page request.Pages, start, end time.Time, riskType string) (*response.Pages[*mrequest.RiskPayload], error)
 }
 
 func Risk(qry *query.Query, store storage.Storer) RiskService {
@@ -55,7 +58,7 @@ func (biz *riskService) Page(ctx context.Context, page param.Pager, scope dynsql
 	return count, ret
 }
 
-func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.RiskAttack) {
+func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*mrequest.RiskAttack) {
 	db := biz.qry.Risk.WithContext(ctx).UnderlyingDB().
 		Scopes(scope.Where).
 		Group("remote_ip, subject")
@@ -65,7 +68,7 @@ func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dyns
 		return 0, nil
 	}
 
-	var dats []*param.RiskAttack
+	var dats []*mrequest.RiskAttack
 	db.Select("remote_ip", "subject", "COUNT(*) AS count").
 		Order("count DESC").
 		Scopes(page.DBScope(count)).
@@ -74,7 +77,7 @@ func (biz *riskService) Attack(ctx context.Context, page param.Pager, scope dyns
 	return count, dats
 }
 
-func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.NameCount) {
+func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, request.NameCounts) {
 	groupBy := scope.GroupColumn()
 	db := biz.qry.Risk.WithContext(ctx).UnderlyingDB()
 
@@ -83,7 +86,7 @@ func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsq
 		return 0, nil
 	}
 
-	var dats []*param.NameCount
+	var dats request.NameCounts
 	db.Select(groupBy+" AS name", "COUNT(*) AS count").
 		Scopes(scope.Where).
 		Scopes(scope.GroupBy).
@@ -94,14 +97,14 @@ func (biz *riskService) Group(ctx context.Context, page param.Pager, scope dynsq
 	return count, dats
 }
 
-func (biz *riskService) Recent(ctx context.Context, day int) *param.RecentCharts {
+func (biz *riskService) Recent(ctx context.Context, day int) *mrequest.RecentCharts {
 	rawSQL := "SELECT a.date, a.risk_type, COUNT(*) AS count " +
 		"FROM (SELECT DATE_FORMAT(occur_at, '%m-%d') AS date, risk_type " +
 		"FROM risk " +
 		"WHERE DATE_FORMAT(occur_at, '%Y-%m-%d') > DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL ? DAY), '%Y-%m-%d')) a " +
 		"GROUP BY a.date, a.risk_type"
 
-	var temps param.RiskRecentTemps
+	var temps mrequest.RiskRecentTemps
 	biz.qry.Risk.WithContext(ctx).
 		UnderlyingDB().
 		Raw(rawSQL, day).
@@ -153,7 +156,7 @@ func (biz *riskService) HTML(ctx context.Context, id int64, secret string) *byte
 	return biz.store.RiskHTML(ctx, rsk)
 }
 
-func (biz *riskService) Payloads(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*param.RiskPayload, error) {
+func (biz *riskService) PayloadsBAK(ctx context.Context, page param.Pager, start, end time.Time, riskType string) (int64, []*mrequest.RiskPayload, error) {
 	tbl := biz.qry.Risk
 	dao := tbl.WithContext(ctx).
 		Distinct(tbl.Payload).
@@ -168,10 +171,38 @@ func (biz *riskService) Payloads(ctx context.Context, page param.Pager, start, e
 		return 0, nil, err
 	}
 
-	var ret []*param.RiskPayload
+	var ret []*mrequest.RiskPayload
 	err = dao.Scopes(page.Scope(count)).UnderlyingDB().
 		Select("DISTINCT(payload)", "id", "occur_at").
 		Find(&ret).Error
 
 	return count, ret, err
+}
+
+func (biz *riskService) Payloads(ctx context.Context, page request.Pages, start, end time.Time, riskType string) (*response.Pages[*mrequest.RiskPayload], error) {
+	tbl := biz.qry.Risk
+	dao := tbl.WithContext(ctx).
+		Distinct(tbl.Payload).
+		Where(tbl.OccurAt.Between(start, end)).
+		Order(tbl.ID.Desc())
+	if riskType != "" {
+		dao.Where(tbl.RiskType.Eq(riskType))
+	}
+
+	pages := response.NewPages[*mrequest.RiskPayload](page.PageSize())
+	cnt, err := dao.Count()
+	if err != nil {
+		return nil, err
+	} else if cnt == 0 {
+		return pages.Empty(), nil
+	}
+
+	records := make([]*mrequest.RiskPayload, 0, 10)
+	if err = dao.Scopes(pages.FP(cnt)).
+		Select(tbl.Payload.Distinct(), tbl.ID, tbl.OccurAt).
+		Scan(&records); err != nil {
+		return nil, err
+	}
+
+	return pages.SetRecords(records), nil
 }

@@ -6,14 +6,14 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type ThirdCustomizedService interface {
 	List(ctx context.Context) []*model.ThirdCustomized
-	Create(ctx context.Context, req *param.ThirdCustomizedCreate) error
-	Update(ctx context.Context, req *param.ThirdCustomizedUpdate) error
+	Create(ctx context.Context, req *mrequest.ThirdCustomizedCreate) error
+	Update(ctx context.Context, req *mrequest.ThirdCustomizedUpdate) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -34,7 +34,7 @@ func (svc *thirdCustomizedService) List(ctx context.Context) []*model.ThirdCusto
 	return ret
 }
 
-func (svc *thirdCustomizedService) Create(ctx context.Context, req *param.ThirdCustomizedCreate) error {
+func (svc *thirdCustomizedService) Create(ctx context.Context, req *mrequest.ThirdCustomizedCreate) error {
 	// 查询定制总数
 	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
@@ -52,7 +52,7 @@ func (svc *thirdCustomizedService) Create(ctx context.Context, req *param.ThirdC
 	return tbl.WithContext(ctx).Create(dat)
 }
 
-func (svc *thirdCustomizedService) Update(ctx context.Context, req *param.ThirdCustomizedUpdate) error {
+func (svc *thirdCustomizedService) Update(ctx context.Context, req *mrequest.ThirdCustomizedUpdate) error {
 	// 查询定制总数
 	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {

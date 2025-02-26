@@ -20,6 +20,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/session"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen/field"
 )
 
@@ -40,7 +41,7 @@ type TaskExtension struct {
 func (tim *TaskExtension) Init(ctx context.Context) {
 }
 
-func (tim *TaskExtension) FromMarket(ctx context.Context, req *param.TaskExtensionFromMarket, cu *session.Ident) error {
+func (tim *TaskExtension) FromMarket(ctx context.Context, req *mrequest.TaskExtensionFromMarket, cu *session.Ident) error {
 	eid, now := req.ExtensionID, time.Now()
 	mktTbl := tim.qry.ExtensionMarket
 	market, err := mktTbl.WithContext(ctx).
@@ -97,7 +98,7 @@ func (tim *TaskExtension) FromMarket(ctx context.Context, req *param.TaskExtensi
 	return tim.qry.TaskExtension.WithContext(ctx).Create(data)
 }
 
-func (tim *TaskExtension) FromCode(ctx context.Context, req *param.TaskExtensionFromCode, cu *session.Ident) error {
+func (tim *TaskExtension) FromCode(ctx context.Context, req *mrequest.TaskExtensionFromCode, cu *session.Ident) error {
 	now, code := time.Now(), req.Code
 	sum := sha1.Sum([]byte(code))
 	codeSHA1 := hex.EncodeToString(sum[:])
@@ -133,11 +134,6 @@ func (tim *TaskExtension) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (tim *TaskExtension) TestF(ctx context.Context, id int64) error {
-	exec := taskexec.New(tim.qry, tim.hub)
-	return exec.Exec(ctx, id)
-}
-
 func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []*model.TaskExtension) {
 	tbl := tim.qry.TaskExtension
 	dao := tbl.WithContext(ctx)
@@ -155,7 +151,7 @@ func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []
 	return count, dats
 }
 
-func (tim *TaskExtension) CreateCode(ctx context.Context, req *param.TaskExtensionCreateCode, cu *session.Ident) (*model.TaskExtension, error) {
+func (tim *TaskExtension) CreateCode(ctx context.Context, req *mrequest.TaskExtensionCreateCode, cu *session.Ident) (*model.TaskExtension, error) {
 	code, now := req.Code, time.Now()
 	operator := model.Operator{ID: cu.ID, Nickname: cu.Nickname, Username: cu.Username}
 	data := &model.TaskExtension{
@@ -207,7 +203,7 @@ func (tim *TaskExtension) CreateCode(ctx context.Context, req *param.TaskExtensi
 	return data, err
 }
 
-func (tim *TaskExtension) UpdateCode(ctx context.Context, req *param.TaskExtensionUpdateCode, cu *session.Ident) (*model.TaskExtension, error) {
+func (tim *TaskExtension) UpdateCode(ctx context.Context, req *mrequest.TaskExtensionUpdateCode, cu *session.Ident) (*model.TaskExtension, error) {
 	tbl := tim.qry.TaskExtension
 	dao := tbl.WithContext(ctx)
 	// 查询已存在的数据
@@ -289,7 +285,7 @@ func (tim *TaskExtension) UpdateCode(ctx context.Context, req *param.TaskExtensi
 	return dao.Where(tbl.ID.Eq(req.ID)).First()
 }
 
-func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExtensionCreatePublish, cu *session.Ident) error {
+func (tim *TaskExtension) CreatePublish(ctx context.Context, req *mrequest.TaskExtensionCreatePublish, cu *session.Ident) error {
 	now := time.Now()
 	code, enabled := req.Code, req.Enabled
 	operator := model.Operator{ID: cu.ID, Nickname: cu.Nickname, Username: cu.Username}
@@ -301,7 +297,7 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExte
 		Enabled:   enabled,
 		Timeout:   req.Timeout,
 		PushSize:  req.PushSize,
-		Filters:   req.Filters,
+		Filters:   req.Filters.ConvertModel(),
 		Excludes:  req.Excludes,
 		CreatedBy: operator,
 		UpdatedBy: operator,
@@ -380,7 +376,7 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *param.TaskExte
 	return nil
 }
 
-func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExtensionUpdatePublish, cu *session.Ident) error {
+func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskExtensionUpdatePublish, cu *session.Ident) error {
 	now := time.Now()
 	code, enabled := req.Code, req.Enabled
 	operator := model.Operator{ID: cu.ID, Nickname: cu.Nickname, Username: cu.Username}
@@ -402,7 +398,7 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *param.TaskExte
 		tbl.PushSize.Value(req.PushSize),
 		tbl.UpdatedBy.Value(operator),
 		tbl.UpdatedAt.Value(now),
-		tbl.Filters.Value(req.Filters),
+		tbl.Filters.Value(req.Filters.ConvertModel()),
 		tbl.Excludes.Value(req.Excludes),
 	}
 	if cron := req.Cron; cron != "" {

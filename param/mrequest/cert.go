@@ -1,4 +1,6 @@
-package param
+package mrequest
+
+import "github.com/vela-ssoc/vela-common-mb/param/request"
 
 type CertCreate struct {
 	Name        string `json:"name"        validate:"required,lte=50"`
@@ -7,6 +9,6 @@ type CertCreate struct {
 }
 
 type CertUpdate struct {
-	IntID
+	request.Int64ID
 	CertCreate
 }

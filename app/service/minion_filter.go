@@ -109,20 +109,20 @@ func (mf *MinionFilter) compileWhere(args *request.KeywordConditions) ([]gen.Con
 		minion.Category, minion.Comment, minion.IBu, minion.IDC,
 	}
 
-	var likes []field.String
+	var likeFields []field.String
 	for _, like := range optionalLikes {
 		var exists bool
 		for _, expr := range exprs {
 			exists = mf.tbl.EqualsExpr(like, expr)
 		}
 		if !exists {
-			likes = append(likes, like)
+			likeFields = append(likeFields, like)
 		}
 	}
 
-	regexps := args.Regexps(likes...)
-	if len(regexps) != 0 {
-		wheres = append(wheres, field.Or(regexps...))
+	likes := args.Likes(likeFields...)
+	if len(likes) != 0 {
+		wheres = append(wheres, field.Or(likes...))
 	}
 
 	return wheres, nil

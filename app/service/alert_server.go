@@ -9,7 +9,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/memoize"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 func NewAlertServer(qry *query.Query) *AlertServer {
@@ -29,7 +29,7 @@ func (als *AlertServer) Find(ctx context.Context) (*model.AlertServer, error) {
 	return als.first(ctx)
 }
 
-func (als *AlertServer) Upsert(ctx context.Context, req *param.AlertServerUpsert) error {
+func (als *AlertServer) Upsert(ctx context.Context, req *mrequest.AlertServerUpsert) error {
 	now := time.Now()
 	als.mutex.Lock()
 	defer als.mutex.Unlock()

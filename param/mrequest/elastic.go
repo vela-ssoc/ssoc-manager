@@ -1,4 +1,6 @@
-package param
+package mrequest
+
+import "github.com/vela-ssoc/vela-common-mb/param/request"
 
 type ElasticCreate struct {
 	// Host     string   `json:"host"     validate:"http"`                          // ES 地址
@@ -10,7 +12,7 @@ type ElasticCreate struct {
 }
 
 type ElasticUpdate struct {
-	IntID
+	request.Int64ID
 	ElasticCreate
 }
 

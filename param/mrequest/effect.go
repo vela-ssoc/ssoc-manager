@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 import (
 	"context"
@@ -6,15 +6,16 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type EffectCreate struct {
-	Name       string   `json:"name"       validate:"required,lte=50"`                    // 配置发布名字
-	Enable     bool     `json:"enable"`                                                   // 是否开启
-	Tags       []string `json:"tags"       validate:"gte=1,lte=100,unique,dive,required"` // 生效的节点 tag
-	Exclusion  []string `json:"exclusion"  validate:"lte=100,unique,dive,ipv4"`           // 排除的节点 (以节点 IPv4 维度)
-	Substances Int64s   `json:"substances" validate:"gte=1,lte=100,unique"`               // 配置
+	Name       string         `json:"name"       validate:"required,lte=50"`                    // 配置发布名字
+	Enable     bool           `json:"enable"`                                                   // 是否开启
+	Tags       []string       `json:"tags"       validate:"gte=1,lte=100,unique,dive,required"` // 生效的节点 tag
+	Exclusion  []string       `json:"exclusion"  validate:"lte=100,unique,dive,ipv4"`           // 排除的节点 (以节点 IPv4 维度)
+	Substances request.Int64s `json:"substances" validate:"gte=1,lte=100,unique"`               // 配置
 }
 
 func (ec EffectCreate) Check(ctx context.Context, qry *query.Query) error {
@@ -70,8 +71,8 @@ func (ec EffectCreate) Expand(subID, createdID int64) []*model.Effect {
 }
 
 type EffectUpdate struct {
+	request.Int64ID
 	EffectCreate
-	IntID
 	Version int64 `json:"version"`
 }
 
@@ -108,16 +109,16 @@ type EffectTaskResp struct {
 }
 
 type EffectSummary struct {
-	ID         int64     `json:"id,string"`
-	Name       string    `json:"name"`
-	Tags       []string  `json:"tags"`
-	Enable     bool      `json:"enable"`
-	Version    int64     `json:"version"`
-	Exclusion  []string  `json:"exclusion"`
-	Compounds  []*IDName `json:"compounds"`
-	Substances []*IDName `json:"substances"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         int64           `json:"id,string"`
+	Name       string          `json:"name"`
+	Tags       []string        `json:"tags"`
+	Enable     bool            `json:"enable"`
+	Version    int64           `json:"version"`
+	Exclusion  []string        `json:"exclusion"`
+	Compounds  request.IDNames `json:"compounds"`
+	Substances request.IDNames `json:"substances"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 }
 
 type EffectProgress struct {
@@ -128,6 +129,6 @@ type EffectProgress struct {
 }
 
 type EffectProgressesRequest struct {
-	OptionalID
+	request.Int64IDOptional
 	Page
 }

@@ -5,10 +5,12 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -33,7 +35,6 @@ type thirdREST struct {
 
 func (rest *thirdREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/third/cond").Data(route.Ignore()).GET(rest.Cond)
-	// bearer.Route("/thirds").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/third").
 		Data(route.Ignore()).GET(rest.Download).
 		Data(route.Named("新增三方文件")).POST(rest.Create).
@@ -66,7 +67,7 @@ func (rest *thirdREST) Page(c *ship.Context) error {
 }
 
 func (rest *thirdREST) Create(c *ship.Context) error {
-	var req param.ThirdCreate
+	var req mrequest.ThirdCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func (rest *thirdREST) Create(c *ship.Context) error {
 }
 
 func (rest *thirdREST) Download(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func (rest *thirdREST) Download(c *ship.Context) error {
 }
 
 func (rest *thirdREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ func (rest *thirdREST) Delete(c *ship.Context) error {
 }
 
 func (rest *thirdREST) Update(c *ship.Context) error {
-	var req param.ThirdUpdate
+	var req mrequest.ThirdUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

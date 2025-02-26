@@ -8,8 +8,8 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen/field"
 )
 
@@ -23,7 +23,7 @@ type ExtensionMarket struct {
 	qry *query.Query
 }
 
-func (mkt *ExtensionMarket) Page(ctx context.Context, page param.Pager, category string) (int64, []*model.ExtensionMarket) {
+func (mkt *ExtensionMarket) Page(ctx context.Context, page mrequest.Pager, category string) (int64, []*model.ExtensionMarket) {
 	tbl := mkt.qry.ExtensionMarket
 	dao := tbl.WithContext(ctx)
 	if category != "" {
@@ -45,7 +45,7 @@ func (mkt *ExtensionMarket) Page(ctx context.Context, page param.Pager, category
 	return count, dats
 }
 
-func (mkt *ExtensionMarket) Create(ctx context.Context, req *param.ExtensionMarketCreate, cu *session.Ident) (*model.ExtensionMarket, error) {
+func (mkt *ExtensionMarket) Create(ctx context.Context, req *mrequest.ExtensionMarketCreate, cu *session.Ident) (*model.ExtensionMarket, error) {
 	now := time.Now()
 	content := req.Content
 	sum := sha1.Sum([]byte(content))
@@ -92,7 +92,7 @@ func (mkt *ExtensionMarket) Create(ctx context.Context, req *param.ExtensionMark
 	return market, nil
 }
 
-func (mkt *ExtensionMarket) Update(ctx context.Context, req *param.ExtensionMarketUpdate, cu *session.Ident) error {
+func (mkt *ExtensionMarket) Update(ctx context.Context, req *mrequest.ExtensionMarketUpdate, cu *session.Ident) error {
 	now := time.Now()
 	tbl := mkt.qry.ExtensionMarket
 	data, err := tbl.WithContext(ctx).

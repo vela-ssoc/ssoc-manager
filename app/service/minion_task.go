@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gorm"
@@ -193,7 +194,7 @@ func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int
 		return 0, nil
 	}
 
-	var cts []*param.NameCount
+	var cts request.NameCounts
 	ctSQL.Order("count DESC").Scopes(page.DBScope(count)).Scan(&cts)
 	if len(cts) == 0 {
 		return 0, nil

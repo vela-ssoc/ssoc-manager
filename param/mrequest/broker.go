@@ -1,9 +1,10 @@
-package param
+package mrequest
 
 import (
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type BrokerCreate struct {
@@ -16,7 +17,7 @@ type BrokerCreate struct {
 }
 
 type BrokerUpdate struct {
-	IntID
+	request.Int64ID
 	BrokerCreate
 }
 

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
@@ -18,15 +20,15 @@ import (
 
 type UserService interface {
 	// Page 用户分页查询
-	Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries)
+	Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries)
 
-	Indices(ctx context.Context, indexer param.Indexer) param.UserSummaries
+	Indices(ctx context.Context, indexer param.Indexer) mrequest.UserSummaries
 
 	Delete(ctx context.Context, id int64) error
 
-	Create(ctx context.Context, req *param.UserCreate, cid int64) error
+	Create(ctx context.Context, req *mrequest.UserCreate, cid int64) error
 
-	Sudo(ctx context.Context, req *param.UserSudo) (bool, error)
+	Sudo(ctx context.Context, req *mrequest.UserSudo) (bool, error)
 
 	Passwd(ctx context.Context, id int64, original string, password string) error
 
@@ -51,7 +53,7 @@ type userService struct {
 	sso    casauth.Client
 }
 
-func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, param.UserSummaries) {
+func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
 	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable, tbl.AccessKey)
@@ -64,13 +66,13 @@ func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, para
 		return 0, nil
 	}
 
-	ret := make(param.UserSummaries, 0, page.Size())
+	ret := make(mrequest.UserSummaries, 0, page.Size())
 	_ = db.Scopes(page.Scope(count)).Scan(&ret)
 
 	return count, ret
 }
 
-func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) param.UserSummaries {
+func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) mrequest.UserSummaries {
 	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
@@ -79,7 +81,7 @@ func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) para
 			Or(tbl.Nickname.Like(kw))
 	}
 
-	ret := make(param.UserSummaries, 0, indexer.Size())
+	ret := make(mrequest.UserSummaries, 0, indexer.Size())
 	_ = db.Scopes(indexer.Scope).Scan(&ret)
 	return ret
 }
@@ -123,7 +125,7 @@ func (biz *userService) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (biz *userService) Create(ctx context.Context, req *param.UserCreate, cid int64) error {
+func (biz *userService) Create(ctx context.Context, req *mrequest.UserCreate, cid int64) error {
 	uname := req.Username
 	tbl := biz.qry.User
 	if count, _ := tbl.WithContext(ctx).
@@ -152,7 +154,7 @@ func (biz *userService) Create(ctx context.Context, req *param.UserCreate, cid i
 	return tbl.WithContext(ctx).Create(dat)
 }
 
-func (biz *userService) Sudo(ctx context.Context, req *param.UserSudo) (bool, error) {
+func (biz *userService) Sudo(ctx context.Context, req *mrequest.UserSudo) (bool, error) {
 	// 查询用户信息
 	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).First()

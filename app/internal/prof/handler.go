@@ -45,7 +45,7 @@ func (ph *pprofHandler) matchHandler(pth string) http.Handler {
 		return nil
 	}
 	handlers := args.Handlers
-	if args == nil {
+	if handlers == nil {
 		return nil
 	}
 

@@ -102,13 +102,13 @@ func runApp(ctx context.Context, cfg *profile.Config) error {
 	qry := query.Use(db)
 	var gfs gridfs.FS
 	if dir := cfg.Server.CDN; dir == "" {
-		gfs = gridfs.NewFS(sdb)
+		gfs = gridfs.NewFS(qry)
 	} else {
 		cdn := filepath.Clean(dir)
 		if err = os.MkdirAll(cdn, os.ModePerm); err != nil {
 			return err
 		}
-		gfs = gridfs.NewCache(sdb, cdn)
+		gfs = gridfs.NewCache(qry, cdn)
 	}
 
 	const name = "manager"
@@ -227,6 +227,13 @@ func runApp(ctx context.Context, cfg *profile.Config) error {
 	taskExecuteSvc := service.NewTaskExecute(qry, log)
 	taskExecuteAPI := mgtapi.NewTaskExecute(taskExecuteSvc)
 	taskExecuteAPI.Route(anon, bearer, basic)
+
+	taskExecuteItemSvc, err := service.NewTaskExecuteItem(qry)
+	if err != nil {
+		return err
+	}
+	taskExecuteItemAPI := mgtapi.NewTaskExecuteItem(taskExecuteItemSvc)
+	taskExecuteItemAPI.Route(anon, bearer, basic)
 
 	{
 		crond.Schedule("timeout", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {

@@ -15,9 +15,10 @@ import (
 
 // TOTP https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
-//	FIXME 经过测试以下几款 TOTP 程序，均不能完全兼容上述规则，其中 T盾动态密码 兼容性最差。\
+//	FIXME 本人自测以下几款 TOTP 应用：
 //		Google Authenticator、Microsoft Authenticator、FreeOTP、数盾OTP（微信小程序）、T盾动态密码（微信小程序），
-//		为了提高各个软件对 TOTP 的兼容性，最好将算法、动态码位数、动态码刷新时间保持默认值。
+//		上述程序均不能完全兼容规则，为了能够让我们生成的 TOTP 能够兼容更多的应用：最好将算法、动态码位数、动态码刷新
+//		时间保持默认值。
 type TOTP struct {
 	Issuer    string `json:"issuer"    xml:"issuer"    yaml:"issuer"`    // 可选：签发者
 	Account   string `json:"account"   xml:"account"   yaml:"account"`   // 可选：账户
@@ -33,6 +34,8 @@ type TOTP struct {
 //	FIXME: OTP 中 label 字段应该使用 url-encode 编码，但是在 Go 语言中的 url.QueryEscape 和 url.PathEscape 都不是
 //		完全意义上的 url-encode，例如：英文空格在 url-encode 后是 %20 但是 Go url.QueryEscape 却转义成了英文加号；
 //		英文冒号在 url-encode 中应该是 %3A 但是 Go 的 url.PathEscape 却不做转义。
+//
+// 后附加：因为 [url.QueryEscape] 和 [url.PathEscape] 标准不同，一个是 w3c 一个是 rfc。
 func (t TOTP) String() string {
 	return t.URL().String()
 }

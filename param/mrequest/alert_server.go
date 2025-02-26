@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 type AlertServerUpsert struct {
 	Mode    string `json:"mode"    validate:"oneof=siem dong"`

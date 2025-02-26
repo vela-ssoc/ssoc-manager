@@ -3,9 +3,11 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -61,7 +63,7 @@ func (ela *elasticREST) Page(c *ship.Context) error {
 }
 
 func (ela *elasticREST) Create(c *ship.Context) error {
-	var req param.ElasticCreate
+	var req mrequest.ElasticCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -72,7 +74,7 @@ func (ela *elasticREST) Create(c *ship.Context) error {
 }
 
 func (ela *elasticREST) Update(c *ship.Context) error {
-	var req param.ElasticUpdate
+	var req mrequest.ElasticUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -84,7 +86,7 @@ func (ela *elasticREST) Update(c *ship.Context) error {
 }
 
 func (ela *elasticREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -94,7 +96,7 @@ func (ela *elasticREST) Delete(c *ship.Context) error {
 }
 
 func (ela *elasticREST) Detect(c *ship.Context) error {
-	var req param.ElasticDetect
+	var req mrequest.ElasticDetect
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

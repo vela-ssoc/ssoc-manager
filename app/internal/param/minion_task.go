@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type MinionTaskSummary struct {
@@ -47,7 +48,7 @@ type MinionTaskDetail struct {
 }
 
 type MinionTaskDetailRequest struct {
-	IntID
+	request.Int64ID
 	SubstanceID int64 `json:"substance_id,string" query:"substance_id"`
 }
 

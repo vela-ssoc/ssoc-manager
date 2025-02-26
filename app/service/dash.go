@@ -5,16 +5,16 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type DashService interface {
-	Status(ctx context.Context) *param.DashStatusResp
-	Goos(ctx context.Context) *param.DashGoosVO
-	Edition(ctx context.Context) []*param.DashEditionVO
-	Evtlvl(ctx context.Context) *param.DashELevelResp
-	Risklvl(ctx context.Context) *param.DashRLevelResp
-	Risksts(ctx context.Context) *param.DashRiskstsResp
+	Status(ctx context.Context) *mrequest.DashStatusResp
+	Goos(ctx context.Context) *mrequest.DashGoosVO
+	Edition(ctx context.Context) []*mrequest.DashEditionVO
+	Evtlvl(ctx context.Context) *mrequest.DashELevelResp
+	Risklvl(ctx context.Context) *mrequest.DashRLevelResp
+	Risksts(ctx context.Context) *mrequest.DashRiskstsResp
 }
 
 func Dash(qry *query.Query) DashService {
@@ -27,7 +27,7 @@ type dashService struct {
 	qry *query.Query
 }
 
-func (biz *dashService) Status(ctx context.Context) *param.DashStatusResp {
+func (biz *dashService) Status(ctx context.Context) *mrequest.DashStatusResp {
 	var tmp []*struct {
 		Status model.MinionStatus `gorm:"column:status"`
 		Count  int                `gorm:"column:count"`
@@ -37,7 +37,7 @@ func (biz *dashService) Status(ctx context.Context) *param.DashStatusResp {
 	tbl.WithContext(ctx).UnderlyingDB().Select("status", "COUNT(*) AS count").
 		Model(&model.Minion{}).Group("status").Scan(&tmp)
 
-	ret := new(param.DashStatusResp)
+	ret := new(mrequest.DashStatusResp)
 	for _, tp := range tmp {
 		switch tp.Status {
 		case model.MSInactive:
@@ -54,29 +54,29 @@ func (biz *dashService) Status(ctx context.Context) *param.DashStatusResp {
 	return ret
 }
 
-func (biz *dashService) Goos(ctx context.Context) *param.DashGoosVO {
+func (biz *dashService) Goos(ctx context.Context) *mrequest.DashGoosVO {
 	ql := "SELECT COUNT(IF(goos = 'linux', TRUE, NULL))   AS linux,   " +
 		"         COUNT(IF(goos = 'windows', TRUE, NULL)) AS windows, " +
 		"         COUNT(IF(goos = 'darwin', TRUE, NULL))  AS darwin   " +
 		"FROM minion;"
-	ret := new(param.DashGoosVO)
+	ret := new(mrequest.DashGoosVO)
 	biz.qry.Minion.WithContext(ctx).UnderlyingDB().Raw(ql).Scan(&ret)
 
 	return ret
 }
 
-func (biz *dashService) Edition(ctx context.Context) []*param.DashEditionVO {
-	var dats []*param.DashEditionVO
+func (biz *dashService) Edition(ctx context.Context) []*mrequest.DashEditionVO {
+	var dats []*mrequest.DashEditionVO
 	biz.qry.Minion.WithContext(ctx).UnderlyingDB().
 		Select("edition", "COUNT(*) AS total").
 		Group("edition").
-		Order("INET_ATON(CONCAT(edition, '.0')) DESC"). // 按照版本号降序
+		Order("edition DESC"). // 按照版本号降序
 		Scan(&dats)
 
 	return dats
 }
 
-func (biz *dashService) Evtlvl(ctx context.Context) *param.DashELevelResp {
+func (biz *dashService) Evtlvl(ctx context.Context) *mrequest.DashELevelResp {
 	var tmp []*struct {
 		Level model.EventLevel `gorm:"column:level"`
 		Count int              `gorm:"column:count"`
@@ -87,7 +87,7 @@ func (biz *dashService) Evtlvl(ctx context.Context) *param.DashELevelResp {
 		Group("level").
 		Scan(&tmp)
 
-	var res param.DashELevelResp
+	var res mrequest.DashELevelResp
 	for _, tp := range tmp {
 		switch tp.Level {
 		case model.ELvlCritical:
@@ -104,7 +104,7 @@ func (biz *dashService) Evtlvl(ctx context.Context) *param.DashELevelResp {
 	return &res
 }
 
-func (biz *dashService) Risklvl(ctx context.Context) *param.DashRLevelResp {
+func (biz *dashService) Risklvl(ctx context.Context) *mrequest.DashRLevelResp {
 	var tmp []*struct {
 		Level model.RiskLevel `gorm:"column:level"`
 		Count int             `gorm:"column:count"`
@@ -114,7 +114,7 @@ func (biz *dashService) Risklvl(ctx context.Context) *param.DashRLevelResp {
 		Group("level").
 		Scan(&tmp)
 
-	var res param.DashRLevelResp
+	var res mrequest.DashRLevelResp
 	for _, tp := range tmp {
 		switch tp.Level {
 		case model.RLvlCritical:
@@ -131,7 +131,7 @@ func (biz *dashService) Risklvl(ctx context.Context) *param.DashRLevelResp {
 	return &res
 }
 
-func (biz *dashService) Risksts(ctx context.Context) *param.DashRiskstsResp {
+func (biz *dashService) Risksts(ctx context.Context) *mrequest.DashRiskstsResp {
 	var tmp []*struct {
 		Status model.RiskStatus `gorm:"column:status"`
 		Count  int              `gorm:"column:count"`
@@ -142,7 +142,7 @@ func (biz *dashService) Risksts(ctx context.Context) *param.DashRiskstsResp {
 		Group("status").
 		Scan(&tmp)
 
-	var res param.DashRiskstsResp
+	var res mrequest.DashRiskstsResp
 	for _, tp := range tmp {
 		switch tp.Status {
 		case model.RSUnprocessed:
@@ -155,7 +155,4 @@ func (biz *dashService) Risksts(ctx context.Context) *param.DashRiskstsResp {
 	}
 
 	return &res
-}
-
-func (biz *dashService) BGoos(ctx context.Context, page, size int) {
 }

@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
@@ -88,7 +89,7 @@ func (rest *minionBinaryREST) Page(c *ship.Context) error {
 }
 
 func (rest *minionBinaryREST) Deprecate(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func (rest *minionBinaryREST) Deprecate(c *ship.Context) error {
 }
 
 func (rest *minionBinaryREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func (rest *minionBinaryREST) Create(c *ship.Context) error {
 }
 
 func (rest *minionBinaryREST) Release(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func (rest *minionBinaryREST) Update(c *ship.Context) error {
 
 // Download 更新发行版信息
 func (rest *minionBinaryREST) Download(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

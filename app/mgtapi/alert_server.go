@@ -3,9 +3,9 @@ package mgtapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -28,7 +28,7 @@ func (rest *alertServerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (rest *alertServerREST) upsert(c *ship.Context) error {
-	req := new(param.AlertServerUpsert)
+	req := new(mrequest.AlertServerUpsert)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

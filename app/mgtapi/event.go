@@ -10,6 +10,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -118,7 +119,7 @@ func (rest *eventREST) Delete(c *ship.Context) error {
 }
 
 func (rest *eventREST) HTML(c *ship.Context) error {
-	var req param.ViewHTML
+	var req mrequest.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

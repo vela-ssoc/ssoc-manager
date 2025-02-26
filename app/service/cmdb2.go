@@ -6,7 +6,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/mapstruct"
+	"github.com/vela-ssoc/vela-manager/param/mapstruct"
 	"gorm.io/gen/field"
 	"gorm.io/gorm/clause"
 )

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
@@ -22,7 +24,7 @@ type ThirdService interface {
 	Update(ctx context.Context, id int64, desc, customized string, r io.Reader, userID int64) error
 	Download(ctx context.Context, id int64) (gridfs.File, error)
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, keyword string) []*param.ThirdListItem
+	List(ctx context.Context, keyword string) []*mrequest.ThirdListItem
 }
 
 func Third(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) ThirdService {
@@ -39,7 +41,7 @@ type thirdService struct {
 	pusher push.Pusher
 }
 
-func (biz *thirdService) List(ctx context.Context, keyword string) []*param.ThirdListItem {
+func (biz *thirdService) List(ctx context.Context, keyword string) []*mrequest.ThirdListItem {
 	tbl := biz.qry.Third
 	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if keyword != "" {
@@ -62,10 +64,10 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 	cTbl := biz.qry.ThirdCustomized
 	custs, _ := cTbl.WithContext(ctx).Find()
 
-	ret := make([]*param.ThirdListItem, 0, len(custs))
+	ret := make([]*mrequest.ThirdListItem, 0, len(custs))
 	defs := index[""]
 	if len(defs) != 0 {
-		ret = append(ret, &param.ThirdListItem{
+		ret = append(ret, &mrequest.ThirdListItem{
 			ThirdCustomized: model.ThirdCustomized{},
 			Records:         defs,
 		})
@@ -73,7 +75,7 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*param.Thir
 
 	for _, cust := range custs {
 		name := cust.Name
-		item := &param.ThirdListItem{
+		item := &mrequest.ThirdListItem{
 			ThirdCustomized: model.ThirdCustomized{
 				ID:        cust.ID,
 				Name:      cust.Name,

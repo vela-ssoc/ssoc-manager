@@ -1895,13 +1895,50 @@ paths:
                   x-stoplight:
                     id: fn5035sjzno4z
                 filters:
-                  type: array
+                  type: object
                   x-stoplight:
                     id: 4gycimlhmbame
-                  items:
-                    x-stoplight:
-                      id: tbb01avyg2miw
-                    type: string
+                  properties:
+                    inet_mode:
+                      x-stoplight:
+                        id: tbb01avyg2miw
+                      type: boolean
+                      description: 是否是主机IP匹配模式
+                    inets:
+                      type: array
+                      x-stoplight:
+                        id: 52v20sj4n2dm6
+                      description: 主机IP
+                      items:
+                        x-stoplight:
+                          id: x47mkdkes3efo
+                        type: string
+                    keyword:
+                      type: string
+                      x-stoplight:
+                        id: jhui9ldx8kw0e
+                      description: 搜索关键字
+                    filters:
+                      type: array
+                      x-stoplight:
+                        id: ypw60lde9ie6s
+                      items:
+                        x-stoplight:
+                          id: lwxao8cxjvo2h
+                        type: object
+                        properties:
+                          key:
+                            type: string
+                            x-stoplight:
+                              id: mxoailh82inkt
+                          operator:
+                            type: string
+                            x-stoplight:
+                              id: ml44q7wc3oqbh
+                          value:
+                            type: string
+                            x-stoplight:
+                              id: km31251kwpob8
                 excludes:
                   type: array
                   x-stoplight:
@@ -1967,13 +2004,47 @@ paths:
                   x-stoplight:
                     id: hl8430ffvddnv
                 filters:
-                  type: array
+                  type: object
                   x-stoplight:
                     id: yo9p1rhrdvkjv
-                  items:
-                    x-stoplight:
-                      id: g7fgaliagfptk
-                    type: string
+                  properties:
+                    inet_mode:
+                      x-stoplight:
+                        id: g7fgaliagfptk
+                      type: boolean
+                    inets:
+                      type: array
+                      x-stoplight:
+                        id: zaluz0grlqs0d
+                      items:
+                        x-stoplight:
+                          id: 6tvbusdo8l91t
+                        type: string
+                    keyword:
+                      type: string
+                      x-stoplight:
+                        id: s40g2sthq0axr
+                    filters:
+                      type: array
+                      x-stoplight:
+                        id: 1bvmg93bsx5a3
+                      items:
+                        x-stoplight:
+                          id: t4y5grf81qphf
+                        type: object
+                        properties:
+                          key:
+                            type: string
+                            x-stoplight:
+                              id: hcfwja7oqlil4
+                          operator:
+                            type: string
+                            x-stoplight:
+                              id: 6xofmqmwchhwd
+                          value:
+                            type: string
+                            x-stoplight:
+                              id: edzv6wzylwslq
                 excludes:
                   type: array
                   x-stoplight:
@@ -2046,6 +2117,28 @@ paths:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/size'
         - $ref: '#/components/parameters/keyword'
+  /task-execute:
+    delete:
+      summary: 删除任务执行记录
+      operationId: delete-task-execute
+      responses:
+        '200':
+          description: OK
+      description: 删除任务执行记录
+      tags:
+        - 插件
+      parameters:
+        - $ref: '#/components/parameters/ID'
+  /task-execute/item/cond:
+    get:
+      summary: 任务执行记录搜索条件
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+      operationId: get-task-execute-item-cond
+      description: 任务执行记录搜索条件
   /task-execute/items:
     get:
       summary: 分页查询任务执行记录的节点列表
@@ -2073,18 +2166,6 @@ paths:
           name: exec_id
           description: 执行ID
           required: true
-  /task-execute:
-    delete:
-      summary: 删除任务执行记录
-      operationId: delete-task-execute
-      responses:
-        '200':
-          description: OK
-      description: 删除任务执行记录
-      tags:
-        - 插件
-      parameters:
-        - $ref: '#/components/parameters/ID'
 components:
   securitySchemes:
     Authorization:

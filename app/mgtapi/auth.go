@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/modview"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -40,7 +40,7 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 
 // Picture 图片验证码
 func (ath *authREST) Picture(c *ship.Context) error {
-	var req param.AuthBase
+	var req mrequest.AuthBase
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (ath *authREST) Picture(c *ship.Context) error {
 
 // Verify 验证图片验证码
 func (ath *authREST) Verify(c *ship.Context) error {
-	var req param.AuthVerify
+	var req mrequest.AuthVerify
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -65,14 +65,14 @@ func (ath *authREST) Verify(c *ship.Context) error {
 	if err != nil {
 		return err
 	}
-	res := &param.AuthNeedDong{Ding: ding}
+	res := &mrequest.AuthNeedDong{Ding: ding}
 
 	return c.JSON(http.StatusOK, res)
 }
 
 // Dong 获取下发咚咚验证码
 func (ath *authREST) Dong(c *ship.Context) error {
-	var req param.AuthDong
+	var req mrequest.AuthDong
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (ath *authREST) Dong(c *ship.Context) error {
 
 // Login 执行登录操作
 func (ath *authREST) Login(c *ship.Context) error {
-	var req param.AuthLogin
+	var req mrequest.AuthLogin
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (ath *authREST) Logout(c *ship.Context) error {
 }
 
 func (ath *authREST) Valid(c *ship.Context) error {
-	var req param.AuthBase
+	var req mrequest.AuthBase
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (ath *authREST) Valid(c *ship.Context) error {
 		return err
 	}
 
-	res := &param.AuthValidResp{
+	res := &mrequest.AuthValidResp{
 		UID:  uid,
 		Bind: bind,
 	}
@@ -148,7 +148,7 @@ func (ath *authREST) Valid(c *ship.Context) error {
 }
 
 func (ath *authREST) Totp(c *ship.Context) error {
-	var req param.AuthUID
+	var req mrequest.AuthUID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (ath *authREST) Totp(c *ship.Context) error {
 		return err
 	}
 
-	res := &param.AuthTotpResp{
+	res := &mrequest.AuthTotpResp{
 		TOTP: otp,
 		URL:  otp.String(),
 	}
@@ -168,7 +168,7 @@ func (ath *authREST) Totp(c *ship.Context) error {
 }
 
 func (ath *authREST) Submit(c *ship.Context) error {
-	var req param.AuthSubmit
+	var req mrequest.AuthSubmit
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (ath *authREST) Submit(c *ship.Context) error {
 
 // Oauth 通过咚咚扫码登录。
 func (ath *authREST) Oauth(c *ship.Context) error {
-	req := new(param.AuthOauth)
+	req := new(mrequest.AuthOauth)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

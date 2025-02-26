@@ -1,6 +1,10 @@
-package param
+package mrequest
 
-import "time"
+import (
+	"time"
+
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+)
 
 type RiskAttack struct {
 	Subject  string `json:"subject"   gorm:"column:subject"`
@@ -62,12 +66,12 @@ func (rrs RiskRecentTemps) Charts(days int) *RecentCharts {
 }
 
 type PieTopN struct {
-	TopN  []*NameCount `json:"topn"`
-	Other int          `json:"other"`
+	TopN  request.NameCounts `json:"topn"`
+	Other int                `json:"other"`
 }
 
 type RiskPayloadRequest struct {
-	Page
+	request.Pages
 	RiskType string `query:"risk_type"`
 	Days     int    `query:"days"      validate:"gte=0,lte=180"`
 }

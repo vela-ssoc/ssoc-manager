@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/modview"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -31,7 +31,7 @@ func (rest *deployREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (rest *deployREST) LAN(c *ship.Context) error {
-	res := &param.DeployLAN{Scheme: "http"}
+	res := &mrequest.DeployLAN{Scheme: "http"}
 	r := c.Request()
 	if r.TLS != nil {
 		res.Scheme = "https"
@@ -54,7 +54,7 @@ func (rest *deployREST) LAN(c *ship.Context) error {
 }
 
 func (rest *deployREST) Script(c *ship.Context) error {
-	var req param.DeployMinionDownload
+	var req mrequest.DeployMinionDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (rest *deployREST) Script(c *ship.Context) error {
 }
 
 func (rest *deployREST) MinionDownload(c *ship.Context) error {
-	var req param.DeployMinionDownload
+	var req mrequest.DeployMinionDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

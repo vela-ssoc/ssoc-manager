@@ -3,6 +3,7 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
@@ -73,7 +74,7 @@ func (rest *notifierREST) Update(c *ship.Context) error {
 }
 
 func (rest *notifierREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

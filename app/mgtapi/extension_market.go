@@ -3,10 +3,11 @@ package mgtapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -29,7 +30,7 @@ func (mkt *ExtensionMarket) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (mkt *ExtensionMarket) page(c *ship.Context) error {
-	req := new(param.ExtensionMarketPage)
+	req := new(mrequest.ExtensionMarketPage)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (mkt *ExtensionMarket) page(c *ship.Context) error {
 }
 
 func (mkt *ExtensionMarket) create(c *ship.Context) error {
-	req := new(param.ExtensionMarketCreate)
+	req := new(mrequest.ExtensionMarketCreate)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func (mkt *ExtensionMarket) create(c *ship.Context) error {
 }
 
 func (mkt *ExtensionMarket) update(c *ship.Context) error {
-	req := new(param.ExtensionMarketUpdate)
+	req := new(mrequest.ExtensionMarketUpdate)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -69,7 +70,7 @@ func (mkt *ExtensionMarket) update(c *ship.Context) error {
 }
 
 func (mkt *ExtensionMarket) delete(c *ship.Context) error {
-	req := new(param.IntID)
+	req := new(request.Int64ID)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func (mkt *ExtensionMarket) delete(c *ship.Context) error {
 }
 
 func (mkt *ExtensionMarket) records(c *ship.Context) error {
-	req := new(param.IntID)
+	req := new(request.Int64ID)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}

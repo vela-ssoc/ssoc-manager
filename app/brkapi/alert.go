@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -23,7 +23,7 @@ func (alt *Alert) Router(rgb *ship.RouteGroupBuilder) {
 
 func (alt *Alert) dong(c *ship.Context) error {
 	alt.log.Info("发送咚咚告警")
-	req := new(param.BlinkAlert)
+	req := new(mrequest.BlinkAlert)
 	if err := c.Bind(req); err != nil {
 		return err
 	}

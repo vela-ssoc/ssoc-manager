@@ -4,9 +4,11 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -43,7 +45,7 @@ func (rest *brokerBinaryREST) Page(c *ship.Context) error {
 }
 
 func (rest *brokerBinaryREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func (rest *brokerBinaryREST) Create(c *ship.Context) error {
 }
 
 func (rest *brokerBinaryREST) Download(c *ship.Context) error {
-	var req param.BrokerDownload
+	var req mrequest.BrokerDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}

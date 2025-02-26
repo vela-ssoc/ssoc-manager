@@ -1,13 +1,12 @@
-package param
+package mrequest
 
 import (
 	"database/sql/driver"
 	"encoding/json"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/param/request"
-
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type TaskExtensionCreate struct {
@@ -52,7 +51,7 @@ type TaskExtensionCreateCode struct {
 }
 
 type TaskExtensionUpdateCode struct {
-	IntID
+	request.Int64ID
 	Intro       string          `json:"intro"               validate:"lte=1000"`
 	Code        string          `json:"code"                validate:"lte=65535"`
 	ExtensionID int64           `json:"extension_id,string" validate:"required_without=Code"`
@@ -60,40 +59,57 @@ type TaskExtensionUpdateCode struct {
 }
 
 type TaskExtensionCreatePublish struct {
-	Name          string          `json:"name"                validate:"required,lte=100"`
-	Intro         string          `json:"intro"               validate:"required,lte=1000"`
-	Code          string          `json:"code"                validate:"lte=65535"`
-	ExtensionID   int64           `json:"extension_id,string" validate:"required_without=Code"`
-	Data          json.RawMessage `json:"data"`
-	PushSize      int             `json:"push_size"           validate:"gte=1,lte=10000"`
-	Timeout       model.Duration  `json:"timeout"`
-	Cron          string          `json:"cron"                validate:"omitempty,cron"`
-	SpecificTimes []time.Time     `json:"specific_times"      validate:"lte=100"`
-	Enabled       bool            `json:"enabled"`
-	Filters       []string        `json:"filters"             validate:"lte=100,dive,required,lte=100"`
-	Excludes      []string        `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
+	Name          string                     `json:"name"                validate:"required,lte=100"`
+	Intro         string                     `json:"intro"               validate:"required,lte=1000"`
+	Code          string                     `json:"code"                validate:"lte=65535"`
+	ExtensionID   int64                      `json:"extension_id,string" validate:"required_without=Code"`
+	Data          json.RawMessage            `json:"data"`
+	PushSize      int                        `json:"push_size"           validate:"gte=1,lte=10000"`
+	Timeout       model.Duration             `json:"timeout"`
+	Cron          string                     `json:"cron"                validate:"omitempty,cron"`
+	SpecificTimes []time.Time                `json:"specific_times"      validate:"lte=100"`
+	Enabled       bool                       `json:"enabled"`
+	Filters       TaskExtensionPublishFilter `json:"filters"`
+	Excludes      []string                   `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
 }
 
 type TaskExtensionUpdatePublish struct {
-	IntID
-	Intro         string          `json:"intro"               validate:"required,lte=1000"`
-	Code          string          `json:"code"                validate:"lte=65535"`
-	ExtensionID   int64           `json:"extension_id,string" validate:"required_without=Code"`
-	Data          json.RawMessage `json:"data"`
-	PushSize      int             `json:"push_size"           validate:"gte=1,lte=10000"`
-	Timeout       model.Duration  `json:"timeout"`
-	Cron          string          `json:"cron"                validate:"omitempty,cron"`
-	SpecificTimes Times           `json:"specific_times"      validate:"lte=100"`
-	Enabled       bool            `json:"enabled"`
-	Filters       Strings         `json:"filters"             validate:"lte=100,dive,required,lte=100"`
-	Excludes      Strings         `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
+	request.Int64ID
+	Intro         string                     `json:"intro"               validate:"required,lte=1000"`
+	Code          string                     `json:"code"                validate:"lte=65535"`
+	ExtensionID   int64                      `json:"extension_id,string" validate:"required_without=Code"`
+	Data          json.RawMessage            `json:"data"`
+	PushSize      int                        `json:"push_size"           validate:"gte=1,lte=10000"`
+	Timeout       model.Duration             `json:"timeout"`
+	Cron          string                     `json:"cron"                validate:"omitempty,cron"`
+	SpecificTimes Times                      `json:"specific_times"      validate:"lte=100"`
+	Enabled       bool                       `json:"enabled"`
+	Filters       TaskExtensionPublishFilter `json:"filters"`
+	Excludes      Strings                    `json:"excludes"            validate:"lte=100,dive,required,lte=100"`
 }
 
 type TaskExtensionPublishFilter struct {
 	request.Keywords
 	request.CondWhereInputs
-	Tags    []string `json:"tags"    validate:"lte=1000"`
-	TagMode bool     `json:"tag_mode"`
+	Inets    []string `json:"inets"     validate:"lte=1000"`
+	InetMode bool     `json:"inet_mode"`
+}
+
+func (tf TaskExtensionPublishFilter) ConvertModel() model.TaskExecuteFilter {
+	filters := make(model.ConditionFilters, 0, 10)
+	for _, filter := range tf.Filters {
+		filters = append(filters, &model.ConditionFilter{
+			Key:      filter.Key,
+			Operator: filter.Operator,
+			Value:    filter.Value,
+		})
+	}
+
+	return model.TaskExecuteFilter{
+		Keyword:  tf.Keyword,
+		Inets:    tf.Inets,
+		InetMode: tf.InetMode,
+	}
 }
 
 type Strings []string

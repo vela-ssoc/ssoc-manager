@@ -7,9 +7,9 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/response"
 	"github.com/vela-ssoc/vela-manager/errcode"
-	"github.com/vela-ssoc/vela-manager/param/request"
-	"github.com/vela-ssoc/vela-manager/param/response"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 )
@@ -26,14 +26,14 @@ func NewTaskExecute(qry *query.Query, log *slog.Logger) *TaskExecute {
 	}
 }
 
-func (tex *TaskExecute) Page(ctx context.Context, args *request.TaskExecutePage) (*response.Pages[*model.TaskExecute], error) {
+func (tex *TaskExecute) Page(ctx context.Context, args *mrequest.TaskExecutePage) (*response.Pages[*model.TaskExecute], error) {
 	tbl := tex.qry.TaskExecute
 	var wheres []gen.Condition
 	if taskID := args.TaskID; taskID > 0 {
 		wheres = append(wheres, tbl.TaskID.Eq(taskID))
 	}
 	dao := tbl.WithContext(ctx).Where(wheres...).
-		Scopes(args.Regexps(tbl.Name, tbl.Intro))
+		Scopes(args.LikeScopes(true, tbl.Name, tbl.Intro))
 
 	page := response.NewPages[*model.TaskExecute](args.Page, args.Size)
 	cnt, err := dao.Count()
@@ -46,28 +46,6 @@ func (tex *TaskExecute) Page(ctx context.Context, args *request.TaskExecutePage)
 	records, err := dao.Order(tbl.ID.Desc()).
 		Scopes(page.FP(cnt)).
 		Find()
-	if err != nil {
-		return nil, err
-	}
-
-	return page.SetRecords(records), nil
-}
-
-func (tex *TaskExecute) Items(ctx context.Context, args *request.TaskExecuteItems) (*response.Pages[*model.TaskExecuteItem], error) {
-	tbl := tex.qry.TaskExecuteItem
-	wheres := []gen.Condition{tbl.TaskID.Eq(args.TaskID), tbl.ExecID.Eq(args.ExecID)}
-	dao := tbl.WithContext(ctx).
-		Where(wheres...).
-		Scopes(args.Regexps(tbl.Inet, tbl.BrokerName))
-	page := response.NewPages[*model.TaskExecuteItem](args.Page, args.Size)
-	cnt, err := dao.Count()
-	if err != nil {
-		return nil, err
-	} else if cnt == 0 {
-		return page.Empty(), nil
-	}
-
-	records, err := dao.Scopes(page.FP(cnt)).Find()
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +106,6 @@ func (tex *TaskExecute) TimeoutMonitor(ctx context.Context) error {
 				}
 				_, _ = tx.Where(itemTbl.ID.Eq(item.ID)).
 					UpdateSimple(updates...)
-
 			}
 
 			return nil

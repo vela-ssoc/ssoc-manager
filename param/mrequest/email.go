@@ -1,4 +1,6 @@
-package param
+package mrequest
+
+import "github.com/vela-ssoc/vela-common-mb/param/request"
 
 type EmailCreate struct {
 	Host     string `json:"host"     validate:"hostname_rfc1123"`
@@ -8,6 +10,6 @@ type EmailCreate struct {
 }
 
 type EmailUpdate struct {
-	IntID
+	request.Int64ID
 	EmailCreate
 }

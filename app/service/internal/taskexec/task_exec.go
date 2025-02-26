@@ -7,6 +7,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
@@ -32,32 +33,53 @@ func (te *TaskExec) Exec(ctx context.Context, taskID int64) error {
 	return te.doExec(ctx, taskID)
 }
 
-func (te *TaskExec) Count(ctx context.Context, filters, excludes []string) (int64, error) {
+func (te *TaskExec) Count(ctx context.Context, filters model.TaskExecuteFilter, excludes []string) (int64, error) {
 	return te.qry.Minion.WithContext(ctx).Where(te.whereSQL(ctx, filters, excludes)...).Count()
 }
 
-func (te *TaskExec) whereSQL(ctx context.Context, filters, excludes []string) []gen.Condition {
+func (te *TaskExec) whereSQL(ctx context.Context, f model.TaskExecuteFilter, excludes []string) []gen.Condition {
 	minion, minionTag := te.qry.Minion, te.qry.MinionTag
 	minionDo, minionTagDo := minion.WithContext(ctx), minionTag.WithContext(ctx)
 
 	deleted := uint8(model.MSDelete)
 	wheres := []gen.Condition{minion.Status.Neq(deleted)}
-	if len(filters) == 0 && len(excludes) == 0 {
-		return wheres
+	if f.InetMode {
+		if len(f.Inets) != 0 {
+			wheres = append(wheres, minion.Inet.In(f.Inets...))
+		}
+	} else {
+		var inputs request.CondWhereInputs
+		for _, filter := range f.Filters {
+			inputs.Filters = append(inputs.Filters, &request.CondWhereInput{
+				Key:      filter.Key,
+				Operator: filter.Operator,
+				Value:    filter.Value,
+			})
+		}
+
+		args := &request.KeywordConditions{
+			Keywords: request.Keywords{Keyword: f.Keyword},
+			Conditions: request.Conditions{
+				CondWhereInputs: inputs,
+			},
+		}
+		_ = args
+		// conds, _ := te.svc.CompileWhere(args)
+		// wheres = append(wheres, conds...)
 	}
 
-	conds := make([]gen.Condition, 0, 2)
-	if len(filters) != 0 {
-		conds = append(conds, minionTag.Tag.In(filters...))
-	}
 	if len(excludes) != 0 {
 		excludeSQL := minionTagDo.Select(minionTag.MinionID).Where(minionTag.Tag.In(excludes...))
 		expr := minionTagDo.Columns(minionTag.MinionID).NotIn(excludeSQL)
-		conds = append(conds, expr)
+		wheres = append(wheres, expr)
 	}
-	expr := minionDo.Columns(minion.ID).In(minionTagDo.Select(minionTag.MinionID).Where(conds...))
+	expr := minionDo.Columns(minion.ID).In(minionTagDo.Select(minionTag.MinionID).Where(wheres...))
 
 	return append(wheres, expr)
+}
+
+func (*TaskExec) inetMode(inets, excludes []string) []gen.Condition {
+	return nil
 }
 
 func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {

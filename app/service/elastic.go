@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
+
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/elastic"
@@ -18,8 +20,8 @@ import (
 type ElasticService interface {
 	Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 	Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic)
-	Create(ctx context.Context, ec *param.ElasticCreate) error
-	Update(ctx context.Context, eu *param.ElasticUpdate) error
+	Create(ctx context.Context, ec *mrequest.ElasticCreate) error
+	Update(ctx context.Context, eu *mrequest.ElasticUpdate) error
 	Delete(ctx context.Context, id int64) error
 	Detect(ctx context.Context, host, uname, passwd string) []string
 }
@@ -72,7 +74,7 @@ func (biz *elasticService) Page(ctx context.Context, page param.Pager) (int64, [
 	return count, ret
 }
 
-func (biz *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) error {
+func (biz *elasticService) Create(ctx context.Context, ec *mrequest.ElasticCreate) error {
 	dat := &model.Elastic{
 		Host:     ec.Hosts[0],
 		Hosts:    ec.Hosts,
@@ -104,7 +106,7 @@ func (biz *elasticService) Create(ctx context.Context, ec *param.ElasticCreate) 
 }
 
 // Update 更新 es 后端代理
-func (biz *elasticService) Update(ctx context.Context, eu *param.ElasticUpdate) error {
+func (biz *elasticService) Update(ctx context.Context, eu *mrequest.ElasticUpdate) error {
 	// 先查询原有数据
 	id := eu.ID
 	tbl := biz.qry.Elastic
@@ -187,7 +189,7 @@ func (biz *elasticService) Detect(parent context.Context, addr, uname, passwd st
 	auth := "Basic " + base64.StdEncoding.EncodeToString([]byte(uname+":"+passwd))
 	headers := http.Header{"Authorization": []string{auth}}
 
-	var peers param.ElasticDetects
+	var peers mrequest.ElasticDetects
 	_ = biz.client.JSON(ctx, http.MethodGet, addr, nil, &peers, headers)
 	ret := peers.Addrs()
 

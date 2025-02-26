@@ -1,6 +1,10 @@
 package param
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+)
 
 type NotifierCreate struct {
 	Name      string   `json:"name"       validate:"required,lte=20"`
@@ -36,6 +40,6 @@ func (na NotifierCreate) Validate() error {
 }
 
 type NotifierUpdate struct {
+	request.Int64ID
 	NotifierCreate
-	IntID
 }

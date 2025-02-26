@@ -7,13 +7,14 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type SubstanceService interface {
-	Indices(ctx context.Context, idx param.Indexer) []*param.IDName
+	Indices(ctx context.Context, idx param.Indexer) request.IDNames
 	Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary)
 	Detail(ctx context.Context, id int64) (*model.Substance, error)
 	Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error
@@ -41,7 +42,7 @@ type substanceService struct {
 	task   SubstanceTaskService
 }
 
-func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*param.IDName {
+func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
 	tbl := biz.qry.Substance
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
@@ -50,7 +51,7 @@ func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) []*
 		dao.Where(tbl.Name.Like(kw))
 	}
 
-	var dats []*param.IDName
+	var dats request.IDNames
 	_ = dao.Order(tbl.ID).Scan(&dats)
 
 	return dats

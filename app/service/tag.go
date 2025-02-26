@@ -5,18 +5,18 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen"
-	"gorm.io/gen/field"
 	"gorm.io/gorm/clause"
 )
 
 type TagService interface {
 	Indices(ctx context.Context, idx param.Indexer) []string
 	Update(ctx context.Context, id int64, tags []string) error
-	Sidebar(ctx context.Context, req *param.TagSidebar) (param.NameCounts, error)
+	Sidebar(ctx context.Context, req *param.TagSidebar) (request.NameCounts, error)
 }
 
 func Tag(qry *query.Query, pusher push.Pusher) TagService {
@@ -88,7 +88,7 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 	return err
 }
 
-func (biz *tagService) Sidebar(ctx context.Context, req *param.TagSidebar) (param.NameCounts, error) {
+func (biz *tagService) Sidebar(ctx context.Context, req *param.TagSidebar) (request.NameCounts, error) {
 	tbl := biz.qry.MinionTag
 	dao := tbl.WithContext(ctx)
 	var conds []gen.Condition
@@ -96,14 +96,14 @@ func (biz *tagService) Sidebar(ctx context.Context, req *param.TagSidebar) (para
 		kw = "%" + kw + "%"
 		conds = append(conds, tbl.Tag.Like(kw))
 	}
-	if !req.IPv4 {
-		lifelong := int8(model.TkLifelong)
-		regex := "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
-		or := field.Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(regex))
-		conds = append(conds, tbl.Kind.Neq(lifelong), or)
-	}
+	//if !req.IPv4 {
+	//	lifelong := int8(model.TkLifelong)
+	//	regex := "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+	//	or := field.Or(tbl.Kind.Eq(lifelong), tbl.Tag.NotRegxp(regex))
+	//	conds = append(conds, tbl.Kind.Neq(lifelong), or)
+	//}
 
-	ret := make(param.NameCounts, 0, 100)
+	ret := make(request.NameCounts, 0, 100)
 	name, count := ret.Aliases()
 	nameAlias := name.ColumnName().String()
 	countAlias := count.ColumnName().String()

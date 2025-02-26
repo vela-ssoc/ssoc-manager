@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 type DashGoosVO struct {
 	Linux   int `json:"linux"`

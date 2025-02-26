@@ -1,6 +1,9 @@
-package param
+package mrequest
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import (
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+)
 
 type UserSummaries []*userSummary
 
@@ -14,7 +17,7 @@ type userSummary struct {
 }
 
 type UserSudo struct {
-	IntID
+	request.Int64ID
 	Nickname string `json:"nickname"  validate:"required,lte=20"`
 	Enable   bool   `json:"enable"`
 	Password string `json:"password"  validate:"omitempty,password"`

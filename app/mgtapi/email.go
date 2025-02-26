@@ -3,9 +3,11 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -42,7 +44,7 @@ func (rest *emailREST) Page(c *ship.Context) error {
 }
 
 func (rest *emailREST) Create(c *ship.Context) error {
-	var req param.EmailCreate
+	var req mrequest.EmailCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -54,7 +56,7 @@ func (rest *emailREST) Create(c *ship.Context) error {
 }
 
 func (rest *emailREST) Update(c *ship.Context) error {
-	var req param.EmailUpdate
+	var req mrequest.EmailUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -66,7 +68,7 @@ func (rest *emailREST) Update(c *ship.Context) error {
 }
 
 func (rest *emailREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

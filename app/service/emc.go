@@ -7,13 +7,14 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen/field"
 )
 
 type EmcService interface {
 	Page(ctx context.Context, page param.Pager) (int64, []*model.Emc)
-	Create(ctx context.Context, ec *param.EmcCreate) error
-	Update(ctx context.Context, ec *param.EmcUpdate) error
+	Create(ctx context.Context, ec *mrequest.EmcCreate) error
+	Update(ctx context.Context, ec *mrequest.EmcUpdate) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -46,7 +47,7 @@ func (biz *emcService) Page(ctx context.Context, page param.Pager) (int64, []*mo
 	return count, dats
 }
 
-func (biz *emcService) Create(ctx context.Context, ec *param.EmcCreate) error {
+func (biz *emcService) Create(ctx context.Context, ec *mrequest.EmcCreate) error {
 	dat := &model.Emc{
 		Name: ec.Name, Host: ec.Host, Account: ec.Account,
 		Token: ec.Token, Enable: ec.Enable,
@@ -74,7 +75,7 @@ func (biz *emcService) Create(ctx context.Context, ec *param.EmcCreate) error {
 	return err
 }
 
-func (biz *emcService) Update(ctx context.Context, ec *param.EmcUpdate) error {
+func (biz *emcService) Update(ctx context.Context, ec *mrequest.EmcUpdate) error {
 	id, enable := ec.ID, ec.Enable
 	tbl := biz.qry.Emc
 	old, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()

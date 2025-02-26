@@ -10,15 +10,16 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type BrokerService interface {
-	Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries)
+	Page(ctx context.Context, page param.Pager) (int64, mrequest.BrokerSummaries)
 	Indices(ctx context.Context, idx param.Indexer) []*model.Broker
-	Create(ctx context.Context, req *param.BrokerCreate) error
-	Update(ctx context.Context, req *param.BrokerUpdate) error
+	Create(ctx context.Context, req *mrequest.BrokerCreate) error
+	Update(ctx context.Context, req *mrequest.BrokerUpdate) error
 	Delete(ctx context.Context, id int64) error
-	Goos(ctx context.Context) []*param.BrokerGoos
+	Goos(ctx context.Context) []*mrequest.BrokerGoos
 	Stats(ctx context.Context) ([]*model.BrokerStat, error)
 }
 
@@ -36,7 +37,7 @@ type brokerService struct {
 	random *rand.Rand
 }
 
-func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, param.BrokerSummaries) {
+func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, mrequest.BrokerSummaries) {
 	tbl := biz.qry.Broker
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
@@ -48,7 +49,7 @@ func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, pa
 		return 0, nil
 	}
 
-	var ret param.BrokerSummaries
+	var ret mrequest.BrokerSummaries
 	_ = dao.Scopes(page.Scope(count)).Scan(&ret)
 	certIDs, certMap := ret.CertMap()
 	if len(certIDs) == 0 || len(certMap) == 0 {
@@ -83,7 +84,7 @@ func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*mod
 	return dats
 }
 
-func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) error {
+func (biz *brokerService) Create(ctx context.Context, req *mrequest.BrokerCreate) error {
 	if certID := req.CertID; certID != 0 {
 		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
@@ -115,7 +116,7 @@ func (biz *brokerService) Create(ctx context.Context, req *param.BrokerCreate) e
 		Create(brk)
 }
 
-func (biz *brokerService) Update(ctx context.Context, req *param.BrokerUpdate) error {
+func (biz *brokerService) Update(ctx context.Context, req *mrequest.BrokerUpdate) error {
 	if certID := req.CertID; certID != 0 {
 		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
@@ -158,7 +159,7 @@ func (biz *brokerService) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
+func (biz *brokerService) Goos(ctx context.Context) []*mrequest.BrokerGoos {
 	strSQL := "SELECT broker_id AS id, " +
 		"COUNT(IF(goos = 'linux', TRUE, NULL))   AS linux,   " +
 		"COUNT(IF(goos = 'windows', TRUE, NULL)) AS windows, " +
@@ -166,7 +167,7 @@ func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
 		" FROM minion" +
 		" GROUP BY broker_id "
 
-	ret := make([]*param.BrokerGoos, 0, 10)
+	ret := make([]*mrequest.BrokerGoos, 0, 10)
 	biz.qry.Minion.WithContext(ctx).UnderlyingDB().Raw(strSQL).Scan(&ret)
 
 	size := len(ret)
@@ -174,7 +175,7 @@ func (biz *brokerService) Goos(ctx context.Context) []*param.BrokerGoos {
 		return ret
 	}
 
-	index := make(map[int64]*param.BrokerGoos, size)
+	index := make(map[int64]*mrequest.BrokerGoos, size)
 	bids := make([]int64, 0, size)
 	for _, gc := range ret {
 		bid := gc.ID

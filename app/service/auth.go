@@ -8,24 +8,24 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/app/totp"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/vela-ssoc/vela-manager/integration/oauth"
+	"github.com/vela-ssoc/vela-manager/library/totp"
+	"github.com/vela-ssoc/vela-manager/param/modview"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 // AuthService 认证模块业务层
 type AuthService interface {
-	Picture(ctx context.Context, uname string) (*param.AuthPicture, error)
-	Verify(ctx context.Context, av param.AuthVerify) (factor bool, err error)
-	Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error
-	Login(ctx context.Context, ab param.AuthLogin) (*model.User, error)
+	Picture(ctx context.Context, uname string) (*mrequest.AuthPicture, error)
+	Verify(ctx context.Context, av mrequest.AuthVerify) (factor bool, err error)
+	Dong(ctx context.Context, ad mrequest.AuthDong, view modview.LoginDong) error
+	Login(ctx context.Context, ab mrequest.AuthLogin) (*model.User, error)
 
 	Valid(ctx context.Context, uname, passwd string) (string, bool, error)
 	Totp(ctx context.Context, uid string) (*totp.TOTP, error)
 	Submit(ctx context.Context, uid, code string) (*model.User, error)
-	Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error)
+	Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error)
 }
 
 func Auth(qry *query.Query, verify VerifyService, lock LoginLockService, user UserService, oauth oauth.Client) AuthService {
@@ -46,21 +46,21 @@ type authService struct {
 	oauth  oauth.Client
 }
 
-func (svc *authService) Picture(ctx context.Context, uname string) (*param.AuthPicture, error) {
+func (svc *authService) Picture(ctx context.Context, uname string) (*mrequest.AuthPicture, error) {
 	return svc.verify.Picture(ctx, uname)
 }
 
-func (svc *authService) Verify(ctx context.Context, av param.AuthVerify) (bool, error) {
+func (svc *authService) Verify(ctx context.Context, av mrequest.AuthVerify) (bool, error) {
 	uname, captID := av.Username, av.ID
 	points := av.Points.Convert()
 	return svc.verify.Verify(ctx, uname, captID, points)
 }
 
-func (svc *authService) Dong(ctx context.Context, ad param.AuthDong, view modview.LoginDong) error {
+func (svc *authService) Dong(ctx context.Context, ad mrequest.AuthDong, view modview.LoginDong) error {
 	return svc.verify.DongCode(ctx, ad.Username, ad.CaptchaID, view)
 }
 
-func (svc *authService) Login(ctx context.Context, ab param.AuthLogin) (*model.User, error) {
+func (svc *authService) Login(ctx context.Context, ab mrequest.AuthLogin) (*model.User, error) {
 	// 校验验证码
 	uname, passwd := ab.Username, ab.Password
 	captID, dong := ab.CaptchaID, ab.Code
@@ -174,7 +174,7 @@ func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.Us
 	return user, nil
 }
 
-func (svc *authService) Oauth(ctx context.Context, req *param.AuthOauth) (*model.User, error) {
+func (svc *authService) Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error) {
 	userinfo, err := svc.oauth.Exchange(ctx, req.Code)
 	if err != nil {
 		return nil, err

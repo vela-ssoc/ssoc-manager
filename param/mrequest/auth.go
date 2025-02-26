@@ -1,9 +1,9 @@
-package param
+package mrequest
 
 import (
 	"image"
 
-	"github.com/vela-ssoc/vela-manager/app/totp"
+	"github.com/vela-ssoc/vela-manager/library/totp"
 )
 
 type AuthBase struct {

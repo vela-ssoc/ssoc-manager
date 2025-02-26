@@ -3,6 +3,9 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
+
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
@@ -67,7 +70,7 @@ func (rest *userREST) Indices(c *ship.Context) error {
 
 // Sudo 超级管理员修改任意用户的信息
 func (rest *userREST) Sudo(c *ship.Context) error {
-	var req param.UserSudo
+	var req mrequest.UserSudo
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -86,7 +89,7 @@ func (rest *userREST) Sudo(c *ship.Context) error {
 }
 
 func (rest *userREST) Create(c *ship.Context) error {
-	var req param.UserCreate
+	var req mrequest.UserCreate
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -98,7 +101,7 @@ func (rest *userREST) Create(c *ship.Context) error {
 }
 
 func (rest *userREST) Delete(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
 	}
@@ -120,7 +123,7 @@ func (rest *userREST) Delete(c *ship.Context) error {
 }
 
 func (rest *userREST) Passwd(c *ship.Context) error {
-	var req param.UserPasswd
+	var req mrequest.UserPasswd
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -134,7 +137,7 @@ func (rest *userREST) Passwd(c *ship.Context) error {
 }
 
 func (rest *userREST) AccessKey(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -146,7 +149,7 @@ func (rest *userREST) AccessKey(c *ship.Context) error {
 }
 
 func (rest *userREST) Totp(c *ship.Context) error {
-	var req param.IntID
+	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
 	}

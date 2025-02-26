@@ -6,13 +6,14 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 )
 
 type SBOMComponentService interface {
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMComponent)
 	Project(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject)
-	Count(ctx context.Context, page param.Pager) (int64, []*param.NameCount)
+	Count(ctx context.Context, page param.Pager) (int64, request.NameCounts)
 }
 
 func SBOMComponent(qry *query.Query) SBOMComponentService {
@@ -61,8 +62,8 @@ func (biz *sbomComponentService) Project(ctx context.Context, page param.Pager, 
 	return count, dats
 }
 
-func (biz *sbomComponentService) Count(ctx context.Context, page param.Pager) (int64, []*param.NameCount) {
-	ret := make([]*param.NameCount, 0, 10)
+func (biz *sbomComponentService) Count(ctx context.Context, page param.Pager) (int64, request.NameCounts) {
+	ret := make(request.NameCounts, 0, 10)
 	tbl := biz.qry.SBOMComponent
 	count, _ := tbl.WithContext(ctx).Distinct(tbl.Name).Count()
 	if count == 0 {

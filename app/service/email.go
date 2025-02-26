@@ -7,12 +7,13 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 type EmailService interface {
 	Page(ctx context.Context, page param.Pager) (int64, []*model.Email)
-	Create(ctx context.Context, req *param.EmailCreate) error
-	Update(ctx context.Context, req *param.EmailUpdate) error
+	Create(ctx context.Context, req *mrequest.EmailCreate) error
+	Update(ctx context.Context, req *mrequest.EmailUpdate) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -46,7 +47,7 @@ func (biz *emailService) Page(ctx context.Context, page param.Pager) (int64, []*
 	return count, dats
 }
 
-func (biz *emailService) Create(ctx context.Context, req *param.EmailCreate) error {
+func (biz *emailService) Create(ctx context.Context, req *mrequest.EmailCreate) error {
 	dat := &model.Email{
 		Host:     req.Host,
 		Username: req.Username,
@@ -64,7 +65,7 @@ func (biz *emailService) Create(ctx context.Context, req *param.EmailCreate) err
 	return nil
 }
 
-func (biz *emailService) Update(ctx context.Context, req *param.EmailUpdate) error {
+func (biz *emailService) Update(ctx context.Context, req *mrequest.EmailUpdate) error {
 	// 查询数据
 	id := req.ID
 	tbl := biz.qry.Email

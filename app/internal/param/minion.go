@@ -5,6 +5,7 @@ import (
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type MinionCreate struct {
@@ -94,7 +95,7 @@ func (r MinionBatchRequest) Like() string {
 }
 
 type MinionUnloadRequest struct {
-	IntID
+	request.Int64ID
 	Unload bool `json:"unload"`
 }
 

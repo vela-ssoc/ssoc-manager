@@ -11,16 +11,16 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
-	"github.com/vela-ssoc/vela-manager/app/internal/modview"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/modview"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen"
 )
 
 type DeployService interface {
 	LAN(ctx context.Context) string
 	Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error)
-	OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error)
+	OpenMinion(ctx context.Context, req *mrequest.DeployMinionDownload) (gridfs.File, error)
 }
 
 func Deploy(qry *query.Query, store storage.Storer, gfs gridfs.FS) DeployService {
@@ -42,7 +42,7 @@ func (biz *deployService) LAN(ctx context.Context) string {
 	return addr
 }
 
-func (biz *deployService) OpenMinion(ctx context.Context, req *param.DeployMinionDownload) (gridfs.File, error) {
+func (biz *deployService) OpenMinion(ctx context.Context, req *mrequest.DeployMinionDownload) (gridfs.File, error) {
 	// 查询 broker 节点信息
 	brkTbl := biz.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(req.BrokerID)).First()
@@ -114,7 +114,7 @@ func (biz *deployService) Script(ctx context.Context, goos string, data *modview
 	return buf, nil
 }
 
-func (biz *deployService) matchBinary(ctx context.Context, req *param.DeployMinionDownload) (*model.MinionBin, error) {
+func (biz *deployService) matchBinary(ctx context.Context, req *mrequest.DeployMinionDownload) (*model.MinionBin, error) {
 	tbl := biz.qry.MinionBin
 	if binID := req.ID; binID != 0 { // 如果显式指定了 id，则按照 ID 匹配。
 		bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(binID)).First()

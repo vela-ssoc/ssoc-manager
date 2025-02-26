@@ -1,4 +1,4 @@
-package param
+package mrequest
 
 type EmcCreate struct {
 	Name    string `json:"name"    validate:"required,lte=50"`       // 名字

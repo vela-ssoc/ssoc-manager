@@ -1,6 +1,10 @@
 package param
 
-import "time"
+import (
+	"time"
+
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+)
 
 type SubstanceSummary struct {
 	ID        int64     `json:"id,string"`
@@ -31,12 +35,12 @@ type SubstanceUpdate struct {
 }
 
 type SubstanceReload struct {
-	IntID
+	request.Int64ID
 	SubstanceID int64 `json:"substance_id,string" validate:"required,gt=0"`
 }
 
 type SubstanceCommand struct {
-	IntID
+	request.Int64ID
 	Cmd string `json:"cmd" validate:"oneof=resync offline"`
 }
 
