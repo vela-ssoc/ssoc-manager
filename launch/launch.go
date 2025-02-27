@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/cmdb2"
 	"github.com/vela-ssoc/vela-common-mb/cronv3"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
@@ -23,6 +22,8 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb/profile"
+	"github.com/vela-ssoc/vela-common-mb/shipx"
 	"github.com/vela-ssoc/vela-common-mb/sqldb"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mb/validate"
@@ -33,21 +34,20 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
 	"github.com/vela-ssoc/vela-manager/app/session"
-	"github.com/vela-ssoc/vela-manager/applet/shipx"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/confload"
 	"github.com/vela-ssoc/vela-manager/integration/casauth"
+	"github.com/vela-ssoc/vela-manager/integration/cmdb2"
 	"github.com/vela-ssoc/vela-manager/integration/oauth"
-	"github.com/vela-ssoc/vela-manager/profile"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 func Run(ctx context.Context, path string) error {
-	cfg, err := profile.JSONC(path)
+	cfg, err := profile.ParseManager(path)
 	if err != nil {
 		return err
 	}
@@ -55,22 +55,20 @@ func Run(ctx context.Context, path string) error {
 	return runApp(ctx, cfg)
 }
 
-func runApp(ctx context.Context, cfg *profile.Config) error {
+func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	logCfg := cfg.Logger
-	logWriter := logCfg.Writer()
 	//goland:noinspection GoUnhandledErrorResult
-	defer logWriter.Close()
-	logLevel := new(slog.LevelVar) // 可动态修改的日志级别
-	if err := logLevel.UnmarshalText([]byte(logCfg.Level)); err != nil {
-		logLevel.Set(slog.LevelInfo)
-	}
-	logOption := &slog.HandlerOptions{AddSource: true, Level: logLevel}
+	defer logCfg.Close()
+
+	logWriter := logCfg.LogWriter()
+	logOption := &slog.HandlerOptions{AddSource: true, Level: logWriter.Level()}
 	logHandler := slog.NewJSONHandler(logWriter, logOption)
 	log := slog.New(logHandler)
 	log.Info("日志组件初始化完毕")
 
 	dbCfg := cfg.Database
-	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: cfg.GormLevel()})
+	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
+	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, gauss, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
 	if err != nil {
@@ -183,7 +181,7 @@ func runApp(ctx context.Context, cfg *profile.Config) error {
 	// ==========[ broker end ] ==========
 
 	httpClient := httpx.NewClient()
-	casClient := casauth.NewClient(confload.NewCASConfig(cfg.Oauth.CAS), httpClient, log)
+	casClient := casauth.NewClient(confload.NewCAS(cfg.Oauth.CAS), httpClient, log)
 
 	emcService := service.Emc(qry, pusher)
 	emcREST := mgtapi.Emc(emcService)
@@ -197,10 +195,10 @@ func runApp(ctx context.Context, cfg *profile.Config) error {
 	userREST := mgtapi.User(userService)
 	userREST.Route(anon, bearer, basic)
 
-	verifyService := service.Verify(qry, 3, dongCli, store, log) // 验证码 3 分钟有效期
-	loginLockService := service.LoginLock(qry, time.Hour, 10)    // 每小时错误 10 次就锁定账户
+	verifyService := service.Verify(qry, 3, store, log)       // 验证码 3 分钟有效期
+	loginLockService := service.LoginLock(qry, time.Hour, 10) // 每小时错误 10 次就锁定账户
 
-	oauthCfg := confload.NewOauthConfig(cfg.Oauth.URL, cfg.Oauth.ClientID, cfg.Oauth.ClientSecret, cfg.Oauth.RedirectURL)
+	oauthCfg := confload.NewOauth(cfg.Oauth.URL, cfg.Oauth.ClientID, cfg.Oauth.ClientSecret, cfg.Oauth.RedirectURL)
 	oauthClient := oauth.NewClient(oauthCfg, httpClient, log)
 	authService := service.Auth(qry, verifyService, loginLockService, userService, oauthClient)
 	authREST := mgtapi.Auth(authService)
@@ -419,7 +417,8 @@ func runApp(ctx context.Context, cfg *profile.Config) error {
 	synchro := vulnsync.New(db, sona)
 	mgtapi.Manual(synchro).Route(anon, bearer, basic)
 
-	cmdb2Client := cmdb2.NewClient(cfg.Cmdb2, client)
+	cmdb2Config := confload.NewCmdb2(cfg.Cmdb2.URL, cfg.Cmdb2.AccessKey, cfg.Cmdb2.SecretKey)
+	cmdb2Client := cmdb2.NewClient(cmdb2Config, httpClient)
 	cmdb2Service := service.Cmdb2(qry, cmdb2Client)
 	mgtapi.Cmdb2(cmdb2Service).Route(anon, bearer, basic)
 

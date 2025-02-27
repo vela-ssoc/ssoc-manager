@@ -46,17 +46,6 @@ func (tim *TaskExtension) page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, dat)
 }
 
-func (tim *TaskExtension) fromMarket(c *ship.Context) error {
-	req := new(mrequest.TaskExtensionFromMarket)
-	if err := c.Bind(req); err != nil {
-		return err
-	}
-	ctx := c.Request().Context()
-	cu := session.Cast(c.Any)
-
-	return tim.svc.FromMarket(ctx, req, cu)
-}
-
 func (tim *TaskExtension) createCode(c *ship.Context) error {
 	req := new(mrequest.TaskExtensionCreateCode)
 	if err := c.Bind(req); err != nil {

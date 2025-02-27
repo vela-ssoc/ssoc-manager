@@ -8,15 +8,16 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
+	"github.com/vela-ssoc/vela-common-mb/param/problem"
 )
 
 type Joiner interface {
 	Name() string
 	// Auth 开始认证
-	Auth(context.Context, Ident) (Issue, http.Header, error)
+	Auth(context.Context, negotiate.Ident) (negotiate.Issue, http.Header, error)
 	// Join 认证成功后接入处理业务逻辑
-	Join(net.Conn, Ident, Issue) error
+	Join(net.Conn, negotiate.Ident, negotiate.Issue) error
 }
 
 type Handler interface {
@@ -45,8 +46,8 @@ func (bk *blink) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	buf := make([]byte, 100*1024)
 	n, _ := io.ReadFull(r.Body, buf)
-	var ident Ident
-	if err := ident.decrypt(buf[:n]); err != nil {
+	var ident negotiate.Ident
+	if err := ident.Decrypt(buf[:n]); err != nil {
 		bk.writeError(w, r, http.StatusBadRequest, "认证信息错误")
 		return
 	}
@@ -59,7 +60,7 @@ func (bk *blink) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dat, err := issue.encrypt()
+	dat, err := issue.Encrypt()
 	if err != nil {
 		bk.writeError(w, r, http.StatusInternalServerError, "内部错误：%s", err.Error())
 		return
@@ -112,7 +113,7 @@ func (bk *blink) writeError(w http.ResponseWriter, r *http.Request, code int, ms
 	if len(args) != 0 {
 		msg = fmt.Sprintf(msg, args)
 	}
-	pd := &problem.Detail{
+	pd := &problem.Details{
 		Type:     bk.name,
 		Title:    "认证错误",
 		Status:   code,

@@ -98,10 +98,6 @@ func (m *oplogMid) getLimitCopy(body io.ReadCloser) *limitCopy {
 	return lc
 }
 
-func (m *oplogMid) putLimitCopy(lc *limitCopy) {
-	m.pool.Put(lc)
-}
-
 // limitCopy 带读取限制的 http request body
 // 日志中间件需要记录原生请求 Body，但是 Body 有长有短，对与过长
 // 的请求我们只记录前 max 位数据，后续的数据不再记录。

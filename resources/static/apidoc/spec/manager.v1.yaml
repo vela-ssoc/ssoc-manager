@@ -2166,6 +2166,58 @@ paths:
           name: exec_id
           description: 执行ID
           required: true
+  /task-execute/item/codes:
+    get:
+      summary: 查询任务执行记录状态统计
+      tags:
+        - 插件
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  x-stoplight:
+                    id: j256bz01hrzo9
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      x-stoplight:
+                        id: et17k5cj6t2qx
+                      enum:
+                        - 0
+                        - 1
+                        - 2
+                        - 3
+                        - 4
+                        - 5
+                      example: 1
+                      description: |-
+                        执行状态（枚举值）：
+                        - 0-任务下发执行中
+                        - 1-manager下发到broker出错
+                        - 2-broker下发到agent出错
+                        - 3-agent执行错误
+                        - 4-agent执行超时
+                        - 5-执行成功
+                    count:
+                      type: integer
+                      x-stoplight:
+                        id: akrz5cm6f4gyg
+                      example: 854
+                      description: 状态统计个数
+      operationId: get-task-execute-item-codes
+      description: 查询任务执行记录状态统计
+      parameters:
+        - schema:
+            type: integer
+          in: query
+          name: exec_id
+          required: true
+          description: 执行ID
 components:
   securitySchemes:
     Authorization:

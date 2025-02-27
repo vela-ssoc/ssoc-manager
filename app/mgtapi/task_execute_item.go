@@ -6,6 +6,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-manager/app/route"
 	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -20,6 +21,7 @@ type TaskExecuteItem struct {
 func (tex *TaskExecuteItem) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-execute/items").Data(route.Ignore()).GET(tex.page)
 	bearer.Route("/task-execute/item/cond").Data(route.Ignore()).GET(tex.cond)
+	bearer.Route("/task-execute/item/codes").Data(route.Ignore()).GET(tex.codeCount)
 }
 
 func (tex *TaskExecuteItem) cond(c *ship.Context) error {
@@ -35,6 +37,20 @@ func (tex *TaskExecuteItem) page(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	ret, err := tex.svc.Page(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (tex *TaskExecuteItem) codeCount(c *ship.Context) error {
+	req := new(mrequest.ExecID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	ret, err := tex.svc.CodeCounts(ctx, req.ExecID)
 	if err != nil {
 		return err
 	}

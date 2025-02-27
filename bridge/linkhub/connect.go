@@ -1,16 +1,16 @@
 package linkhub
 
 import (
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"github.com/vela-ssoc/vela-manager/bridge/blink"
 )
 
 type spdyServerConn struct {
 	id    int64
 	sid   string
 	muxer *smux.Session
-	ident blink.Ident
-	issue blink.Issue
+	ident negotiate.Ident
+	issue negotiate.Issue
 }
 
 func (sc *spdyServerConn) ID() int64 {

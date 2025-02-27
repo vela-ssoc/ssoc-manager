@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-common-mb/param/response"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 )
 
 func NewTaskExecuteItem(qry *query.Query) (*TaskExecuteItem, error) {
@@ -54,4 +55,18 @@ func (tex *TaskExecuteItem) Page(ctx context.Context, args *request.PageConditio
 	}
 
 	return pages.SetRecords(items), nil
+}
+
+func (tex *TaskExecuteItem) CodeCounts(ctx context.Context, execID int64) (mresponse.TaskExecuteItemCodeCounts, error) {
+	tbl := tex.qry.TaskExecuteItem
+	ret := make(mresponse.TaskExecuteItemCodeCounts, 4)
+	name, count := ret.Aliases()
+	if err := tbl.WithContext(ctx).
+		Select(tbl.ErrorCode.As(name), tbl.ErrorCode.Count().As(count)).
+		Where(tbl.ExecID.Eq(execID)).
+		Scan(&ret); err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }

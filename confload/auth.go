@@ -8,7 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/integration/oauth"
 )
 
-func NewCASConfig(rawURL string) casauth.Configurer {
+func NewCAS(rawURL string) casauth.Configurer {
 	u, e := url.Parse(rawURL)
 	return &casConfig{
 		e: e,
@@ -31,7 +31,7 @@ func (cc *casConfig) Configure(_ context.Context) (*url.URL, error) {
 	return &cu, nil
 }
 
-func NewOauthConfig(rawURL, clientID, clientSecret, redirectURL string) oauth.Configurer {
+func NewOauth(rawURL, clientID, clientSecret, redirectURL string) oauth.Configurer {
 	oc := &oauthConfig{
 		clientID:     clientID,
 		clientSecret: clientSecret,

@@ -16,11 +16,12 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mb/problem"
+	"github.com/vela-ssoc/vela-common-mb/profile"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
-	"github.com/vela-ssoc/vela-manager/profile"
 )
 
 var (
@@ -53,7 +54,7 @@ type Huber interface {
 	Forward(bid int64, w http.ResponseWriter, r *http.Request)
 }
 
-func New(qry *query.Query, handler http.Handler, pool gopool.Pool, cfg *profile.Config) Huber {
+func New(qry *query.Query, handler http.Handler, pool gopool.Pool, cfg *profile.ManagerConfig) Huber {
 	hub := &brokerHub{
 		qry:      qry,
 		name:     "manager",
@@ -76,7 +77,7 @@ type brokerHub struct {
 	qry      *query.Query
 	name     string
 	handler  http.Handler
-	config   *profile.Config
+	config   *profile.ManagerConfig
 	client   netutil.HTTPClient
 	forward  netutil.Forwarder
 	streamer netutil.Streamer
@@ -90,11 +91,10 @@ func (hub *brokerHub) Name() string {
 	return hub.name
 }
 
-func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue, http.Header, error) {
-	var issue blink.Issue
+func (hub *brokerHub) Auth(ctx context.Context, ident negotiate.Ident) (negotiate.Issue, http.Header, error) {
 	id, secret, inet := ident.ID, ident.Secret, ident.Inet
 	if len(inet) == 0 || inet.IsLoopback() {
-		return issue, nil, ErrBrokerInet
+		return negotiate.Issue{}, nil, ErrBrokerInet
 	}
 
 	// 查询 broker
@@ -103,24 +103,12 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 		Where(brkTbl.ID.Eq(id), brkTbl.Secret.Eq(secret)).
 		First()
 	if err != nil {
-		return issue, nil, ErrBrokerNotFound
+		return negotiate.Issue{}, nil, ErrBrokerNotFound
 	}
 
 	sid := strconv.FormatInt(id, 10)
 	if brk.Status || hub.getConn(sid) != nil {
-		return issue, nil, ErrBrokerRepeat
-	}
-
-	// 查询证书
-	issue.Listen = blink.Listen{Addr: brk.Bind}
-	if certID := brk.CertID; certID != 0 {
-		certTbl := hub.qry.Certificate
-		cert, err := certTbl.WithContext(ctx).Where(certTbl.ID.Eq(certID)).First()
-		if err != nil {
-			return issue, nil, err
-		}
-		issue.Listen.Cert = cert.Certificate
-		issue.Listen.Pkey = cert.PrivateKey
+		return negotiate.Issue{}, nil, ErrBrokerRepeat
 	}
 
 	// 随机生成一个 32-64 位的加密密钥
@@ -128,14 +116,34 @@ func (hub *brokerHub) Auth(ctx context.Context, ident blink.Ident) (blink.Issue,
 	passwd := make([]byte, psz)
 	_, _ = hub.random.Read(passwd)
 
-	issue.Name, issue.Passwd = brk.Name, passwd
-	issue.Logger, issue.Database = hub.config.Logger, hub.config.Database
-	issue.Section.CDN = hub.config.Server.CDN
+	issue := negotiate.Issue{
+		Name:   brk.Name,
+		Passwd: passwd,
+		Server: profile.BrokerServer{
+			Addr: brk.Bind,
+			Cert: "",
+			Pkey: "",
+			CDN:  hub.config.Server.CDN,
+		},
+		Logger:   hub.config.Logger,
+		Database: hub.config.Database,
+	}
+	if certID := brk.CertID; certID != 0 {
+		certTbl := hub.qry.Certificate
+		cert, err := certTbl.WithContext(ctx).
+			Where(certTbl.ID.Eq(certID)).
+			First()
+		if err != nil {
+			return issue, nil, err
+		}
+		issue.Server.Cert = cert.Certificate
+		issue.Server.Pkey = cert.PrivateKey
+	}
 
 	return issue, nil, nil
 }
 
-func (hub *brokerHub) Join(tran net.Conn, ident blink.Ident, issue blink.Issue) error {
+func (hub *brokerHub) Join(tran net.Conn, ident negotiate.Ident, issue negotiate.Issue) error {
 	conn := hub.newConn(tran, ident, issue)
 	if !hub.putConn(conn) {
 		return ErrBrokerRepeat
@@ -310,7 +318,7 @@ func (hub *brokerHub) sendJSON(ctx context.Context, id int64, path string, req, 
 	return hub.client.JSON(ctx, http.MethodPost, addr, req, resp, nil)
 }
 
-func (hub *brokerHub) newConn(tran net.Conn, ident blink.Ident, issue blink.Issue) *spdyServerConn {
+func (hub *brokerHub) newConn(tran net.Conn, ident negotiate.Ident, issue negotiate.Issue) *spdyServerConn {
 	id := ident.ID
 	sid := strconv.FormatInt(id, 10)
 	cfg := smux.DefaultConfig()

@@ -199,7 +199,10 @@ func (te *TaskExec) doExec(ctx context.Context, taskID int64) error {
 		if err != nil {
 			failedN += cnt
 			mStatus.Reason = err.Error()
-			updates = append(updates, taskExecuteItem.Finished.Value(true))
+			updates = append(updates,
+				taskExecuteItem.Finished.Value(true),
+				taskExecuteItem.ErrorCode.Value(model.TaskExecuteErrorCodeBroker),
+			)
 		}
 		updates = append(updates, taskExecuteItem.ManagerStatus.Value(mStatus))
 		_, _ = taskExecuteItemDo.Where(wheres...).UpdateSimple(updates...)

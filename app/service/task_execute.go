@@ -103,6 +103,7 @@ func (tex *TaskExecute) TimeoutMonitor(ctx context.Context) error {
 					itemTbl.Succeed.Value(false),
 					itemTbl.Finished.Value(true),
 					itemTbl.MinionStatus.Value(status),
+					itemTbl.ErrorCode.Value(model.TaskExecuteErrorCodeTimeout),
 				}
 				_, _ = tx.Where(itemTbl.ID.Eq(item.ID)).
 					UpdateSimple(updates...)

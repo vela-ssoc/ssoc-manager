@@ -105,51 +105,11 @@ type Index struct {
 	Keyword string `query:"keyword"`
 }
 
-func (i Index) Indexer() Indexer {
-	size, keyword := i.Size, i.Keyword
-	if size <= 0 || size > 1000 {
-		size = 1000
-	}
-	if keyword != "" {
-		keyword = "%" + keyword + "%"
-	}
-	return &indexScope{
-		size:    size,
-		keyword: keyword,
-	}
-}
-
 type Indexer interface {
 	Size() int
 	Keyword() string
 	Scope(gen.Dao) gen.Dao
 	Result(dats any) *IndexResult
-}
-
-type indexScope struct {
-	size    int
-	keyword string
-}
-
-func (is *indexScope) Size() int {
-	return is.size
-}
-
-func (is *indexScope) Keyword() string {
-	return is.keyword
-}
-
-func (is *indexScope) Scope(dao gen.Dao) gen.Dao {
-	return dao.Limit(is.size)
-}
-
-func (is *indexScope) Result(dats any) *IndexResult {
-	if dats == nil {
-		dats = []struct{}{}
-	}
-	return &IndexResult{
-		Records: dats,
-	}
 }
 
 type IndexResult struct {
