@@ -15,6 +15,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen"
+	"gorm.io/gen/field"
 )
 
 type DeployService interface {
@@ -125,17 +126,18 @@ func (biz *deployService) matchBinary(ctx context.Context, req *param.DeployMini
 		return bin, nil
 	}
 
-	custom := tbl.Customized.Eq(req.Customized)
-	if req.Customized == "" {
-		custom = tbl.Customized.IsNull()
-	}
 	conds := []gen.Condition{
 		tbl.Deprecated.Is(false), // 标记为过期不能下载
 		tbl.Goos.Eq(req.Goos),
 		tbl.Arch.Eq(req.Arch),
-		custom,                        // 定制版匹配
 		tbl.Unstable.Is(req.Unstable), // 是否测试版
 	}
+	if customized := req.Customized; customized == "" {
+		conds = append(conds, field.Or(tbl.Customized.Eq(customized), tbl.Customized.IsNull()))
+	} else {
+		conds = append(conds, tbl.Customized.Eq(customized))
+	}
+
 	if semver := string(req.Version); semver != "" {
 		conds = append(conds, tbl.Semver.Eq(semver))
 	}
