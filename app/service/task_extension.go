@@ -16,6 +16,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
+	"github.com/vela-ssoc/vela-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/vela-manager/app/service/internal/taskexec"
 	"github.com/vela-ssoc/vela-manager/app/session"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
@@ -24,18 +25,19 @@ import (
 	"gorm.io/gen/field"
 )
 
-func NewTaskExtension(qry *query.Query, hub linkhub.Huber, crontab *cronv3.Crontab) *TaskExtension {
+func NewTaskExtension(qry *query.Query, hub linkhub.Huber, flt *minionfilter.Filter, crontab *cronv3.Crontab) *TaskExtension {
+	exec := taskexec.New(qry, hub, flt)
 	return &TaskExtension{
 		qry:     qry,
-		hub:     hub,
 		crontab: crontab,
+		exec:    exec,
 	}
 }
 
 type TaskExtension struct {
 	qry     *query.Query
-	hub     linkhub.Huber
 	crontab *cronv3.Crontab // 定时器
+	exec    *taskexec.TaskExec
 }
 
 func (tim *TaskExtension) Init(ctx context.Context) {
@@ -491,6 +493,6 @@ func (tim *TaskExtension) taskName(id int64) string {
 
 func (tim *TaskExtension) execute(id int64) func() {
 	return func() {
-		taskexec.New(tim.qry, tim.hub).Exec(context.Background(), id)
+		_ = tim.exec.Exec(context.Background(), id)
 	}
 }

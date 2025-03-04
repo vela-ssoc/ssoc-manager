@@ -92,9 +92,11 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		log.Warn("当前连接的是 MySQL 数据库")
 	}
 	if dbCfg.Migrate { // 迁移合并数据库
+		log.Info("开始执行数据库迁移合并")
 		if err = db.WithContext(ctx).AutoMigrate(model.All()...); err != nil {
 			return err
 		}
+		log.Info("数据库迁移合并执行完成")
 	}
 
 	qry := query.Use(db)
@@ -204,9 +206,14 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 
+	minionFilterSvc, err := service.NewMinionFilter(qry)
+	if err != nil {
+		return err
+	}
+
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client)
-	minionService := service.Minion(qry, cmdbClient, pusher)
+	minionService := service.Minion(qry, cmdbClient, pusher, minionFilterSvc)
 	minionREST := mgtapi.Minion(qry, huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
@@ -241,7 +248,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		})
 	}
 
-	taskExtensionSvc := service.NewTaskExtension(qry, huber, crond)
+	taskExtensionSvc := service.NewTaskExtension(qry, huber, minionFilterSvc, crond)
 	taskExtensionAPI := mgtapi.NewTaskExtension(taskExtensionSvc)
 	taskExtensionAPI.Route(anon, bearer, basic)
 
@@ -394,11 +401,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	minionCustomizedREST := mgtapi.MinionCustomized(minionCustomizedService)
 	minionCustomizedREST.Route(anon, bearer, basic)
 
-	minionFilterSvc, err := service.NewMinionFilter(qry)
-	if err != nil {
-		return err
-	}
-	mgtapi.NewMinionFilter(minionFilterSvc).Route(anon, bearer, basic)
+	// mgtapi.NewMinionFilter(minionFilterSvc).Route(anon, bearer, basic)
 
 	emailService := service.Email(qry, pusher)
 	emailREST := mgtapi.Email(emailService)

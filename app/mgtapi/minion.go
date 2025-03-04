@@ -105,8 +105,8 @@ type minionREST struct {
 }
 
 func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	// bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
-	// bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
+	bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page2)
 	bearer.Route("/minion").
 		Data(route.Ignore()).GET(rest.Detail).
 		Data(route.Named("新增 agent 节点")).POST(rest.Create).
@@ -120,8 +120,23 @@ func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (rest *minionREST) Cond(c *ship.Context) error {
-	res := rest.table.Schema()
+	res := rest.svc.Cond()
 	return c.JSON(http.StatusOK, res)
+}
+
+func (rest *minionREST) Page2(c *ship.Context) error {
+	req := new(request.PageKeywordConditions)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	ret, err := rest.svc.Page2(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
 }
 
 func (rest *minionREST) Page(c *ship.Context) error {

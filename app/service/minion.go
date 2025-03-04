@@ -9,15 +9,21 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-common-mb/integration/cmdb"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/vela-common-mb/param/response"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/app/internal/sheet"
+	"github.com/vela-ssoc/vela-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 	"gorm.io/gen"
 	"gorm.io/gorm/clause"
 )
 
 type MinionService interface {
+	Cond() *response.Cond
+	Page2(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error)
 	Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary)
 	Detail(ctx context.Context, id int64) (*param.MinionDetail, error)
 	Drop(ctx context.Context, id int64) error
@@ -31,11 +37,12 @@ type MinionService interface {
 	BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error
 }
 
-func Minion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher) MinionService {
+func Minion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minionfilter.Filter) MinionService {
 	return &minionService{
 		qry:    qry,
 		cmdbw:  cmdbw,
 		pusher: pusher,
+		flt:    flt,
 	}
 }
 
@@ -43,6 +50,15 @@ type minionService struct {
 	qry    *query.Query
 	cmdbw  cmdb.Client
 	pusher push.Pusher
+	flt    *minionfilter.Filter
+}
+
+func (biz *minionService) Cond() *response.Cond {
+	return biz.flt.Cond()
+}
+
+func (biz *minionService) Page2(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error) {
+	return biz.flt.Page(ctx, args)
 }
 
 func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary) {

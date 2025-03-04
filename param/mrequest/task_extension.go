@@ -60,7 +60,7 @@ type TaskExtensionUpdateCode struct {
 
 type TaskExtensionCreatePublish struct {
 	Name          string                     `json:"name"                validate:"required,lte=100"`
-	Intro         string                     `json:"intro"               validate:"required,lte=1000"`
+	Intro         string                     `json:"intro"               validate:"lte=1000"`
 	Code          string                     `json:"code"                validate:"lte=65535"`
 	ExtensionID   int64                      `json:"extension_id,string" validate:"required_without=Code"`
 	Data          json.RawMessage            `json:"data"`
@@ -75,7 +75,7 @@ type TaskExtensionCreatePublish struct {
 
 type TaskExtensionUpdatePublish struct {
 	request.Int64ID
-	Intro         string                     `json:"intro"               validate:"required,lte=1000"`
+	Intro         string                     `json:"intro"               validate:"lte=1000"`
 	Code          string                     `json:"code"                validate:"lte=65535"`
 	ExtensionID   int64                      `json:"extension_id,string" validate:"required_without=Code"`
 	Data          json.RawMessage            `json:"data"`
@@ -109,6 +109,7 @@ func (tf TaskExtensionPublishFilter) ConvertModel() model.TaskExecuteFilter {
 		Keyword:  tf.Keyword,
 		Inets:    tf.Inets,
 		InetMode: tf.InetMode,
+		Filters:  filters,
 	}
 }
 

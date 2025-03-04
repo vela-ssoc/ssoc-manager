@@ -9,23 +9,14 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-common-mb/param/response"
+	"github.com/vela-ssoc/vela-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/vela-manager/param/mresponse"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 )
 
-func NewMinionFilter(qry *query.Query) (*MinionFilter, error) {
-	mf := &MinionFilter{qry: qry}
-
-	opts := dyncond.Options{WhereFilter: mf.whereFilter, OrderFilter: mf.orderFilter}
-	mods := []any{model.Minion{}, model.MinionTag{}}
-	tbl, err := dyncond.ParseModels(qry, mods, opts)
-	if err != nil {
-		return nil, err
-	}
-	mf.tbl = tbl
-
-	return mf, nil
+func NewMinionFilter(qry *query.Query) (*minionfilter.Filter, error) {
+	return minionfilter.New(qry)
 }
 
 type MinionFilter struct {

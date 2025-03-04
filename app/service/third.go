@@ -142,7 +142,6 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 		FileID:     file.ID(),
 		Name:       name,
 		Hash:       file.MD5(),
-		Path:       "-",
 		Desc:       desc,
 		Size:       file.Size(),
 		Extension:  ext,

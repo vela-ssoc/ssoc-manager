@@ -80,6 +80,11 @@ func (tex *TaskExecute) Remove(ctx context.Context, id int64) error {
 	})
 }
 
+func (tex *TaskExecute) Details(ctx context.Context, id int64) (*model.TaskExecute, error) {
+	tbl := tex.qry.TaskExecute
+	return tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
+}
+
 // TimeoutMonitor 监控超时任务。
 func (tex *TaskExecute) TimeoutMonitor(ctx context.Context) error {
 	now := time.Now()

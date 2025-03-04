@@ -22,7 +22,9 @@ type TaskExecute struct {
 
 func (tex *TaskExecute) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/task-executes").Data(route.Ignore()).GET(tex.page)
-	bearer.Route("/task-execute").Data(route.Ignore()).DELETE(tex.remove)
+	bearer.Route("/task-execute").
+		Data(route.Ignore()).DELETE(tex.remove).
+		Data(route.Ignore()).GET(tex.details)
 }
 
 func (tex *TaskExecute) page(c *ship.Context) error {
@@ -47,4 +49,19 @@ func (tex *TaskExecute) remove(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return tex.svc.Remove(ctx, req.ID)
+}
+
+func (tex *TaskExecute) details(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	ret, err := tex.svc.Details(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
 }
