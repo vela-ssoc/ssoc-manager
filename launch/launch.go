@@ -193,9 +193,16 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	digestService := service.Digest()
 	sequenceService := service.Sequence()
 
-	userService := service.User(qry, digestService, casClient)
+	userService := service.User(qry, digestService, casClient, log)
 	userREST := mgtapi.User(userService)
 	userREST.Route(anon, bearer, basic)
+
+	if dbCfg.Migrate {
+		// 尝试初始化管理员
+		if err = userService.Generate(ctx); err != nil {
+			return err
+		}
+	}
 
 	verifyService := service.Verify(qry, 3, store, log)       // 验证码 3 分钟有效期
 	loginLockService := service.LoginLock(qry, time.Hour, 10) // 每小时错误 10 次就锁定账户
@@ -241,7 +248,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	taskExecuteItemAPI.Route(anon, bearer, basic)
 
 	{
-		crond.Schedule("timeout", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {
+		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {
 			cctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 			defer cancel()
 			taskExecuteSvc.TimeoutMonitor(cctx)

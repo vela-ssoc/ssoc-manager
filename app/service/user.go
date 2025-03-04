@@ -4,17 +4,17 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/vela-ssoc/vela-manager/integration/casauth"
+	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen/field"
 )
 
@@ -37,13 +37,16 @@ type UserService interface {
 	Authenticate(ctx context.Context, uname, passwd string) (*model.User, error)
 
 	Totp(ctx context.Context, uid int64) error
+
+	Generate(ctx context.Context) error
 }
 
-func User(qry *query.Query, digest DigestService, sso casauth.Client) UserService {
+func User(qry *query.Query, digest DigestService, sso casauth.Client, log *slog.Logger) UserService {
 	return &userService{
 		qry:    qry,
 		digest: digest,
 		sso:    sso,
+		log:    log,
 	}
 }
 
@@ -51,6 +54,7 @@ type userService struct {
 	qry    *query.Query
 	digest DigestService
 	sso    casauth.Client
+	log    *slog.Logger
 }
 
 func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
@@ -238,4 +242,46 @@ func (biz *userService) Totp(ctx context.Context, uid int64) error {
 		Where(tbl.ID.Eq(uid)).
 		UpdateSimple(tbl.TotpBind.Value(false), tbl.TotpSecret.Value(""))
 	return err
+}
+
+func (biz *userService) Generate(ctx context.Context) error {
+	tbl := biz.qry.User
+	dao := tbl.WithContext(ctx)
+	cnt, err := dao.Count()
+	if err != nil {
+		return err
+	} else if cnt != 0 {
+		biz.log.Info("当前已存在用户，无需生成超级管理员")
+		return nil
+	}
+
+	buf := make([]byte, 16)
+	if _, err = rand.Read(buf); err != nil {
+		biz.log.Error("生成初始密码错误", slog.Any("error", err))
+		return err
+	}
+	passwd := hex.EncodeToString(buf)
+	const uname = "root"
+	hashed, err := biz.digest.Hashed(passwd)
+	if err != nil {
+		return err
+	}
+
+	super := &model.User{
+		Username: uname,
+		Nickname: "超级管理员",
+		Password: hashed,
+		Enable:   true,
+		Domain:   model.UdLocal,
+	}
+	if err = dao.Create(super); err != nil {
+		biz.log.Error("初始话超级管理员错误", slog.Any("error", err))
+		return err
+	}
+	biz.log.Warn("超级管理员初始化成功",
+		slog.String("username", uname),
+		slog.String("password", passwd),
+	)
+
+	return nil
 }
