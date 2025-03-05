@@ -11,7 +11,7 @@ on:
 
 jobs:
 
-  build:
+  build-linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -27,5 +27,23 @@ jobs:
     - name: 下载文件
       uses: actions/upload-artifact@v4.6.1
       with:
-        name: vela-manager
+        name: vela-manager-linux
+        path: vela-manager-*
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 安装 Go SDK
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: 编译代码
+      run: sh build.sh
+    
+    - name: 下载文件
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: vela-manager-windows
         path: vela-manager-*
