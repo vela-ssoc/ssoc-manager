@@ -24,12 +24,4 @@ export CGO_ENABLED=0
 LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/vela-manager/banner.compileTime=$NOW'"
 go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
 
-# 检查上一步是否执行成功
-if [[ $? -eq 0 ]]; then
-    # 检查 upx 命令是否存在
-    if command -v upx &> /dev/null; then
-        upx -9 ${BIN_NAME}
-    fi
-fi
-
 echo "编译打包结束"
