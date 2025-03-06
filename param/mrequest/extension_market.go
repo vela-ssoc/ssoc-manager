@@ -18,14 +18,14 @@ type ExtensionMarketRecord struct {
 	Records []*model.ExtensionRecord `json:"records"`
 }
 
-type ExtensionMarketPage struct {
-	Page
-	Category string `query:"category" validate:"omitempty,oneof=service task"`
-}
-
 type ExtensionMarketUpdate struct {
 	request.Int64ID
 	Intro     string `json:"intro"     validate:"lte=1000"`
 	Content   string `json:"content"   validate:"required,lte=65535"`
 	Changelog string `json:"changelog" validate:"lte=65535"`
+}
+
+type ExtensionMarketPages struct {
+	request.PageKeywords
+	Category string `query:"category" validate:"omitempty,oneof=service task"`
 }

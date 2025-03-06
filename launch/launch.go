@@ -70,7 +70,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
 	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
-	db, gauss, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
+	db, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
 	if err != nil {
 		return err
 	}
@@ -85,12 +85,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	sdb.SetMaxIdleConns(dbCfg.MaxIdleConn)
 	sdb.SetConnMaxLifetime(dbCfg.MaxLifeTime.Duration())
 	sdb.SetConnMaxIdleTime(dbCfg.MaxIdleTime.Duration())
+	log.Warn("当前数据库类型", slog.String("dialect", db.Dialector.Name()))
 
-	if gauss {
-		log.Warn("当前连接的是 OpenGauss 信创数据库")
-	} else {
-		log.Warn("当前连接的是 MySQL 数据库")
-	}
 	if dbCfg.Migrate { // 迁移合并数据库
 		log.Info("开始执行数据库迁移合并")
 		if err = db.WithContext(ctx).AutoMigrate(model.All()...); err != nil {
@@ -375,6 +371,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	brokerBinaryService := service.BrokerBinary(qry, gfs, store)
 	brokerBinaryREST := mgtapi.BrokerBinary(brokerBinaryService)
 	brokerBinaryREST.Route(anon, bearer, basic)
+
+	brokerCommandSvc := service.NewBrokerCommand(huber)
+	brokerCommandAPI := mgtapi.NewBrokerCommand(brokerCommandSvc)
+	brokerCommandAPI.Route(anon, bearer, basic)
 
 	certService := service.Cert(qry)
 	certREST := mgtapi.Cert(certService)

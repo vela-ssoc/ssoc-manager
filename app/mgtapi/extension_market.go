@@ -21,25 +21,24 @@ type ExtensionMarket struct {
 	svc *service.ExtensionMarket
 }
 
-func (mkt *ExtensionMarket) Route(_, bearer, _ *ship.RouteGroupBuilder) {
-	bearer.Route("/extension-markets").Data(route.Ignore()).GET(mkt.page)
+func (mkt *ExtensionMarket) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+	anon.Route("/extension-markets").Data(route.Ignore()).GET(mkt.page)
 	bearer.Route("/extension-market/records").Data(route.Ignore()).GET(mkt.records)
+	bearer.Route("/extension-market").Data(route.Ignore()).GET(mkt.details)
 	bearer.Route("/extension-market").Data(route.Ignore()).POST(mkt.create)
 	bearer.Route("/extension-market").Data(route.Ignore()).PUT(mkt.update)
 	bearer.Route("/extension-market").Data(route.Ignore()).DELETE(mkt.delete)
 }
 
 func (mkt *ExtensionMarket) page(c *ship.Context) error {
-	req := new(mrequest.ExtensionMarketPage)
+	req := new(mrequest.ExtensionMarketPages)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
-	page := req.Pager()
-	cnt, dats := mkt.svc.Page(ctx, page, req.Category)
-	dat := page.Result(cnt, dats)
+	dats := mkt.svc.Page(ctx, req.Category)
 
-	return c.JSON(http.StatusOK, dat)
+	return c.JSON(http.StatusOK, dats)
 }
 
 func (mkt *ExtensionMarket) create(c *ship.Context) error {
@@ -87,6 +86,21 @@ func (mkt *ExtensionMarket) records(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	dat, err := mkt.svc.Records(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, dat)
+}
+
+func (mkt *ExtensionMarket) details(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	dat, err := mkt.svc.Details(ctx, req.ID)
 	if err != nil {
 		return err
 	}

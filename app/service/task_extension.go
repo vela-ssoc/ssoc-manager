@@ -78,12 +78,15 @@ func (tim *TaskExtension) FromMarket(ctx context.Context, req *mrequest.TaskExte
 	quote := &model.ExtensionQuote{
 		ID:          market.ID,
 		Name:        market.Name,
+		Intro:       market.Intro,
 		Version:     market.Version,
 		Data:        req.Data,
 		Content:     market.Content,
 		ContentSHA1: market.ContentSHA1,
 		CreatedBy:   market.CreatedBy,
 		UpdatedBy:   market.UpdatedBy,
+		CreatedAt:   market.CreatedAt,
+		UpdatedAt:   market.UpdatedAt,
 	}
 	data := &model.TaskExtension{
 		Name:         req.Name,
@@ -140,6 +143,7 @@ func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []
 	tbl := tim.qry.TaskExtension
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
+		kw = "%" + kw + "%"
 		dao = dao.Where(tbl.Name.Like(kw)).Or(tbl.Intro.Like(kw))
 	}
 
@@ -179,12 +183,15 @@ func (tim *TaskExtension) CreateCode(ctx context.Context, req *mrequest.TaskExte
 		data.ContentQuote = &model.ExtensionQuote{
 			ID:          mrk.ID,
 			Name:        mrk.Name,
+			Intro:       mrk.Intro,
 			Version:     mrk.Version,
 			Data:        req.Data,
 			Content:     mrk.Content,
 			ContentSHA1: mrk.ContentSHA1,
 			CreatedBy:   mrk.CreatedBy,
 			UpdatedBy:   mrk.UpdatedBy,
+			CreatedAt:   mrk.CreatedAt,
+			UpdatedAt:   mrk.UpdatedAt,
 		}
 		tmpl, err := luatemplate.New(mrk.Name).Parse(mrk.Content)
 		if err != nil {
@@ -242,12 +249,15 @@ func (tim *TaskExtension) UpdateCode(ctx context.Context, req *mrequest.TaskExte
 			contentQuote := &model.ExtensionQuote{
 				ID:          mrk.ID,
 				Name:        mrk.Name,
+				Intro:       mrk.Intro,
 				Version:     mrk.Version,
 				Data:        req.Data,
 				Content:     mrk.Content,
 				ContentSHA1: mrk.ContentSHA1,
 				CreatedBy:   mrk.CreatedBy,
 				UpdatedBy:   mrk.UpdatedBy,
+				CreatedAt:   mrk.CreatedAt,
+				UpdatedAt:   mrk.UpdatedAt,
 			}
 			updates = append(updates, tbl.ContentQuote.Value(contentQuote))
 		} else {
@@ -330,12 +340,15 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *mrequest.TaskE
 		data.ContentQuote = &model.ExtensionQuote{
 			ID:          mrk.ID,
 			Name:        mrk.Name,
+			Intro:       mrk.Intro,
 			Version:     mrk.Version,
 			Data:        req.Data,
 			Content:     mrk.Content,
 			ContentSHA1: mrk.ContentSHA1,
 			CreatedBy:   mrk.CreatedBy,
 			UpdatedBy:   mrk.UpdatedBy,
+			CreatedAt:   mrk.CreatedAt,
+			UpdatedAt:   mrk.UpdatedAt,
 		}
 
 		tmpl, err := luatemplate.New(mrk.Name).Parse(mrk.Content)
@@ -429,12 +442,15 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 			contentQuote := &model.ExtensionQuote{
 				ID:          mrk.ID,
 				Name:        mrk.Name,
+				Intro:       mrk.Intro,
 				Version:     mrk.Version,
 				Data:        req.Data,
 				Content:     mrk.Content,
 				ContentSHA1: mrk.ContentSHA1,
 				CreatedBy:   mrk.CreatedBy,
 				UpdatedBy:   mrk.UpdatedBy,
+				CreatedAt:   mrk.CreatedAt,
+				UpdatedAt:   mrk.UpdatedAt,
 			}
 			updates = append(updates, tbl.ContentQuote.Value(contentQuote))
 		} else {

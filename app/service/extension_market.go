@@ -4,13 +4,18 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
+	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/vela-common-mb/param/response"
 	"github.com/vela-ssoc/vela-manager/app/session"
 	"github.com/vela-ssoc/vela-manager/param/mrequest"
+	"gorm.io/datatypes"
 	"gorm.io/gen/field"
+	"gorm.io/gorm/clause"
 )
 
 func NewExtensionMarket(qry *query.Query) *ExtensionMarket {
@@ -23,26 +28,63 @@ type ExtensionMarket struct {
 	qry *query.Query
 }
 
-func (mkt *ExtensionMarket) Page(ctx context.Context, page mrequest.Pager, category string) (int64, []*model.ExtensionMarket) {
+func (mkt *ExtensionMarket) Page(ctx context.Context, category string) []*model.ExtensionMarket {
 	tbl := mkt.qry.ExtensionMarket
 	dao := tbl.WithContext(ctx)
 	if category != "" {
 		dao = dao.Where(tbl.Category.Eq(category))
 	}
+	dats, _ := dao.Find()
 
-	if kw := page.Keyword(); kw != "" {
-		like := field.Or(tbl.Name.Like(kw), tbl.Intro.Like(kw))
-		dao = dao.Where(like)
+	ret, err := mkt.page2(ctx, &mrequest.ExtensionMarketPages{
+		Category: category,
+		PageKeywords: request.PageKeywords{
+			Pages:    request.Pages{Page: 1, Size: 10},
+			Keywords: request.Keywords{Keyword: "徐"},
+		},
+	})
+	fmt.Println(err)
+	fmt.Println(ret)
+
+	return dats
+}
+
+func (mkt *ExtensionMarket) page2(ctx context.Context, req *mrequest.ExtensionMarketPages) (*response.Pages[*model.ExtensionMarket], error) {
+	tbl := mkt.qry.ExtensionMarket
+	dao := tbl.WithContext(ctx)
+
+	if kw := req.Format(); kw != "" {
+		likes := []clause.Expression{tbl.Name.Like(kw), tbl.Intro.Like(kw)}
+
+		createdByName := tbl.CreatedBy.ColumnName().String()
+		createdBy := datatypes.JSONQuery(createdByName).Likes(kw, "nickname")
+		likes = append(likes, createdBy)
+
+		updatedByName := tbl.UpdatedBy.ColumnName().String()
+		updatedBy := datatypes.JSONQuery(updatedByName).Likes(kw, "nickname")
+		likes = append(likes, updatedBy)
+
+		like := clause.Where{Exprs: []clause.Expression{clause.Or(likes...)}}
+		dao = dao.Clauses(like)
+	}
+	if cate := req.Category; cate != "" {
+		dao = dao.Where(tbl.Category.Eq(cate))
 	}
 
-	count, _ := dao.Count()
-	if count == 0 {
-		return 0, nil
+	pages := response.NewPages[*model.ExtensionMarket](req.PageSize())
+	cnt, err := dao.Count()
+	if err != nil {
+		return nil, err
+	} else if cnt == 0 {
+		return pages.Empty(), nil
 	}
 
-	dats, _ := dao.Scopes(page.Scope(count)).Find()
+	dats, err := dao.Scopes(pages.FP(cnt)).Find()
+	if err != nil {
+		return nil, err
+	}
 
-	return count, dats
+	return pages.SetRecords(dats), nil
 }
 
 func (mkt *ExtensionMarket) Create(ctx context.Context, req *mrequest.ExtensionMarketCreate, cu *session.Ident) (*model.ExtensionMarket, error) {
@@ -170,4 +212,9 @@ func (mkt *ExtensionMarket) Records(ctx context.Context, id int64) ([]*model.Ext
 		Where(tbl.ExtensionID.Eq(id)).
 		Order(tbl.Version.Desc()).
 		Limit(1000).Find()
+}
+
+func (mkt *ExtensionMarket) Details(ctx context.Context, id int64) (*model.ExtensionMarket, error) {
+	tbl := mkt.qry.ExtensionMarket
+	return tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 }
