@@ -9,6 +9,7 @@ WorkingDirectory=/vdb/ssoc/broker
 ExecStart=/vdb/ssoc/broker/ssoc-broker
 ExecStop=/bin/kill -HUP $MAINPID
 Restart=always
+RestartSec=5
 Environment=HOME=/root
 Environment=XDG_CONFIG_HOME=/root/.config
 Environment=TERM=xterm-256color

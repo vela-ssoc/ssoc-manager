@@ -9,6 +9,7 @@ WorkingDirectory=/vdb/ssoc/manager
 ExecStart=/vdb/ssoc/manager/ssoc-manager
 ExecStop=/bin/kill -HUP $MAINPID
 Restart=always
+RestartSec=5
 Environment=HOME=/root
 Environment=XDG_CONFIG_HOME=/root/.config
 Environment=TERM=xterm-256color
