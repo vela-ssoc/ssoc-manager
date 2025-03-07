@@ -86,9 +86,9 @@ Elasticsearch 7.x 及以上。
 
 ### 依赖软件
 
-[libpcap-devel](https://www.tcpdump.org/) 编译 BPF 需要。
+无
 
-> Ubuntu 下可能叫：libpcap-dev
+> 2025-03-06 [已经实现静态编译](https://github.com/vela-ssoc/vela-broker/actions/workflows/static.yml)，无需安装 [libpcap-devel](https://www.tcpdump.org/) 了。
 
 ### agent
 
