@@ -18,33 +18,36 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: 安装 Go 环境
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: 1.24
+          check-latest: true
 
       - name: 编译代码
         run: sh build.sh
 
       - name: 下载文件
-        uses: actions/upload-artifact@v4.6.1
+        uses: actions/upload-artifact@v4
         with:
           name: vela-manager-linux
           path: vela-manager-*
+
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: 安装 Go 环境
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: 1.24
+          check-latest: true
 
       - name: 编译代码
         run: sh build.sh
 
       - name: 下载文件
-        uses: actions/upload-artifact@v4.6.1
+        uses: actions/upload-artifact@v4
         with:
           name: vela-manager-windows
           path: vela-manager-*
