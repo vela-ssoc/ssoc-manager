@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.6.15
 	github.com/vela-ssoc/luatemplate v0.0.0-20250225053830-e3ca032f4fd1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20250306071916-0af3db1c3250
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20250307054750-629307d94c9e
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20250219065254-10cf1234dc53
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
