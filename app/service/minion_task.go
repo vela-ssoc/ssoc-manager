@@ -48,7 +48,7 @@ func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope 
 	var dats param.TaskList
 	stmt.Select("minion_task.id", "minion_task.inet", "minion_task.minion_id", "minion_task.substance_id",
 		"minion_task.name", "minion_task.dialect", "minion_task.status", "minion_task.hash AS report_hash", "st.hash",
-		"minion_task.link", "minion_task.`from`", "minion_task.failed", "minion_task.cause", "st.created_at",
+		"minion_task.link" /* "minion_task.`from`",*/, "minion_task.failed", "minion_task.cause", "st.created_at",
 		"st.updated_at", "minion_task.created_at AS report_at").
 		Scopes(page.DBScope(count)).Find(&dats)
 
@@ -215,14 +215,14 @@ func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int
 func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *gorm.DB, name string, n int, ret []*param.TaskGather) {
 	defer wg.Done()
 
-	rawSQL := "SELECT COUNT(IF(`dialect` = TRUE, TRUE, NULL)) AS `dialect`, " +
-		"COUNT(IF(`dialect` = FALSE, TRUE, NULL))    AS `public`, " +
-		"COUNT(IF(`status` = 'running', TRUE, NULL)) AS `running`," +
-		"COUNT(IF(`status` = 'doing', TRUE, NULL))   AS `doing`, " +
-		"COUNT(IF(`status` = 'fail', TRUE, NULL))    AS `fail`, " +
-		"COUNT(IF(`status` = 'panic', TRUE, NULL))   AS `panic`, " +
-		"COUNT(IF(`status` = 'reg', TRUE, NULL))     AS `reg`, " +
-		"COUNT(IF(`status` = 'update', TRUE, NULL))  AS `update` " +
+	rawSQL := "SELECT COUNT(IF(dialect = TRUE, TRUE, NULL)) AS dialect, " +
+		"COUNT(IF(dialect = FALSE, TRUE, NULL))    AS public, " +
+		"COUNT(IF(status = 'running', TRUE, NULL)) AS running," +
+		"COUNT(IF(status = 'doing', TRUE, NULL))   AS doing, " +
+		"COUNT(IF(status = 'fail', TRUE, NULL))    AS fail, " +
+		"COUNT(IF(status = 'panic', TRUE, NULL))   AS panic, " +
+		"COUNT(IF(status = 'reg', TRUE, NULL))     AS reg, " +
+		"COUNT(IF(status = 'update', TRUE, NULL))  AS update " +
 		"FROM minion_task WHERE name = ?"
 
 	var res param.TaskCount
@@ -244,14 +244,14 @@ func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *
 }
 
 func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
-	rawSQL := "SELECT COUNT(IF(`dialect` = TRUE, TRUE, NULL)) AS `dialect`, " +
-		"COUNT(IF(`dialect` = FALSE, TRUE, NULL))    AS `public`, " +
-		"COUNT(IF(`status` = 'running', TRUE, NULL)) AS `running`," +
-		"COUNT(IF(`status` = 'doing', TRUE, NULL))   AS `doing`, " +
-		"COUNT(IF(`status` = 'fail', TRUE, NULL))    AS `fail`, " +
-		"COUNT(IF(`status` = 'panic', TRUE, NULL))   AS `panic`, " +
-		"COUNT(IF(`status` = 'reg', TRUE, NULL))     AS `reg`, " +
-		"COUNT(IF(`status` = 'update', TRUE, NULL))  AS `update` " +
+	rawSQL := "SELECT COUNT(IF(dialect = TRUE, TRUE, NULL)) AS dialect, " +
+		"COUNT(IF(dialect = FALSE, TRUE, NULL))    AS public, " +
+		"COUNT(IF(status = 'running', TRUE, NULL)) AS running," +
+		"COUNT(IF(status = 'doing', TRUE, NULL))   AS doing, " +
+		"COUNT(IF(status = 'fail', TRUE, NULL))    AS fail, " +
+		"COUNT(IF(status = 'panic', TRUE, NULL))   AS panic, " +
+		"COUNT(IF(status = 'reg', TRUE, NULL))     AS reg, " +
+		"COUNT(IF(status = 'update', TRUE, NULL))  AS update " +
 		"FROM minion_task"
 
 	res := new(param.TaskCount)
