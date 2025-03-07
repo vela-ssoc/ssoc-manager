@@ -154,7 +154,6 @@ func (mkt *ExtensionMarket) Update(ctx context.Context, req *mrequest.ExtensionM
 		tbl.Intro.Value(req.Intro),
 		tbl.Changelog.Value(req.Changelog),
 		tbl.UpdatedBy.Value(updatedBy),
-		tbl.UpdatedAt.Value(now),
 	}
 	modifiedVersion := data.Version
 	if changed {

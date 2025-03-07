@@ -5,16 +5,16 @@
     // HTTP 静态文件目录，留空代表无需静态资源代理。
     "static": "resources/static",
     // 证书和私钥，当两个都有值时，才会以 https 启动服务。
-    "cert": "resources/tls/server.pem",
-    "pkey": "resources/tls/server.key",
+    // "cert": "resources/tls/server.pem",
+    // "pkey": "resources/tls/server.key",
     // 登录用户 session 有效期。
-    "session": "72h",
+    "session": "24h",
     // 文件下载节点缓存路径。
     "cdn": "resources/cdn",
     // 虚拟主机头，留空代表不校验主机头。
     "vhosts": [
-      "ssoc.example.com",
-      "10.34.56.78"
+      //      "ssoc.example.com",
+      //      "10.34.56.78"
     ]
   },
   "oauth": {
@@ -31,9 +31,8 @@
     //    - OpenGauss: opengauss://username:password@db.example.com:15432/ssoc
     //    - MySQL: username:password@tcp(db.example.com:3306)/ssoc?parseTime=True&timeout=10s
     "dsn": "opengauss://username:password@db.example.com:15432/ssoc",
-    // 日志输出级别：DEBUG INFO WARN ERROR，不填写则按照 logger.level 输出。
-    // 和 logger 公用一个日志输出位置。
-    "level": "WARN",
+    // SQL 日志输出级别：INFO WARN ERROR
+    "level": "INFO",
     // 是否根据 struct 定义自动合并表差异。
     // 当后端数据库发生变动时开启一次然后关闭即可，
     // 长期开启也可以，但是会影响项目启动速度。
@@ -43,19 +42,19 @@
     // 最大空闲连接数。
     "max_idle_conn": 10,
     // 最大连接时长。
-    "max_life_time": "72h",
+    "max_life_time": "24h",
     // 连接最大空闲时长。
-    "max_idle_time": "2h"
+    "max_idle_time": "1h"
   },
   "logger": {
     // 日志输出级别：https://github.com/golang/go/blob/go1.23.2/src/log/slog/level.go#L133-L140
-    "level": "DEBUG",
+    "level": "INFO",
     // 是否将日志输出到控制台。
     // 开发环境开启，部署上线后应当关闭。
-    "console": true,
+    "console": false,
     // 是否将日志输出到文件，不配置则认为不输出到文件。
     // 部署上线请配置输出文件。
-    "filename": "resources/log/manager.jsonl",
+    "filename": "resources/log/app.jsonl",
     // https://github.com/natefinch/lumberjack/blob/v2.2.1/lumberjack.go#L85-L87
     "maxsize": 0,
     // https://github.com/natefinch/lumberjack/blob/v2.2.1/lumberjack.go#L89-L94

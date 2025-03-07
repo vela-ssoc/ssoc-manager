@@ -221,12 +221,11 @@ func (tim *TaskExtension) UpdateCode(ctx context.Context, req *mrequest.TaskExte
 		return nil, err
 	}
 
-	code, now := req.Code, time.Now()
+	code := req.Code
 	operator := model.Operator{ID: cu.ID, Nickname: cu.Nickname, Username: cu.Username}
 	updates := []field.AssignExpr{
 		tbl.Intro.Value(req.Intro),
 		tbl.UpdatedBy.Value(operator),
-		tbl.UpdatedAt.Value(now),
 	}
 	if old.Code != "" && code != "" {
 		sum := sha1.Sum([]byte(code))
@@ -392,7 +391,6 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *mrequest.TaskE
 }
 
 func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskExtensionUpdatePublish, cu *session.Ident) error {
-	now := time.Now()
 	code, enabled := req.Code, req.Enabled
 	operator := model.Operator{ID: cu.ID, Nickname: cu.Nickname, Username: cu.Username}
 
@@ -412,7 +410,6 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 		tbl.Enabled.Value(enabled),
 		tbl.PushSize.Value(req.PushSize),
 		tbl.UpdatedBy.Value(operator),
-		tbl.UpdatedAt.Value(now),
 		tbl.Filters.Value(req.Filters.ConvertModel()),
 		tbl.Excludes.Value(req.Excludes),
 	}

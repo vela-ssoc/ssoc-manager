@@ -13,7 +13,7 @@ CREATE DATABASE IF NOT EXISTS ssoc;
 ```
 
 - [OpenGauss 6.0.0 TLS](https://docs.opengauss.org/zh/docs/6.0.0/docs/ReleaseNotes/%E7%89%88%E6%9C%AC%E4%BB%8B%E7%BB%8D.html)
-  及以上，部署完毕创建 `ssoc` 库时一定要注意兼容模式 `DBCOMPATIBILITY = 'PG'` 和字符编码 `ENCODING = 'UTF8'`。
+  及以上，部署完毕[创建 `ssoc` 库](https://docs.opengauss.org/zh/docs/6.0.0/docs/SQLReference/CREATE-DATABASE.html)时一定要注意兼容模式 `DBCOMPATIBILITY = 'PG'` 和字符编码 `ENCODING = 'UTF8'`。
 
 ```sql
 -- 此为样例 SQL，如果 DBA 有分配角色权限等需求，请自行在创建 SQL 中添加。
