@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
-	github.com/vela-ssoc/opengauss v0.0.0-20250225051534-394ae9b84dcc // indirect
+	github.com/vela-ssoc/opengauss v0.0.0-20250306075012-bb6849e21b4a // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
