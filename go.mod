@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.6.15
 	github.com/vela-ssoc/luatemplate v0.0.0-20250225053830-e3ca032f4fd1
-	github.com/vela-ssoc/vela-common-mb v0.0.0-20250307055348-cd671c47386c
+	github.com/vela-ssoc/vela-common-mb v0.0.0-20250307091600-c73cee5db6f4
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20250219065254-10cf1234dc53
 	github.com/wenlng/go-captcha v1.2.5
 	github.com/xgfone/ship/v5 v5.3.1
@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
-	github.com/vela-ssoc/opengauss v0.0.0-20250306075012-bb6849e21b4a // indirect
+	github.com/vela-ssoc/opengauss v0.0.0-20250307012047-4cdb16f3d678 // indirect
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
