@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 )
 
@@ -21,5 +22,16 @@ type BrokerSystem struct {
 // 从而实现重启的效果。
 func (bc *BrokerSystem) Exit(ctx context.Context, id int64) error {
 	_ = bc.hub.Oneway(ctx, id, "/api/v1/system/exit", nil)
+	return nil
+}
+
+// Update 通知 broker 更新
+func (bc *BrokerSystem) Update(ctx context.Context, id int64, semver model.Semver) error {
+	req := struct {
+		Semver model.Semver `json:"semver"`
+	}{
+		Semver: semver,
+	}
+	_ = bc.hub.Oneway(ctx, id, "/api/v1/system/update", req)
 	return nil
 }

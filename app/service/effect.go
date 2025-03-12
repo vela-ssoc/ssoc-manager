@@ -11,6 +11,7 @@ import (
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/vela-ssoc/vela-manager/param/mrequest"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 )
 
 type EffectService interface {
@@ -18,7 +19,7 @@ type EffectService interface {
 	Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error)
 	Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error)
 	Delete(ctx context.Context, submitID int64) (int64, error)
-	Progress(ctx context.Context, tid int64) *mrequest.EffectProgress
+	Progress(ctx context.Context, tid int64) *mresponse.EffectProgress
 	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
 }
 
@@ -274,7 +275,7 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 }
 
 // Progress 任务进度
-func (eff *effectService) Progress(ctx context.Context, tid int64) *mrequest.EffectProgress {
+func (eff *effectService) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
 	return eff.task.Progress(ctx, tid)
 }
 

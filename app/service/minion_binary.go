@@ -138,7 +138,7 @@ func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinar
 		return err
 	}
 
-	version := req.Semver.Int64()
+	version := req.Semver.Uint64()
 	dat := &model.MinionBin{
 		FileID:     inf.ID(),
 		Goos:       req.Goos,

@@ -12,18 +12,19 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func BrokerBinary(svc service.BrokerBinaryService) route.Router {
+func BrokerBinary(svc *service.BrokerBinary) route.Router {
 	return &brokerBinaryREST{
 		svc: svc,
 	}
 }
 
 type brokerBinaryREST struct {
-	svc service.BrokerBinaryService
+	svc *service.BrokerBinary
 }
 
 func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brkbins").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/brkbin/latest").Data(route.Ignore()).GET(rest.latest)
 	bearer.Route("/brkbin").
 		Data(route.Ignore()).GET(rest.Download).
 		Data(route.IgnoreBody("上传 broker 客户端")).POST(rest.Create).
@@ -97,4 +98,15 @@ func (rest *brokerBinaryREST) Download(c *ship.Context) error {
 	c.Header().Set(ship.HeaderContentDisposition, file.Disposition())
 
 	return c.Stream(http.StatusOK, file.ContentType(), file)
+}
+
+func (rest *brokerBinaryREST) latest(c *ship.Context) error {
+	req := new(mrequest.BrokerBinaryLatest)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	bin := rest.svc.Latest(ctx, req.Goos, req.Arch)
+
+	return c.JSON(http.StatusOK, bin)
 }

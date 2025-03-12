@@ -8,7 +8,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/stegano"
+	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
@@ -16,29 +16,22 @@ import (
 	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
-type BrokerBinaryService interface {
-	Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin)
-	Create(ctx context.Context, req *param.NodeBinaryCreate) error
-	Delete(ctx context.Context, id int64) error
-	Open(ctx context.Context, bid, fid int64, eth net.Addr, host string) (gridfs.File, error)
-}
-
-func BrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) BrokerBinaryService {
-	return &brokerBinaryService{
+func NewBrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) *BrokerBinary {
+	return &BrokerBinary{
 		qry:   qry,
 		gfs:   gfs,
 		store: store,
 	}
 }
 
-type brokerBinaryService struct {
+type BrokerBinary struct {
 	qry       *query.Query
 	gfs       gridfs.FS
 	store     storage.Storer
 	uploading atomic.Bool
 }
 
-func (biz *brokerBinaryService) Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin) {
+func (biz *BrokerBinary) Page(ctx context.Context, page param.Pager) (int64, []*model.BrokerBin) {
 	tbl := biz.qry.BrokerBin
 	dao := tbl.WithContext(ctx).Order(tbl.Semver.Desc(), tbl.UpdatedAt.Desc())
 	if kw := page.Keyword(); kw != "" {
@@ -54,16 +47,16 @@ func (biz *brokerBinaryService) Page(ctx context.Context, page param.Pager) (int
 	return count, dats
 }
 
-func (biz *brokerBinaryService) Create(ctx context.Context, req *param.NodeBinaryCreate) error {
+func (biz *BrokerBinary) Create(ctx context.Context, req *param.NodeBinaryCreate) error {
 	if !biz.uploading.CompareAndSwap(false, true) {
 		return errcode.ErrTaskBusy
 	}
 	defer biz.uploading.Store(false)
 
 	tbl := biz.qry.BrokerBin
-	semver := string(req.Semver)
+
 	if count, _ := tbl.WithContext(ctx).
-		Where(tbl.Semver.Eq(semver), tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
+		Where(tbl.Semver.Eq(string(req.Semver)), tbl.Goos.Eq(req.Goos), tbl.Arch.Eq(req.Arch)).
 		Count(); count != 0 {
 		return errcode.ErrAlreadyExist
 	}
@@ -81,15 +74,18 @@ func (biz *brokerBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	}
 
 	fid := inf.ID()
+	semver := req.Semver
+	semverWeight := semver.Uint64()
 	bin := &model.BrokerBin{
-		Name:      req.Name,
-		FileID:    fid,
-		Size:      inf.Size(),
-		Hash:      inf.MD5(),
-		Goos:      req.Goos,
-		Arch:      req.Arch,
-		Semver:    req.Semver,
-		Changelog: req.Changelog,
+		Name:         req.Name,
+		FileID:       fid,
+		Size:         inf.Size(),
+		Hash:         inf.MD5(),
+		Goos:         req.Goos,
+		Arch:         req.Arch,
+		Semver:       semver,
+		SemverWeight: semverWeight,
+		Changelog:    req.Changelog,
 	}
 	if err = tbl.WithContext(ctx).Create(bin); err != nil {
 		_ = biz.gfs.Remove(fid)
@@ -99,7 +95,7 @@ func (biz *brokerBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	return nil
 }
 
-func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
+func (biz *BrokerBinary) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.BrokerBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
@@ -113,7 +109,7 @@ func (biz *brokerBinaryService) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr net.Addr, host string) (gridfs.File, error) {
+func (biz *BrokerBinary) Open(ctx context.Context, bid, fid int64, addr net.Addr, host string) (gridfs.File, error) {
 	tbl := biz.qry.Broker
 	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(bid)).First()
 	if err != nil {
@@ -133,7 +129,7 @@ func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr n
 	if addr != nil {
 		servers = append(servers, &netutil.Address{Addr: addr.String(), Name: host})
 	}
-	hide := &stegano.BHide{
+	hide := &negotiate.Hide{
 		ID:      bid,
 		Secret:  brk.Secret,
 		Semver:  string(bin.Semver),
@@ -152,4 +148,14 @@ func (biz *brokerBinaryService) Open(ctx context.Context, bid, fid int64, addr n
 	file := gridfs.Merge(gf, enc)
 
 	return file, nil
+}
+
+func (biz *BrokerBinary) Latest(ctx context.Context, goos, arch string) *model.BrokerBin {
+	tbl := biz.qry.BrokerBin
+	bin, _ := tbl.WithContext(ctx).
+		Where(tbl.Goos.Eq(goos), tbl.Arch.Eq(arch)).
+		Order(tbl.SemverWeight.Desc()).
+		First()
+
+	return bin
 }

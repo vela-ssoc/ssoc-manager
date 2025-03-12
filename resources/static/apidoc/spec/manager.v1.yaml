@@ -18,6 +18,8 @@ tags:
     description: 用户登录用到的接口
   - name: Agent
     description: Agent 节点模块
+  - name: Broker
+    description: 代理节点模块
   - name: 用户模块
     description: 对系统用户管理
   - name: 用户日志
@@ -2218,6 +2220,82 @@ paths:
           name: exec_id
           required: true
           description: 执行ID
+  /broker/system/exit:
+    get:
+      summary: 通知代理节点重启
+      tags:
+        - Broker
+      responses:
+        '200':
+          description: OK
+      operationId: get-broker-system-exit
+      description: 通知代理节点重启
+      parameters:
+        - $ref: '#/components/parameters/ID'
+  /broker/system/update:
+    get:
+      summary: 通知代理节点检查升级
+      tags:
+        - Broker
+      responses:
+        '200':
+          description: OK
+          content: {}
+      operationId: get-broker-system-update
+      description: 通知代理节点检查升级
+      parameters:
+        - $ref: '#/components/parameters/ID'
+        - schema:
+            type: string
+          in: query
+          name: semver
+          description: 如果强制更新到指定版本，此处写明版本号
+  /brkbin/latest:
+    get:
+      summary: 获取代理节点最新版本信息
+      tags:
+        - Broker
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  semver_weight:
+                    type: string
+                    x-stoplight:
+                      id: wdr8skj998yje
+                    description: 版本号权重，数字类型，通过比较该数字大小来判断新旧版本
+                required:
+                  - semver_weight
+      operationId: get-brkbin-latest
+      description: 获取代理节点最新版本信息
+      parameters:
+        - schema:
+            type: string
+            example: linux
+            enum:
+              - linux
+              - windows
+              - darwin
+          in: query
+          name: goos
+          description: 操纵系统
+          required: true
+        - schema:
+            type: string
+            example: amd64
+            enum:
+              - amd64
+              - arm64
+              - '386'
+              - arm32
+          in: query
+          name: arch
+          description: 系统架构
+          required: true
 components:
   securitySchemes:
     Authorization:

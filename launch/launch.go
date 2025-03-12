@@ -368,7 +368,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
-	brokerBinaryService := service.BrokerBinary(qry, gfs, store)
+	brokerBinaryService := service.NewBrokerBinary(qry, gfs, store)
 	brokerBinaryREST := mgtapi.BrokerBinary(brokerBinaryService)
 	brokerBinaryREST.Route(anon, bearer, basic)
 

@@ -12,13 +12,16 @@ import (
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
 	"github.com/vela-ssoc/vela-manager/param/mrequest"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 	"gorm.io/gen"
+	"gorm.io/gen/field"
+	"gorm.io/gorm"
 )
 
 type SubstanceTaskService interface {
 	AsyncTags(ctx context.Context, tags []string) (int64, error)
 	AsyncInets(ctx context.Context, inets []string) (int64, error)
-	Progress(ctx context.Context, tid int64) *mrequest.EffectProgress
+	Progress(ctx context.Context, tid int64) *mresponse.EffectProgress
 	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
 	BusyError(ctx context.Context) error
 
@@ -119,25 +122,49 @@ func (biz *substanceTaskService) AsyncInets(ctx context.Context, inets []string)
 	return tid, nil
 }
 
-func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *mrequest.EffectProgress {
-	ret := new(mrequest.EffectProgress)
+func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
 	if tid <= 0 {
 		tid = biz.currentTaskID(ctx)
 	}
 	if tid <= 0 {
-		return ret
+		return new(mresponse.EffectProgress)
 	}
 
-	ret.ID = tid
-	rawSQL := "SELECT COUNT(*)                      AS count, " +
+	return biz.progress(ctx, tid)
+}
+
+func (biz *substanceTaskService) progress(ctx context.Context, id int64) *mresponse.EffectProgress {
+	taskDo := biz.qry.SubstanceTask.WithContext(ctx)
+	db := taskDo.UnderlyingDB()
+	dialect := db.Dialector.Name()
+	if dialect == "postgres" || dialect == "opengauss" {
+		return biz.progressForOpenGauss(db, id)
+	} else {
+		return biz.progressForMySQL(db, id)
+	}
+}
+
+func (biz *substanceTaskService) progressForOpenGauss(db *gorm.DB, id int64) *mresponse.EffectProgress {
+	ret := new(mresponse.EffectProgress)
+	strSQL := "SELECT COUNT(*)                      AS count, " +
 		"COUNT(IF(executed, TRUE, NULL))            AS executed, " +
 		"COUNT(IF(executed AND failed, TRUE, NULL)) AS failed " +
 		"FROM substance_task " +
 		"WHERE task_id = ?"
-	db := biz.qry.SubstanceTask.
-		WithContext(ctx).
-		UnderlyingDB()
-	db.Raw(rawSQL, tid).Scan(ret)
+	db.Raw(strSQL, id).Scan(ret)
+
+	return ret
+}
+
+func (biz *substanceTaskService) progressForMySQL(db *gorm.DB, id int64) *mresponse.EffectProgress {
+	ret := new(mresponse.EffectProgress)
+	strSQL := `
+SELECT COUNT(*)                                                    AS count,
+	      SUM(CASE WHEN executed THEN TRUE ELSE FALSE END)            AS executed,
+	      SUM(CASE WHEN executed AND failed THEN TRUE ELSE FALSE END) AS failed
+	FROM substance_task
+	WHERE task_id = ?`
+	db.Raw(strSQL, id).Scan(ret)
 
 	return ret
 }
@@ -174,9 +201,27 @@ func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page
 }
 
 func (biz *substanceTaskService) BusyError(ctx context.Context) error {
+	// 超时控制
+	now := time.Now()
+	timeout := 10 * time.Minute
+	tbl := biz.qry.SubstanceTask
+	wheres := []gen.Condition{
+		tbl.Executed.Is(false),
+		tbl.CreatedAt.Lt(now.Add(-timeout)),
+	}
+	updates := []field.AssignExpr{
+		tbl.Executed.Value(true),
+		tbl.Failed.Value(true),
+		tbl.Reason.Value("任务下发超时"),
+	}
+	_, _ = tbl.WithContext(ctx).
+		Where(wheres...).
+		UpdateSimple(updates...)
+
 	if tid := biz.currentTaskID(ctx); tid != 0 {
 		return errcode.FmtErrTaskBusy.Fmt(tid)
 	}
+
 	return nil
 }
 

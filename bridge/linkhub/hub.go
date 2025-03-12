@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
 	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
@@ -22,6 +23,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
 	"github.com/vela-ssoc/vela-manager/bridge/blink"
+	"gorm.io/gen/field"
 )
 
 var (
@@ -121,8 +123,6 @@ func (hub *brokerHub) Auth(ctx context.Context, ident negotiate.Ident) (negotiat
 		Passwd: passwd,
 		Server: profile.BrokerServer{
 			Addr: brk.Bind,
-			Cert: "",
-			Pkey: "",
 			CDN:  hub.config.Server.CDN,
 		},
 		Logger:   hub.config.Logger,
@@ -151,11 +151,18 @@ func (hub *brokerHub) Join(tran net.Conn, ident negotiate.Ident, issue negotiate
 	sid := conn.sid
 	defer hub.delConn(sid)
 
+	semver := model.Semver(ident.Semver)
 	tbl := hub.qry.Broker
+	updates := []field.AssignExpr{
+		tbl.Status.Value(true),
+		tbl.Semver.Value(ident.Semver),
+		tbl.SemverWeight.Value(semver.Uint64()),
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	info, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(ident.ID), tbl.Status.Is(false)).
-		UpdateSimple(tbl.Status.Value(true), tbl.Semver.Value(ident.Semver))
+		UpdateSimple(updates...)
 	cancel()
 	if err != nil {
 		return err
