@@ -2,6 +2,7 @@
 
 # 1. 获取程序名。
 DIR_NAME=$(basename $(pwd))
+TZ="Asia/Shanghai"
 NOW=$(date)
 VER=$(date -d "$NOW" +"%y.%-m.%-d-%H%M%S")
 BIN_NAME=${DIR_NAME}"-"v$VER$(go env GOEXE)
