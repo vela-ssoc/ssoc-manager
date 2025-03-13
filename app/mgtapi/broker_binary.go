@@ -25,6 +25,7 @@ type brokerBinaryREST struct {
 func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brkbins").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/brkbin/latest").Data(route.Ignore()).GET(rest.latest)
+	bearer.Route("/brkbin/supports").Data(route.Ignore()).GET(rest.supports)
 	bearer.Route("/brkbin").
 		Data(route.Ignore()).GET(rest.Download).
 		Data(route.IgnoreBody("上传 broker 客户端")).POST(rest.Create).
@@ -109,4 +110,9 @@ func (rest *brokerBinaryREST) latest(c *ship.Context) error {
 	bin := rest.svc.Latest(ctx, req.Goos, req.Arch)
 
 	return c.JSON(http.StatusOK, bin)
+}
+
+func (rest *brokerBinaryREST) supports(c *ship.Context) error {
+	dat := rest.svc.Supports()
+	return c.JSON(http.StatusOK, dat)
 }

@@ -11,7 +11,7 @@ import (
 type MinionCreate struct {
 	Inet string `json:"inet" validate:"ipv4"`
 	Goos string `json:"goos" validate:"oneof=linux windows darwin"`
-	Arch string `json:"arch" validate:"oneof=amd64 386 arm64 arm"`
+	Arch string `json:"arch" validate:"oneof=amd64 386 arm64 arm loong64 riscv64"`
 }
 
 type MinionSummary struct {

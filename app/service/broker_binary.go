@@ -14,6 +14,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 )
 
 func NewBrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) *BrokerBinary {
@@ -158,4 +159,18 @@ func (biz *BrokerBinary) Latest(ctx context.Context, goos, arch string) *model.B
 		First()
 
 	return bin
+}
+
+func (biz *BrokerBinary) Supports() mresponse.BinarySupports {
+	return mresponse.BinarySupports{
+		{
+			Name:  "Linux",
+			Value: "linux",
+			Architectures: mresponse.NameValues{
+				{Name: "x64", Value: "amd64"},
+				{Name: "x86", Value: "386"},
+				{Name: "ARM64", Value: "arm64"},
+			},
+		},
+	}
 }

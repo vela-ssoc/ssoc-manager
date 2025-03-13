@@ -11,7 +11,7 @@ type NodeBinaryCreate struct {
 	Name       string                `json:"name"       form:"name"       validate:"required,lte=100"`
 	Semver     model.Semver          `json:"semver"     form:"semver"     validate:"semver"`
 	Goos       string                `json:"goos"       form:"goos"       validate:"oneof=linux windows darwin"`
-	Arch       string                `json:"arch"       form:"arch"       validate:"oneof=amd64 386 arm64 arm"`
+	Arch       string                `json:"arch"       form:"arch"       validate:"oneof=amd64 386 arm64 arm loong64 riscv64"`
 	Unstable   bool                  `json:"unstable"   form:"unstable"`
 	Customized string                `json:"customized" form:"customized" validate:"lte=255"`
 	Changelog  string                `json:"changelog"  form:"changelog"  validate:"lte=65500"`

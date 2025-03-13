@@ -11,35 +11,24 @@ import (
 	"github.com/vela-ssoc/vela-manager/app/internal/param"
 	"github.com/vela-ssoc/vela-manager/bridge/push"
 	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/vela-manager/param/mresponse"
 )
 
-type MinionBinaryService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionBin)
-	Deprecate(ctx context.Context, id int64) error
-	Delete(ctx context.Context, id int64) error
-	Create(ctx context.Context, req *param.NodeBinaryCreate) error
-	Release(ctx context.Context, id int64) error
-
-	Classify(ctx context.Context) ([]*param.MinionBinaryClassify, error)
-	Download(ctx context.Context, id int64) (gridfs.File, error)
-	Update(ctx context.Context, req *param.MinionBinaryUpdate) error
-}
-
-func MinionBinary(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) MinionBinaryService {
-	return &minionBinaryService{
+func NewMinionBinary(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) *MinionBinary {
+	return &MinionBinary{
 		qry:    qry,
 		pusher: pusher,
 		gfs:    gfs,
 	}
 }
 
-type minionBinaryService struct {
+type MinionBinary struct {
 	qry    *query.Query
 	pusher push.Pusher
 	gfs    gridfs.FS
 }
 
-func (biz *minionBinaryService) Page1(ctx context.Context, page param.Pager) (int64, []*model.MinionBin) {
+func (biz *MinionBinary) Page1(ctx context.Context, page param.Pager) (int64, []*model.MinionBin) {
 	tbl := biz.qry.MinionBin
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
@@ -60,7 +49,7 @@ func (biz *minionBinaryService) Page1(ctx context.Context, page param.Pager) (in
 	return count, dats
 }
 
-func (biz *minionBinaryService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionBin) {
+func (biz *MinionBinary) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionBin) {
 	tbl := biz.qry.MinionBin
 	db := tbl.WithContext(ctx).
 		Order(tbl.Weight.Desc()).
@@ -78,7 +67,7 @@ func (biz *minionBinaryService) Page(ctx context.Context, page param.Pager, scop
 	return count, ret
 }
 
-func (biz *minionBinaryService) Deprecate(ctx context.Context, id int64) error {
+func (biz *MinionBinary) Deprecate(ctx context.Context, id int64) error {
 	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
@@ -97,7 +86,7 @@ func (biz *minionBinaryService) Deprecate(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *minionBinaryService) Delete(ctx context.Context, id int64) error {
+func (biz *MinionBinary) Delete(ctx context.Context, id int64) error {
 	// 先查询数据
 	tbl := biz.qry.MinionBin
 	dao := tbl.WithContext(ctx).Where(tbl.ID.Eq(id))
@@ -114,7 +103,7 @@ func (biz *minionBinaryService) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinaryCreate) error {
+func (biz *MinionBinary) Create(ctx context.Context, req *param.NodeBinaryCreate) error {
 	file, err := req.File.Open()
 	if err != nil {
 		return err
@@ -162,7 +151,7 @@ func (biz *minionBinaryService) Create(ctx context.Context, req *param.NodeBinar
 	return err
 }
 
-func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
+func (biz *MinionBinary) Release(ctx context.Context, id int64) error {
 	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
@@ -180,7 +169,7 @@ func (biz *minionBinaryService) Release(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (biz *minionBinaryService) Classify(ctx context.Context) ([]*param.MinionBinaryClassify, error) {
+func (biz *MinionBinary) Classify(ctx context.Context) ([]*param.MinionBinaryClassify, error) {
 	// 查询定制化版本的种类
 	tbl := biz.qry.MinionBin
 
@@ -212,7 +201,7 @@ func (biz *minionBinaryService) Classify(ctx context.Context) ([]*param.MinionBi
 	return ret, nil
 }
 
-func (biz *minionBinaryService) Download(ctx context.Context, id int64) (gridfs.File, error) {
+func (biz *MinionBinary) Download(ctx context.Context, id int64) (gridfs.File, error) {
 	tbl := biz.qry.MinionBin
 	bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
@@ -222,7 +211,7 @@ func (biz *minionBinaryService) Download(ctx context.Context, id int64) (gridfs.
 	return biz.gfs.OpenID(bin.FileID)
 }
 
-func (biz *minionBinaryService) Update(ctx context.Context, req *param.MinionBinaryUpdate) error {
+func (biz *MinionBinary) Update(ctx context.Context, req *param.MinionBinaryUpdate) error {
 	tbl := biz.qry.MinionBin
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
@@ -235,7 +224,11 @@ func (biz *minionBinaryService) Update(ctx context.Context, req *param.MinionBin
 	return err
 }
 
-func (biz *minionBinaryService) sendRelease(bin *model.MinionBin) {
+func (biz *MinionBinary) Supports() mresponse.BinarySupports {
+	return mresponse.DefaultBinarySupports()
+}
+
+func (biz *MinionBinary) sendRelease(bin *model.MinionBin) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
@@ -268,7 +261,7 @@ func (biz *minionBinaryService) sendRelease(bin *model.MinionBin) {
 	}
 }
 
-func (biz *minionBinaryService) reduce(minions []*model.Minion) map[int64][]int64 {
+func (biz *MinionBinary) reduce(minions []*model.Minion) map[int64][]int64 {
 	hm := make(map[int64][]int64, 16)
 	for _, m := range minions {
 		mid, bid := m.ID, m.BrokerID

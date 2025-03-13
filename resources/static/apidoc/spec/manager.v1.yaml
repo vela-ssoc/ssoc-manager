@@ -2296,6 +2296,26 @@ paths:
           name: arch
           description: 系统架构
           required: true
+  /brkbin/supports:
+    get:
+      summary: 获取中心端二进制支持的系统
+      tags:
+        - Broker
+      responses:
+        '200':
+          description: OK
+      operationId: get-brkbin-supports
+      description: 获取中心端二进制支持的系统
+  /monbin/supports:
+    get:
+      summary: 获取客户端二进制支持的系统
+      tags:
+        - Agent
+      responses:
+        '200':
+          description: OK
+      operationId: get-monbin-supports
+      description: 获取客户端二进制支持的系统
 components:
   securitySchemes:
     Authorization:

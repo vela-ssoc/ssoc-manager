@@ -13,7 +13,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionBinary(svc service.MinionBinaryService) route.Router {
+func MinionBinary(svc *service.MinionBinary) route.Router {
 	table := dynsql.Builder().
 		Filters(
 			dynsql.IntColumn("id", "ID").Build(),
@@ -35,7 +35,7 @@ func MinionBinary(svc service.MinionBinaryService) route.Router {
 }
 
 type minionBinaryREST struct {
-	svc       service.MinionBinaryService
+	svc       *service.MinionBinary
 	table     dynsql.Table
 	uploading atomic.Bool
 }
@@ -44,6 +44,7 @@ func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/monbin/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/monbin/classify").Data(route.Ignore()).GET(rest.Classify)
 	bearer.Route("/monbins").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/monbin/supports").Data(route.Ignore()).GET(rest.supports)
 	bearer.Route("/monbin/deprecate").
 		Data(route.Named("agent 客户端标记为过期")).PATCH(rest.Deprecate)
 	bearer.Route("/monbin").
@@ -169,4 +170,9 @@ func (rest *minionBinaryREST) Download(c *ship.Context) error {
 	c.Header().Set(ship.HeaderContentDisposition, file.Disposition())
 
 	return c.Stream(http.StatusOK, file.ContentType(), file)
+}
+
+func (rest *minionBinaryREST) supports(c *ship.Context) error {
+	dat := rest.svc.Supports()
+	return c.JSON(http.StatusOK, dat)
 }

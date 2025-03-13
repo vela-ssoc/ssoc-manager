@@ -380,7 +380,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	certREST := mgtapi.Cert(certService)
 	certREST.Route(anon, bearer, basic)
 
-	minionBinaryService := service.MinionBinary(qry, pusher, gfs)
+	minionBinaryService := service.NewMinionBinary(qry, pusher, gfs)
 	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)
 	minionBinaryREST.Route(anon, bearer, basic)
 
