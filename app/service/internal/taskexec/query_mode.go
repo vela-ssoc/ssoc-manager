@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"iter"
 
+	"github.com/vela-ssoc/ssoc-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
-	"github.com/vela-ssoc/vela-manager/app/service/internal/minionfilter"
 	"gorm.io/gen"
 )
 

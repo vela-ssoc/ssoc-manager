@@ -5,15 +5,15 @@ import (
 	"io"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/param/modview"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/vela-ssoc/vela-common-mba/ciphertext"
 	"github.com/vela-ssoc/vela-common-mba/definition"
-	"github.com/vela-ssoc/vela-manager/errcode"
-	"github.com/vela-ssoc/vela-manager/param/modview"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"gorm.io/gen"
 )
 

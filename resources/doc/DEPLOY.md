@@ -88,7 +88,7 @@ Elasticsearch 7.x 及以上。
 
 无
 
-> 2025-03-06 [已经实现静态编译](https://github.com/vela-ssoc/vela-broker/actions/workflows/static.yml)，无需安装 [libpcap-devel](https://www.tcpdump.org/) 了。
+> 2025-03-06 [已经实现静态编译](https://github.com/vela-ssoc/ssoc-broker/actions/workflows/static.yml)，无需安装 [libpcap-devel](https://www.tcpdump.org/) 了。
 
 ### agent
 

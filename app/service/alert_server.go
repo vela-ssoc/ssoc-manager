@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
 	"github.com/vela-ssoc/vela-common-mb/memoize"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 func NewAlertServer(qry *query.Query) *AlertServer {

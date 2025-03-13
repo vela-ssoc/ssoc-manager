@@ -3,8 +3,8 @@ package brkapi
 import (
 	"log/slog"
 
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 

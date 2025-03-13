@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/gopool"
@@ -22,7 +23,6 @@ import (
 	"github.com/vela-ssoc/vela-common-mb/profile"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/vela-ssoc/vela-common-mba/smux"
-	"github.com/vela-ssoc/vela-manager/bridge/blink"
 	"gorm.io/gen/field"
 )
 

@@ -16,7 +16,7 @@ fi
 
 export CGO_ENABLED=0
 NOW=$(date)
-LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/vela-manager/banner.compileTime=$NOW'"
+LDFLAGS="-s -w -extldflags -static -X 'github.com/vela-ssoc/ssoc-manager/banner.compileTime=$NOW'"
 go build -o ${BIN_NAME} -trimpath -v -ldflags "$LDFLAGS" ./main
 
 echo "编译结束"

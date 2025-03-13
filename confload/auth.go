@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/vela-ssoc/vela-manager/integration/casauth"
-	"github.com/vela-ssoc/vela-manager/integration/oauth"
+	"github.com/vela-ssoc/ssoc-manager/integration/casauth"
+	"github.com/vela-ssoc/ssoc-manager/integration/oauth"
 )
 
 func NewCAS(rawURL string) casauth.Configurer {

@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/integration/oauth"
+	"github.com/vela-ssoc/ssoc-manager/library/totp"
+	"github.com/vela-ssoc/ssoc-manager/param/modview"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/errcode"
-	"github.com/vela-ssoc/vela-manager/integration/oauth"
-	"github.com/vela-ssoc/vela-manager/library/totp"
-	"github.com/vela-ssoc/vela-manager/param/modview"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 )
 
 // AuthService 认证模块业务层

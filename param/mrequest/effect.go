@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
-	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type EffectCreate struct {

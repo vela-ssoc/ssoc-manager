@@ -1,9 +1,9 @@
 package mgtapi
 
 import (
-	"github.com/vela-ssoc/vela-manager/app/route"
-	"github.com/vela-ssoc/vela-manager/bridge/blink"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
+	"github.com/vela-ssoc/ssoc-manager/app/route"
+	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 

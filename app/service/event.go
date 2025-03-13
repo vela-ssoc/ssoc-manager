@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type EventService interface {

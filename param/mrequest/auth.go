@@ -3,7 +3,7 @@ package mrequest
 import (
 	"image"
 
-	"github.com/vela-ssoc/vela-manager/library/totp"
+	"github.com/vela-ssoc/ssoc-manager/library/totp"
 )
 
 type AuthBase struct {

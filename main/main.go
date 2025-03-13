@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vela-ssoc/vela-manager/banner"
-	"github.com/vela-ssoc/vela-manager/launch"
+	"github.com/vela-ssoc/ssoc-manager/banner"
+	"github.com/vela-ssoc/ssoc-manager/launch"
 )
 
 func main() {

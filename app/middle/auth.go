@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/xgfone/ship/v5"
 )
 

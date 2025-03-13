@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
+	"github.com/vela-ssoc/ssoc-manager/bridge/push"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/storage/v2"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/bridge/push"
-	"github.com/vela-ssoc/vela-manager/errcode"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
 )

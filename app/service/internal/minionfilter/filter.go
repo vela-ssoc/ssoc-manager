@@ -4,12 +4,12 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/vela-ssoc/ssoc-manager/param/mresponse"
 	"github.com/vela-ssoc/vela-common-mb/dal/dyncond"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/vela-ssoc/vela-common-mb/param/response"
-	"github.com/vela-ssoc/vela-manager/param/mresponse"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 )

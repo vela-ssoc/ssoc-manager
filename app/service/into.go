@@ -6,11 +6,11 @@ import (
 	"strconv"
 
 	"github.com/gorilla/websocket"
+	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/problem"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
-	"github.com/vela-ssoc/vela-manager/errcode"
 )
 
 type IntoService interface {

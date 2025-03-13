@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
+	"github.com/vela-ssoc/ssoc-manager/app/route"
+	"github.com/vela-ssoc/ssoc-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"github.com/vela-ssoc/vela-common-mb/dynsql"
 	"github.com/vela-ssoc/vela-common-mb/param/request"
-	"github.com/vela-ssoc/vela-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-manager/app/route"
-	"github.com/vela-ssoc/vela-manager/app/service"
-	"github.com/vela-ssoc/vela-manager/errcode"
-	"github.com/vela-ssoc/vela-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
 )
 

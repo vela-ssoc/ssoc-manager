@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/vela-ssoc/vela-manager/app/route"
-	"github.com/vela-ssoc/vela-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/app/route"
+	"github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/xgfone/ship/v5"
 )
 

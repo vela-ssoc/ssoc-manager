@@ -6,10 +6,10 @@ import (
 	"iter"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-manager/app/service/internal/minionfilter"
+	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-manager/app/service/internal/minionfilter"
-	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 )

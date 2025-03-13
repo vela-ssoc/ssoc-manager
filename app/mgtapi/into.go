@@ -3,10 +3,10 @@ package mgtapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/vela-manager/app/route"
-	"github.com/vela-ssoc/vela-manager/app/service"
-	"github.com/vela-ssoc/vela-manager/bridge/linkhub"
-	"github.com/vela-ssoc/vela-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/app/route"
+	"github.com/vela-ssoc/ssoc-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
+	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/xgfone/ship/v5"
 )
 

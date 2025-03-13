@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/vela-ssoc/vela-manager/integration/cmdb2"
+	"github.com/vela-ssoc/ssoc-manager/integration/cmdb2"
 )
 
 func NewCmdb2(rawURL, accessKey, secretKey string) cmdb2.Configurer {
