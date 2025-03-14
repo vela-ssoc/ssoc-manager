@@ -10,11 +10,11 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/ssoc-common-mba/ciphertext"
-	"github.com/vela-ssoc/ssoc-common-mba/netutil"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/mresponse"
+	"github.com/vela-ssoc/vela-common-mba/ciphertext"
+	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
 func NewBrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) *BrokerBinary {
