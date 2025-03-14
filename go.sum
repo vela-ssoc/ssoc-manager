@@ -100,10 +100,10 @@ github.com/vela-ssoc/luatemplate v0.0.0-20250225053830-e3ca032f4fd1 h1:VmB2DPw7w
 github.com/vela-ssoc/luatemplate v0.0.0-20250225053830-e3ca032f4fd1/go.mod h1:FCDuQ2m+lLUzoAEd+HP7kTagB/sUJYIkj/47lDtbnM4=
 github.com/vela-ssoc/opengauss v0.0.0-20250307012047-4cdb16f3d678 h1:XcB8ODPuzmv/V08mfu4tCdKLuXoesUP7B7E0AZcjQYA=
 github.com/vela-ssoc/opengauss v0.0.0-20250307012047-4cdb16f3d678/go.mod h1:XPgSxrDB30XnFw8ETQchOl9UOa6mR/ALtJxdPfch5/U=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250311091412-290ad49b5a9d h1:hN9FhpbVetayibmqsPBjR3F6qEHqngwFPXUGJazDbJ8=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250311091412-290ad49b5a9d/go.mod h1:kO1VjTQG64tJ8BBV2CCKoTENwcLPU5Z5H1onGU/DKMo=
-github.com/vela-ssoc/ssoc-common-mba v0.0.0-20250219065254-10cf1234dc53 h1:hlXc54ybaMutWC4cn7y6qz6Tv5dxt5jRyn96gBlXjBs=
-github.com/vela-ssoc/ssoc-common-mba v0.0.0-20250219065254-10cf1234dc53/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250314014647-e60df162bad3 h1:V62lj2FmlHKyojjBC3VqIj23HeINM9SrUdvJHQgxgFk=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250314014647-e60df162bad3/go.mod h1:D33nZ9pOaXUB/nG4o3qf+Ft74leswb6pNEKRGTNvMl4=
+github.com/vela-ssoc/ssoc-common-mba v0.0.0-20250314011057-b3ebe725a701 h1:0Tyvkh+fEuSVcdejc6D+EjgcZR0PsnIYfkA8aP/o5C4=
+github.com/vela-ssoc/ssoc-common-mba v0.0.0-20250314011057-b3ebe725a701/go.mod h1:PAOzJYGPqX7Xe4vwk0dRH1ojfHh6gg7vRgt/6/xq78g=
 github.com/wenlng/go-captcha v1.2.5 h1:zA0/fovEl9oAhSg+KwHBwmq99GeeAXknWx6wYKjhjTg=
 github.com/wenlng/go-captcha v1.2.5/go.mod h1:QgPgpEURSa37gF3GtojNoNRwbMwuatSBx5NXrzASOb0=
 github.com/xgfone/ship/v5 v5.3.1 h1:e5qhMT6DSQOE6A/xDBL/Ftf28BGptNw6Etq+w+pme6E=
