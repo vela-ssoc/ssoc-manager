@@ -1,6 +1,6 @@
 package mrequest
 
-import "github.com/vela-ssoc/vela-common-mb/param/request"
+import "github.com/vela-ssoc/ssoc-common-mb/param/request"
 
 type ThirdCustomizedCreate struct {
 	Name   string `json:"name"   validate:"required,lte=10"`

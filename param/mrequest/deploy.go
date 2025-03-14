@@ -1,6 +1,6 @@
 package mrequest
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 
 type DeployLAN struct {
 	Scheme string `json:"scheme"`

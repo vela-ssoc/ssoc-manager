@@ -12,6 +12,9 @@ import (
 
 	"github.com/vela-public/onekit/lua/parse"
 	"github.com/vela-ssoc/luatemplate"
+	"github.com/vela-ssoc/ssoc-common-mb/cronv3"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/ssoc-manager/app/service/internal/taskexec"
@@ -19,9 +22,6 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-	"github.com/vela-ssoc/vela-common-mb/cronv3"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
 	"gorm.io/gen/field"
 )
 

@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/dynsql"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
 )
 
 type RiskFileService interface {

@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
 	"github.com/xgfone/ship/v5"
 )
 

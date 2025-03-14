@@ -1,6 +1,6 @@
 package param
 
-import "github.com/vela-ssoc/vela-common-mb/dal/model"
+import "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 
 type StartupDetail struct {
 	Param   *model.Startup `json:"param"`

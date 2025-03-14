@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/param/request"
 )
 
 type CertService interface {

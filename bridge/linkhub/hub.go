@@ -14,15 +14,15 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/gopool"
+	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
+	"github.com/vela-ssoc/ssoc-common-mb/problem"
+	"github.com/vela-ssoc/ssoc-common-mb/profile"
+	"github.com/vela-ssoc/ssoc-common-mba/netutil"
+	"github.com/vela-ssoc/ssoc-common-mba/smux"
 	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/gopool"
-	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
-	"github.com/vela-ssoc/vela-common-mb/problem"
-	"github.com/vela-ssoc/vela-common-mb/profile"
-	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/vela-ssoc/vela-common-mba/smux"
 	"gorm.io/gen/field"
 )
 

@@ -3,7 +3,7 @@ package param
 import (
 	"errors"
 
-	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 )
 
 type NotifierCreate struct {

@@ -1,6 +1,6 @@
 package mrequest
 
-import "github.com/vela-ssoc/vela-common-mb/param/request"
+import "github.com/vela-ssoc/ssoc-common-mb/param/request"
 
 type ElasticCreate struct {
 	// Host     string   `json:"host"     validate:"http"`                          // ES 地址

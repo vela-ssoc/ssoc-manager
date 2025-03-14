@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net/url"
 
-	"github.com/vela-ssoc/vela-common-mb/httpx"
+	"github.com/vela-ssoc/ssoc-common-mb/httpx"
 )
 
 type Configurer interface {

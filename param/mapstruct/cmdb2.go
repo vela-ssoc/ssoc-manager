@@ -1,8 +1,8 @@
 package mapstruct
 
 import (
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-manager/integration/cmdb2"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
 )
 
 func Cmdb2Server(d *cmdb2.Server) *model.Cmdb2 {

@@ -3,7 +3,7 @@ package mrequest
 import (
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/param/request"
+	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 )
 
 type CompoundCreate struct {

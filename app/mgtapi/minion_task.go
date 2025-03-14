@@ -3,11 +3,11 @@ package mgtapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dynsql"
+	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
-	"github.com/vela-ssoc/vela-common-mb/param/request"
 	"github.com/xgfone/ship/v5"
 )
 

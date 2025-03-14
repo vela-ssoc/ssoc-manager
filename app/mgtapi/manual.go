@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
-	"github.com/vela-ssoc/vela-common-mb/integration/vulnsync"
 	"github.com/xgfone/ship/v5"
 )
 

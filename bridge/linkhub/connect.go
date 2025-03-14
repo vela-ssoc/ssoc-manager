@@ -1,8 +1,8 @@
 package linkhub
 
 import (
-	"github.com/vela-ssoc/vela-common-mb/param/negotiate"
-	"github.com/vela-ssoc/vela-common-mba/smux"
+	"github.com/vela-ssoc/ssoc-common-mb/param/negotiate"
+	"github.com/vela-ssoc/ssoc-common-mba/smux"
 )
 
 type spdyServerConn struct {

@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/integration/dong/v2"
+	"github.com/vela-ssoc/ssoc-common-mb/integration/dong/v2"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/modview"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-	"github.com/vela-ssoc/vela-common-mb/dal/query"
-	"github.com/vela-ssoc/vela-common-mb/storage/v2"
 	"github.com/wenlng/go-captcha/captcha"
 )
 

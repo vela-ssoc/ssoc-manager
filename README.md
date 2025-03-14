@@ -71,7 +71,7 @@ func (sv Semver) Int64() int64 {
 }
 ```
 
-上面的结构体定义截取自 [Git 版本](https://github.com/vela-ssoc/vela-common-mb/blob/4181ff7335550131dc7cff52a22652bb2469d17e/dal/model/minion_bin.go)
+上面的结构体定义截取自 [Git 版本](https://github.com/vela-ssoc/ssoc-common-mb/blob/4181ff7335550131dc7cff52a22652bb2469d17e/dal/model/minion_bin.go)
 
 > 随着时间发展，字段或业务可能会有调整，对于版本管理和节点升级逻辑，该文档依然有参考价值。
 

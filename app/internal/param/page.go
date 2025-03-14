@@ -1,7 +1,7 @@
 package param
 
 import (
-	"github.com/vela-ssoc/vela-common-mb/dynsql"
+	"github.com/vela-ssoc/ssoc-common-mb/dynsql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
 )

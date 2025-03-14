@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
-	"github.com/vela-ssoc/vela-common-mb/dal/model"
 )
 
 func NewBrokerSystem(hub linkhub.Huber) *BrokerSystem {

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vela-ssoc/vela-common-mb/prereadtls"
-	"github.com/vela-ssoc/vela-common-mb/profile"
+	"github.com/vela-ssoc/ssoc-common-mb/prereadtls"
+	"github.com/vela-ssoc/ssoc-common-mb/profile"
 )
 
 type application struct {
