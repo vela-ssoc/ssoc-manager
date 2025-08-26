@@ -130,7 +130,6 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 	}
 
 	// 与该节点关联的配置
-	var subs []*model.Substance
 	// SELECT * FROM effect WHERE enable = true AND tag IN (SELECT DISTINCT tag FROM minion_tag WHERE minion_id = $mid)
 	subSQL := tagTbl.WithContext(ctx).Distinct(tagTbl.Tag).Where(tagTbl.MinionID.Eq(mid))
 	effs, _ := effTbl.WithContext(ctx).
@@ -138,17 +137,14 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 		Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
 		Find()
 	subIDs := model.Effects(effs).Exclusion(mon.Inet)
-	if len(subIDs) != 0 {
-		subTbl := query.Substance
-		dats, exx := subTbl.WithContext(ctx).
-			Omit(subTbl.Chunk).
-			Where(subTbl.MinionID.Eq(mid)).
-			Or(subTbl.ID.In(subIDs...)).
-			Find()
-		if exx != nil {
-			return nil, exx
-		}
-		subs = dats
+	subTbl := query.Substance
+	subs, exx := subTbl.WithContext(ctx).
+		Omit(subTbl.Chunk).
+		Where(subTbl.MinionID.Eq(mid)).
+		Or(subTbl.ID.In(subIDs...)).
+		Find()
+	if exx != nil {
+		return nil, exx
 	}
 
 	uniq := make(map[int64]*param.MinionTaskSummary, 16)
@@ -171,10 +167,14 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 		subID := rt.SubstanceID
 		if subID == 0 { // agent 本地加载配置（原样显示）
 			mts := &param.MinionTaskSummary{
-				Name:      rt.Name,
-				LegalHash: rt.Hash,
-				CreatedAt: rt.CreatedAt,
-				UpdatedAt: rt.CreatedAt,
+				Name:       rt.Name,
+				From:       rt.From,
+				Status:     rt.Status,
+				Link:       rt.Link,
+				Dialect:    rt.Dialect,
+				ActualHash: rt.Hash,
+				CreatedAt:  rt.CreatedAt,
+				UpdatedAt:  rt.CreatedAt,
 			}
 			ret = append(ret, mts)
 			continue
@@ -202,45 +202,6 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 			ret = append(ret, mts)
 		}
 	}
-
-	//taskMap := make(map[string]*model.MinionTask, len(reportTasks))
-	//for _, mt := range reportTasks {
-	//	// 注意：从 console 加载的的配置脚本是没有 SubstanceID 的，要做特殊处理
-	//	var subID string
-	//	if mt.SubstanceID > 0 {
-	//		subID = strconv.FormatInt(mt.SubstanceID, 10)
-	//	} else {
-	//		subID = strconv.FormatInt(mt.ID, 10) + mt.Name
-	//	}
-	//	taskMap[subID] = mt
-	//}
-	//
-	//// 上报的数据与数据库数据合并整理
-	//res := make([]*param.MinionTaskSummary, 0, len(subs)+8)
-	//for _, sub := range subs {
-	//	dialect := sub.MinionID == mid
-	//
-	//	tv := &param.MinionTaskSummary{
-	//		ID: sub.ID, Name: sub.Name, Icon: sub.Icon, Dialect: dialect,
-	//		LegalHash: sub.Hash, CreatedAt: sub.CreatedAt, UpdatedAt: sub.UpdatedAt,
-	//	}
-	//
-	//	subID := strconv.FormatInt(sub.ID, 10)
-	//	task := taskMap[subID]
-	//	if task != nil {
-	//		delete(taskMap, subID)
-	//		tv.From, tv.Status, tv.Link, tv.ActualHash = task.From, task.Status, task.Link, task.Hash
-	//	}
-	//	res = append(res, tv)
-	//}
-	//
-	//for _, task := range taskMap {
-	//	tv := &param.MinionTaskSummary{
-	//		Name: task.Name, From: task.From, Status: task.Status, Link: task.Link,
-	//		ActualHash: task.Hash, CreatedAt: task.CreatedAt, UpdatedAt: task.CreatedAt,
-	//	}
-	//	res = append(res, tv)
-	//}
 
 	return ret, nil
 }
