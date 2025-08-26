@@ -764,6 +764,35 @@ paths:
                   bucket: bucket-test
                   key: bucket-key
         description: ''
+  /agent-emergency-snapshot/report:
+    post:
+      summary: 上报应急响应数据
+      operationId: post-agent-emergency-snapshot-report
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agent
+      description: 上报应急响应数据
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  x-stoplight:
+                    id: dq8wuaydoc9yx
+                  description: 类型，如果同一个 agent 内 type 已存在则会覆盖更新
+                  example: netstat
+                value:
+                  type: string
+                  x-stoplight:
+                    id: z5677yp1ud08u
+                  description: 数据
+              required:
+                - type
 components:
   schemas:
     TaskDiff:
