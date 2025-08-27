@@ -96,8 +96,6 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 
 func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error) {
 	monTbl := query.Minion
-	tagTbl := query.MinionTag
-	effTbl := query.Effect
 	taskTbl := query.MinionTask
 
 	mon, err := monTbl.WithContext(ctx).
@@ -131,22 +129,23 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 
 	// 与该节点关联的配置
 	// SELECT * FROM effect WHERE enable = true AND tag IN (SELECT DISTINCT tag FROM minion_tag WHERE minion_id = $mid)
-	subSQL := tagTbl.WithContext(ctx).Distinct(tagTbl.Tag).Where(tagTbl.MinionID.Eq(mid))
-	effs, _ := effTbl.WithContext(ctx).
-		Where(effTbl.Enable.Is(true)).
-		Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
-		Find()
-	subIDs := model.Effects(effs).Exclusion(mon.Inet)
-	subTbl := query.Substance
-	subs, exx := subTbl.WithContext(ctx).
-		Omit(subTbl.Chunk).
-		Where(subTbl.MinionID.Eq(mid)).
-		Or(subTbl.ID.In(subIDs...)).
-		Find()
-	if exx != nil {
-		return nil, exx
-	}
+	//subSQL := tagTbl.WithContext(ctx).Distinct(tagTbl.Tag).Where(tagTbl.MinionID.Eq(mid))
+	//effs, _ := effTbl.WithContext(ctx).
+	//	Where(effTbl.Enable.Is(true)).
+	//	Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
+	//	Find()
+	//subIDs := model.Effects(effs).Exclusion(mon.Inet)
+	//subTbl := query.Substance
+	//subs, exx := subTbl.WithContext(ctx).
+	//	Omit(subTbl.Chunk).
+	//	Where(subTbl.MinionID.Eq(mid)).
+	//	Or(subTbl.ID.In(subIDs...)).
+	//	Find()
+	//if exx != nil {
+	//	return nil, exx
+	//}
 
+	subs, _ := biz.Substances(ctx, mid, mon.Inet)
 	uniq := make(map[int64]*param.MinionTaskSummary, 16)
 	for _, sub := range subs {
 		subID := sub.ID
@@ -338,4 +337,35 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 	}
 
 	return count, ret
+}
+
+func (biz *minionTaskService) Substances(ctx context.Context, minionID int64, inet string) ([]*model.Substance, error) {
+	// 1. 查询该节点关联的标签。
+	tagTbl := query.MinionTag
+	tagDao := tagTbl.WithContext(ctx)
+	minionTags, _ := tagDao.Where(tagTbl.MinionID.Eq(minionID)).Find()
+
+	tags := make([]string, 0, len(minionTags))
+	for _, minionTag := range minionTags {
+		tags = append(tags, minionTag.Tag)
+	}
+
+	// 2. 根据标签查询关联的公有配置。
+	effTbl := query.Effect
+	effDao := effTbl.WithContext(ctx)
+	effects, _ := effDao.Where(effTbl.Enable.Is(true), effTbl.Tag.In(tags...)).Find()
+
+	// 3. 过滤掉公有配置排除的 IP，留下来的即为：需要下发的配置。
+	subIDs := model.Effects(effects).Exclusion(inet)
+
+	subTbl := query.Substance
+	subDao := subTbl.WithContext(ctx)
+
+	// 4. 查询配置
+	//	- 公有配置 WHERE id IN (subIDs...)
+	//	- 私有配置 WHERE minion_id = minionID
+	// 	OR 连接 WHERE 条件即为该节点需要下发的公私有配置。
+	return subDao.Where(subTbl.MinionID.Eq(minionID)).
+		Or(subTbl.ID.In(subIDs...)).
+		Find()
 }
