@@ -55,6 +55,7 @@ type MinionDetail struct {
 	Comment       string             `json:"comment"        gorm:"column:comment"`
 	IBu           string             `json:"ibu"            gorm:"column:ibu"`
 	IDC           string             `json:"idc"            gorm:"column:idc"`
+	NameValues    model.NameValues   `json:"name_values"    gorm:"column:name_values;serializer:json"`
 	CreatedAt     time.Time          `json:"created_at"     gorm:"column:created_at"`
 	UpdatedAt     time.Time          `json:"updated_at"     gorm:"column:updated_at"`
 	Release       string             `json:"release"        gorm:"column:release"`

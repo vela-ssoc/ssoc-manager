@@ -200,12 +200,11 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		}
 	}
 
-	verifyService := service.Verify(qry, 3, store, log)       // 验证码 3 分钟有效期
 	loginLockService := service.LoginLock(qry, time.Hour, 10) // 每小时错误 10 次就锁定账户
 
 	oauthCfg := confload.NewOauth(cfg.Oauth.URL, cfg.Oauth.ClientID, cfg.Oauth.ClientSecret, cfg.Oauth.RedirectURL)
 	oauthClient := oauth.NewClient(oauthCfg, httpClient, log)
-	authService := service.Auth(qry, verifyService, loginLockService, userService, oauthClient)
+	authService := service.Auth(qry, loginLockService, userService, oauthClient)
 	authREST := mgtapi.Auth(authService)
 	authREST.Route(anon, bearer, basic)
 

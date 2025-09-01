@@ -172,7 +172,7 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 
 	for _, task := range taskMap {
 		tv := &param.MinionTaskSummary{
-			Name: task.Name, From: task.From, Status: task.Status, Link: task.Link,
+			Name: task.Name, From: task.From, Status: task.Status, Link: task.Link, Dialect: task.Dialect,
 			ActualHash: task.Hash, CreatedAt: task.CreatedAt, UpdatedAt: task.CreatedAt,
 		}
 		res = append(res, tv)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
@@ -43,8 +42,7 @@ func (mkt *ExtensionMarket) Page(ctx context.Context, category string) []*model.
 			Keywords: request.Keywords{Keyword: "徐"},
 		},
 	})
-	fmt.Println(err)
-	fmt.Println(ret)
+	_, _ = ret, err
 
 	return dats
 }
