@@ -70,7 +70,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
 	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
 	gormCfg := &gorm.Config{Logger: gormLog}
-	db, err := sqldb.Open(dbCfg.DSN, log, gormCfg)
+	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
 		return err
 	}
