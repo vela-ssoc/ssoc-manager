@@ -1,20 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>接口文档</title>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <title>Stoplight UI</title>
     <!-- Embed elements Elements via Web Component -->
-    <script src="css/web-components.min.js"></script>
-    <link rel="stylesheet" href="css/styles.min.css">
+    <!-- https://cdn.jsdelivr.net/npm/@stoplight/elements/web-components.min.js -->
+    <script src="js/stoplight-elements-v9.0.6@web-components.min.js"></script>
+    <script src="js/utils.js"></script>
+    <!-- https://cdn.jsdelivr.net/npm/@stoplight/elements/styles.min.css -->
+    <link href="css/stoplight-elements-v9.0.6@styles.min.css" rel="stylesheet">
 </head>
 <body>
 
-<elements-api
-        apiDescriptionUrl="spec/mgtapi.swagger.json"
-        router="hash"
-        layout="sidebar"
-/>
+<script>
+    function init() {
+        const name = Utils.oas3();
+        if (!name) {
+            const warning = document.createElement('a')
+            warning.href = './'
+            warning.innerText = '未找到接口文档，点击跳转至接口文档主页'
+            warning.className = 'sl-text-6xl'
+            document.body.appendChild(warning)
+
+            return
+        }
+
+        const logo = 'https://dfscdn.dfcfw.com/download/D24716378937078615978.jpg'
+        const stoplight = document.createElement('elements-api')
+        stoplight.setAttribute('layout', 'sidebar')
+        stoplight.setAttribute('logo', logo)
+        stoplight.setAttribute('router', 'hash')
+        stoplight.setAttribute('apiDescriptionUrl', name)
+
+        document.body.appendChild(stoplight)
+    }
+
+    init()
+</script>
 
 </body>
 </html>

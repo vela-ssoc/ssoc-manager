@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"sync"
 
@@ -11,30 +12,24 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"gorm.io/gen"
 	"gorm.io/gorm"
 )
 
-type MinionTaskService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList)
-	Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error)
-	Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error)
-	Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather)
-	Count(ctx context.Context) *param.TaskCount
-	RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount)
-}
-
-func MinionTask(qry *query.Query) MinionTaskService {
-	return &minionTaskService{
+func NewMinionTask(qry *query.Query, log *slog.Logger) *MinionTask {
+	return &MinionTask{
 		qry: qry,
+		log: log,
 	}
 }
 
-type minionTaskService struct {
+type MinionTask struct {
 	qry *query.Query
+	log *slog.Logger
 }
 
-func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList) {
-	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
+func (mt *MinionTask) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, param.TaskList) {
+	db := mt.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	stmt := db.Table("minion_task AS minion_task").
 		Joins("LEFT JOIN substance st ON st.id = minion_task.substance_id").
 		Scopes(scope.Where).
@@ -55,8 +50,8 @@ func (biz *minionTaskService) Page(ctx context.Context, page param.Pager, scope 
 	return count, dats
 }
 
-func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error) {
-	subTbl := biz.qry.Substance
+func (mt *MinionTask) Detail(ctx context.Context, mid, sid int64) (*param.MinionTaskDetail, error) {
+	subTbl := mt.qry.Substance
 	sub, err := subTbl.WithContext(ctx).Where(subTbl.ID.Eq(sid)).First()
 	if err != nil {
 		return nil, err
@@ -65,13 +60,13 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 		return nil, errcode.ErrSubstanceNotExist
 	}
 
-	taskTbl := biz.qry.MinionTask
-	mt, _ := taskTbl.WithContext(ctx).
+	taskTbl := mt.qry.MinionTask
+	task, _ := taskTbl.WithContext(ctx).
 		Where(taskTbl.MinionID.Eq(mid), taskTbl.SubstanceID.Eq(sid)).
 		Order(taskTbl.ID.Desc()).
 		First()
-	if mt == nil {
-		mt = new(model.MinionTask)
+	if task == nil {
+		task = new(model.MinionTask)
 	}
 
 	dialect := sub.MinionID == mid
@@ -79,32 +74,32 @@ func (biz *minionTaskService) Detail(ctx context.Context, mid, sid int64) (*para
 		ID:         sid,
 		Name:       sub.Name,
 		Icon:       sub.Icon,
-		From:       mt.From,
-		Status:     mt.Status,
-		Link:       mt.Link,
+		From:       task.From,
+		Status:     task.Status,
+		Link:       task.Link,
 		Desc:       sub.Desc,
 		Dialect:    dialect,
 		LegalHash:  sub.Hash,
-		ActualHash: mt.Hash,
-		Failed:     mt.Failed,
-		Cause:      mt.Cause,
+		ActualHash: task.Hash,
+		Failed:     task.Failed,
+		Cause:      task.Cause,
 		Chunk:      sub.Chunk,
 		Version:    sub.Version,
 		CreatedAt:  sub.CreatedAt,
 		UpdatedAt:  sub.UpdatedAt,
-		TaskAt:     mt.CreatedAt,
-		Uptime:     mt.Uptime,
-		Runners:    mt.Runners,
+		TaskAt:     task.CreatedAt,
+		Uptime:     task.Uptime,
+		Runners:    task.Runners,
 	}
 
 	return dat, nil
 }
 
-func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error) {
-	monTbl := biz.qry.Minion
-	tagTbl := biz.qry.MinionTag
-	effTbl := biz.qry.Effect
-	taskTbl := biz.qry.MinionTask
+func (mt *MinionTask) Minion(ctx context.Context, mid int64) ([]*param.MinionTaskSummary, error) {
+	monTbl := mt.qry.Minion
+	tagTbl := mt.qry.MinionTag
+	effTbl := mt.qry.Effect
+	taskTbl := mt.qry.MinionTask
 
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.Inet, monTbl.Unload).
@@ -123,18 +118,16 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 			Where(effTbl.WithContext(ctx).Columns(effTbl.Tag).In(subSQL)).
 			Find()
 		subIDs := model.Effects(effs).Exclusion(mon.Inet)
-		if len(subIDs) != 0 {
-			subTbl := biz.qry.Substance
-			dats, exx := subTbl.WithContext(ctx).
-				Omit(subTbl.Chunk).
-				Where(subTbl.MinionID.Eq(mid)).
-				Or(subTbl.ID.In(subIDs...)).
-				Find()
-			if exx != nil {
-				return nil, exx
-			}
-			subs = dats
+		subTbl := mt.qry.Substance
+		dats, exx := subTbl.WithContext(ctx).
+			Omit(subTbl.Chunk).
+			Where(subTbl.MinionID.Eq(mid)).
+			Or(subTbl.ID.In(subIDs...)).
+			Find()
+		if exx != nil {
+			return nil, exx
 		}
+		subs = dats
 	}
 
 	mts, _ := taskTbl.WithContext(ctx).Where(taskTbl.MinionID.Eq(mid)).Find()
@@ -181,8 +174,8 @@ func (biz *minionTaskService) Minion(ctx context.Context, mid int64) ([]*param.M
 	return res, nil
 }
 
-func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather) {
-	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
+func (mt *MinionTask) Gather(ctx context.Context, page param.Pager) (int64, []*param.TaskGather) {
+	db := mt.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	ctSQL := db.Model(&model.MinionTask{}).
 		Select("name", "COUNT(*) count").
 		Group("name")
@@ -205,14 +198,14 @@ func (biz *minionTaskService) Gather(ctx context.Context, page param.Pager) (int
 	ret := make([]*param.TaskGather, len(cts))
 	for i, ct := range cts {
 		wg.Add(1)
-		go biz.gather(wg, mutex, db, ct.Name, i, ret)
+		go mt.gather(wg, mutex, db, ct.Name, i, ret)
 	}
 	wg.Wait()
 
 	return count, ret
 }
 
-func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *gorm.DB, name string, n int, ret []*param.TaskGather) {
+func (mt *MinionTask) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *gorm.DB, name string, n int, ret []*param.TaskGather) {
 	defer wg.Done()
 
 	rawSQL := "SELECT COUNT(IF(dialect = TRUE, TRUE, NULL)) AS dialect, " +
@@ -243,7 +236,7 @@ func (biz *minionTaskService) gather(wg *sync.WaitGroup, mutex *sync.Mutex, db *
 	ret[n] = tg
 }
 
-func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
+func (mt *MinionTask) Count(ctx context.Context) *param.TaskCount {
 	rawSQL := "SELECT COUNT(IF(dialect = TRUE, TRUE, NULL)) AS dialect, " +
 		"COUNT(IF(dialect = FALSE, TRUE, NULL))    AS public, " +
 		"COUNT(IF(status = 'running', TRUE, NULL)) AS running," +
@@ -255,17 +248,17 @@ func (biz *minionTaskService) Count(ctx context.Context) *param.TaskCount {
 		"FROM minion_task"
 
 	res := new(param.TaskCount)
-	db := biz.qry.MinionTask.WithContext(ctx).UnderlyingDB()
+	db := mt.qry.MinionTask.WithContext(ctx).UnderlyingDB()
 	db.Raw(rawSQL).Scan(&res)
 
 	return res
 }
 
-func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount) {
+func (mt *MinionTask) RCount(ctx context.Context, pager param.Pager) (int64, []*param.TaskRCount) {
 	size := pager.Size()
 	ret := make([]*param.TaskRCount, 0, size)
 
-	tbl := biz.qry.MinionTask
+	tbl := mt.qry.MinionTask
 	count, _ := tbl.WithContext(ctx).
 		Distinct(tbl.SubstanceID).
 		Where(tbl.SubstanceID.Neq(0)).
@@ -280,7 +273,7 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 		" GROUP BY substance_id " +
 		" ORDER BY count " +
 		" DESC LIMIT ?, ? "
-	biz.qry.MinionTask.
+	mt.qry.MinionTask.
 		WithContext(ctx).
 		UnderlyingDB().
 		Scopes(pager.DBScope(count)).
@@ -298,7 +291,7 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 		sids = append(sids, sid)
 	}
 	if len(sids) != 0 {
-		stbl := biz.qry.Substance
+		stbl := mt.qry.Substance
 		subs, _ := stbl.WithContext(ctx).
 			Select(stbl.ID, stbl.Name, stbl.Desc).
 			Where(stbl.ID.In(sids...)).
@@ -313,4 +306,56 @@ func (biz *minionTaskService) RCount(ctx context.Context, pager param.Pager) (in
 	}
 
 	return count, ret
+}
+
+// Exclude 将某个节点排除某个配置不下发。
+func (mt *MinionTask) Exclude(ctx context.Context, minionID, subID int64) error {
+	// 查询节点信息
+	monTbl := mt.qry.Minion
+	monDao := monTbl.WithContext(ctx)
+	if cnt, err := monDao.Where(monTbl.ID.Eq(minionID)).Count(); err != nil {
+		return err
+	} else if cnt == 0 {
+		return errcode.ErrNodeNotExist
+	}
+
+	// 查询配置信息
+	subTbl := mt.qry.Substance
+	subDao := subTbl.WithContext(ctx)
+	if cnt, err := subDao.Where(subTbl.ID.Eq(subID)).Count(); err != nil {
+		return err
+	} else if cnt == 0 {
+		return errcode.ErrSubstanceNotExist
+	}
+
+	// 排除节点
+	mod := &model.MinionSubstanceExclude{
+		MinionID:    minionID,
+		SubstanceID: subID,
+	}
+	mseTbl := mt.qry.MinionSubstanceExclude
+	mseDao := mseTbl.WithContext(ctx)
+	if err := mseDao.Create(mod); err != nil {
+		return err
+	}
+	// TODO 通知节点刷新配置
+
+	return nil
+}
+
+// Unexclude 移出排除列表。
+func (mt *MinionTask) Unexclude(ctx context.Context, minionID, subID int64) error {
+	mseTbl := mt.qry.MinionSubstanceExclude
+	mseDao := mseTbl.WithContext(ctx)
+
+	wheres := []gen.Condition{mseTbl.MinionID.Eq(minionID), mseTbl.SubstanceID.Eq(subID)}
+	ret, err := mseDao.Where(wheres...).Delete()
+	if err != nil {
+		return err
+	} else if ret.RowsAffected == 0 {
+		return nil
+	}
+	// TODO 通知节点刷新配置
+
+	return nil
 }

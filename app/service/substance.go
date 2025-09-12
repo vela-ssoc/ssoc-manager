@@ -69,7 +69,7 @@ func (biz *substanceService) Page(ctx context.Context, page param.Pager) (int64,
 	if err != nil || count == 0 {
 		return 0, nil
 	}
-	subs, err := dao.Order(tbl.ID).Scopes(page.Scope(count)).Find()
+	subs, err := dao.Order(tbl.Priority.Desc(), tbl.ID).Scopes(page.Scope(count)).Find()
 	size := len(subs)
 	if err != nil || size == 0 {
 		return 0, nil
@@ -151,6 +151,7 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 		Chunk:     sc.Chunk,
 		Links:     []string{},
 		MinionID:  mid,
+		Priority:  sc.Priority,
 		CreatedID: userID,
 		UpdatedID: userID,
 		CreatedAt: now,
@@ -193,6 +194,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 	sub.Desc = su.Desc
 	sub.UpdatedID = userID
 	sub.Version = version + 1
+	sub.Priority = su.Priority
 
 	if mid := sub.MinionID; mid != 0 {
 		if _, err = tbl.WithContext(ctx).

@@ -11,7 +11,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionTask(svc service.MinionTaskService) route.Router {
+func MinionTask(svc *service.MinionTask) route.Router {
 	statusEnums := dynsql.StringEnum().
 		Set("running", "正常运行").
 		Set("doing", "正在启动").
@@ -38,7 +38,7 @@ func MinionTask(svc service.MinionTaskService) route.Router {
 }
 
 type minionTaskREST struct {
-	svc   service.MinionTaskService
+	svc   *service.MinionTask
 	table dynsql.Table
 }
 

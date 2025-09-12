@@ -1,69 +1,63 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="icon" href="spec/favicon.ico">
-
+    <meta charset="UTF-8">
     <title>接口文档</title>
-
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/jumbotron-narrow.css" rel="stylesheet">
+    <!-- https://cdn.tailwindcss.com/ -->
+    <script src="js/tailwindcss-v3.4.17.js"></script>
 </head>
-
-<body>
-
-<div class="container">
-
-    <div class="jumbotron">
-        <h1>接口文档</h1>
-        <p class="lead">RedocUI 和 SwaggerUI 使用的都是同一个接口文档，只是前端渲染效果不一样。Redoc 看起来简约好看，
-            SwaggerUI 可以在线测试调用。</p>
+<body class="bg-black text-white py-6">
+<div class="max-w-7xl mx-auto px-4">
+    <h1 class="text-3xl font-bold mb-2 text-center">接口文档</h1>
+    <div class="text-center text-gray-400 text-sm mb-6">
+        <ul>
+            <li>
+                接口文档遵循 <a href="https://swagger.io/specification/" target="_blank">OpenAPI OAS3</a> 标准。
+            </li>
+            <li>
+                建议选择 <strong>Stoplight UI</strong> 查看，以获得较好的体验。
+            </li>
+        </ul>
     </div>
 
-    <div class="row marketing">
-        <div class="col-lg-12">
-            <h3>后端接口文档</h3>
-            <p>
-                <a class="btn btn-danger" href="stoplight.html" role="button">StoplightUI</a>
-                <a class="btn btn-primary" href="mgtapi.html" role="button">RedocUI</a>
-                <a class="btn btn-success" href="swagger.html?spec=spec/mgtapi.swagger.json" role="button">SwaggerUI</a>
-            </p>
-
-            <h3>minion 接口对接</h3>
-            <p>
-                <a class="btn btn-primary" href="minion.html" role="button">RedocUI</a>
-                <a class="btn btn-success" href="swagger.html?spec=spec/api.yaml"
-                   role="button">SwaggerUI</a>
-            </p>
-
-            <h3>服务对接接口</h3>
-            <p>
-                <a class="btn btn-primary" href="openapi.html" role="button">RedocUI</a>
-                <a class="btn btn-success" href="swagger.html?spec=spec/openapi.swagger.json"
-                   role="button">SwaggerUI</a>
-            </p>
-
-            <h3>sonatype 漏洞库接口</h3>
-            <p>
-                <a class="btn btn-success" href="swagger.html?spec=spec/sonatype.swagger.json"
-                   role="button">SwaggerUI</a>
-            </p>
-
-            <h3>osv 漏洞库接口</h3>
-            <p>
-                <a class="btn btn-primary" href="osv.html" role="button">RedocUI</a>
-                <a class="btn btn-success" href="swagger.html?spec=spec/osv_service_v1.swagger.json" role="button">SwaggerUI</a>
-            </p>
-
-        </div>
+    <div id="projectGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <!-- 卡片将由 JS 插入 -->
     </div>
-
 </div>
 
+<script>
+    const projects = [
+        {name: 'SSOC 管理中心端', oas3: 'oas3/manager.oas3.yaml', image: 'img/ssoc-manager.png'},
+        {name: 'Sonatype OSS Index', oas3: 'oas3/sonatype.json', image: 'img/sonatype.jpg'},
+        {name: 'OSV', oas3: 'oas3/osv_service_v1.json', image: 'img/osv.webp'},
+    ]
+    const pages = [
+        {name: 'Stoplight UI', link: 'stoplight.html'},
+        {name: 'Swagger UI', link: 'swagger.html'},
+        {name: 'Scalar UI', link: 'scalar.html'},
+        {name: 'Redocly UI', link: 'redocly.html'},
+    ]
+
+    const grid = document.getElementById('projectGrid');
+    projects.forEach(proj => {
+        const card = document.createElement('div');
+        card.className = 'relative bg-neutral-900 rounded-md shadow-md overflow-hidden hover:scale-[1.02] transition-transform';
+
+        card.innerHTML = `
+        <div class="relative w-full h-60">
+          <img src="${proj.image}" alt="${proj.name}" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm px-3 py-2">${proj.name}</div>
+        </div>
+
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3">
+          ${pages.map(pg => {
+            const queries = new URLSearchParams({oas3: proj.oas3});
+            return `<a href="${pg.link}?${queries.toString()}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-md border border-white/20">${pg.name}</a>`
+        }).join('')}
+        </div>`
+
+        grid.appendChild(card);
+    });
+</script>
 </body>
 </html>

@@ -38,5 +38,7 @@ resources/pprof/*
 
 resources/cdn/
 
+.crash.txt
+
 ssoc-manager*
 vela-manager*

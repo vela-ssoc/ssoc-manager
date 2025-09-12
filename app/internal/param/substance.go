@@ -24,14 +24,16 @@ type SubstanceCreate struct {
 	Icon     []byte `json:"icon"  validate:"lte=65536"`
 	Chunk    []byte `json:"chunk" validate:"gt=0,lte=524288"` // 524288 = 512 * 1024, 512k
 	MinionID int64  `json:"minion_id,string"`
+	Priority int64  `json:"priority"` // 优先级，越大越先执行
 }
 
 type SubstanceUpdate struct {
-	ID      int64  `json:"id,string"`
-	Desc    string `json:"desc"  validate:"lte=200"`
-	Icon    []byte `json:"icon"  validate:"omitempty,lte=65536"`
-	Chunk   []byte `json:"chunk" validate:"gt=0,lte=524288"` // 524288 = 512 * 1024, 512k
-	Version int64  `json:"version"`
+	ID       int64  `json:"id,string"`
+	Desc     string `json:"desc"  validate:"lte=200"`
+	Icon     []byte `json:"icon"  validate:"omitempty,lte=65536"`
+	Chunk    []byte `json:"chunk" validate:"gt=0,lte=524288"` // 524288 = 512 * 1024, 512k
+	Version  int64  `json:"version"`
+	Priority int64  `json:"priority"` // 优先级，越大越先执行
 }
 
 type SubstanceReload struct {

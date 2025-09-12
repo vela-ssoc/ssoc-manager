@@ -127,8 +127,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	// 静态资源代理
 	srvCfg := cfg.Server
-	if static := srvCfg.Static; static != "" {
-		sh.Route("/").Static(static)
+	for k, v := range srvCfg.Static {
+		if k != "" && v != "" {
+			sh.Route(k).Static(v)
+		}
 	}
 
 	base := "/api/v1"
@@ -300,7 +302,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	notifierREST := mgtapi.Notifier(notifierService)
 	notifierREST.Route(anon, bearer, basic)
 
-	minionTaskService := service.MinionTask(qry)
+	minionTaskService := service.NewMinionTask(qry, log)
 	minionTaskREST := mgtapi.MinionTask(minionTaskService)
 	minionTaskREST.Route(anon, bearer, basic)
 

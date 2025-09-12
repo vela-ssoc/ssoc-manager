@@ -3,7 +3,12 @@
     // HTTP 服务监听地址，默认：0.0.0.0:80
     "addr": "0.0.0.0:8080",
     // HTTP 静态文件目录，留空代表无需静态资源代理。
-    "static": "resources/static",
+    "static": {
+      "/": "resources/static/root/",
+      "/dash": "resources/static/dash/",
+      "/hone": "resources/static/hone/",
+      "/apidoc": "resources/static/apidoc/"
+    },
     // 证书和私钥，当两个都有值时，才会以 https 启动服务。
     // "cert": "resources/tls/server.pem",
     // "pkey": "resources/tls/server.key",
@@ -28,9 +33,9 @@
     // Data Source Name 数据库数据源。
     // 支持配置 OpenGauss 和 MySQL，会根据 dsn 字段自适应数据库。
     // Example:
-    //    - OpenGauss: opengauss://username:password@db.example.com:15432/ssoc
     //    - MySQL: username:password@tcp(db.example.com:3306)/ssoc?parseTime=True&timeout=10s
-    "dsn": "opengauss://username:password@db.example.com:15432/ssoc",
+    //    - OpenGauss: host=db.example.com user=username password=password dbname=ssoc port=15432 sslmode=disable TimeZone=Asia/Shanghai
+    "dsn": "host=db.example.com user=username password=password dbname=ssoc port=15432 sslmode=disable TimeZone=Asia/Shanghai",
     // SQL 日志输出级别：INFO WARN ERROR
     "level": "INFO",
     // 是否根据 struct 定义自动合并表差异。
