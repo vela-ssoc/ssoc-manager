@@ -95,6 +95,8 @@ github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9 h1:LmHUawsLq
 github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9/go.mod h1:trjb2g9NEFQclQl8dg/AXvJuWx3KIibHoWHTCQ7dEFw=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250911030050-57b811b542cf h1:pEUtrQCNva8AWcZKoDWQMtAqv6Mm5CmQzuQNj1jvWoo=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250911030050-57b811b542cf/go.mod h1:FvuhUqGhcOea00eyolmW4zQwYMnlf69rodO3n8Wx/M4=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250915060454-d33a67efc036 h1:xH+6F/Nc4vUVtTSLaLRhqNWlmF7ySJGUpo5AW3z+DFA=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250915060454-d33a67efc036/go.mod h1:IBAehTIhDGtNqzHRXUuqqyBpYq1FV1p+nOsvCMVXCYk=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20250623053940-85c8bd78c6bc h1:wwrSQ2p9EhszQQ3iNUmDVdNHrxrqPIuyBRzVveXr0WI=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20250623053940-85c8bd78c6bc/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xgfone/ship/v5 v5.3.2 h1:PFFNyCTT8psAfeizDexFX33SgFJpVikPuSMcjYxqGJA=
@@ -180,6 +182,8 @@ gorm.io/gorm v1.24.7-0.20230306060331-85eaf9eeda11/go.mod h1:L4uxeKpfBml98NYqVqw
 gorm.io/gorm v1.25.0/go.mod h1:L4uxeKpfBml98NYqVqwAdmV1a2nBtAec/cf3fpucW/k=
 gorm.io/gorm v1.30.5 h1:dvEfYwxL+i+xgCNSGGBT1lDjCzfELK8fHZxL3Ee9X0s=
 gorm.io/gorm v1.30.5/go.mod h1:8Z33v652h4//uMA76KjeDH8mJXPm1QNCYrMeatR0DOE=
+gorm.io/gorm v1.31.0 h1:0VlycGreVhK7RF/Bwt51Fk8v0xLiiiFdbGDPIZQ7mJY=
+gorm.io/gorm v1.31.0/go.mod h1:XyQVbO2k6YkOis7C2437jSit3SsDK72s7n7rsSHd+Gs=
 gorm.io/hints v1.1.2 h1:b5j0kwk5p4+3BtDtYqqfY+ATSxjj+6ptPgVveuynn9o=
 gorm.io/hints v1.1.2/go.mod h1:/ARdpUHAtyEMCh5NNi3tI7FsGh+Cj/MIUlvNxCNCFWg=
 gorm.io/plugin/dbresolver v1.6.2 h1:F4b85TenghUeITqe3+epPSUtHH7RIk3fXr5l83DF8Pc=

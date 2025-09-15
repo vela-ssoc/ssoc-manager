@@ -7,13 +7,13 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250911030050-57b811b542cf
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20250915060454-d33a67efc036
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20250623053940-85c8bd78c6bc
 	github.com/xgfone/ship/v5 v5.3.2
 	golang.org/x/crypto v0.42.0
 	gorm.io/datatypes v1.2.6
 	gorm.io/gen v0.3.27
-	gorm.io/gorm v1.30.5
+	gorm.io/gorm v1.31.0
 )
 
 require (
