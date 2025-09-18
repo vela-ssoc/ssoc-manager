@@ -26,7 +26,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/validate"
+	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/ssoc-manager/app/brkapi"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	"github.com/vela-ssoc/ssoc-manager/app/middle"
@@ -116,7 +116,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	prob := problem.NewHandle(name)
 	sess := session.DBSess(qry, cfg.Server.Session.Duration())
-	valid := validate.New()
+	valid := validation.New()
+	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+		return err
+	}
 
 	sh := ship.Default()
 	sh.Logger = shipx.NewLog(log)
