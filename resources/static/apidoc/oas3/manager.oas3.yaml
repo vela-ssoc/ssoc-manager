@@ -2475,7 +2475,7 @@ paths:
 
         - 其他情况下，`tasks.$.hash` 必须与 `tasks.$.report.hash` 相等才算配置同步。
 
-        - 注意：如果 `tasks.$.report` 有值，但是 `from != "tunnel"`，说明该配置不是来自于中心端下发，无需逻辑判断，只需原样展示即可。
+        - 注意：如果 `tasks.$.report` 有值，但是 `from != "tunnel"`，说明该配置不是来自于中心端下发，无需逻辑判断，只需原样展示即可（也不需要展示各种操作按钮）。
       parameters:
         - schema:
             type: string
