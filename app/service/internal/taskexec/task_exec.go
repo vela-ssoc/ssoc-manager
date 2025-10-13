@@ -28,14 +28,6 @@ type TaskExec struct {
 	flt *minionfilter.Filter
 }
 
-//func (te *TaskExec) Exec(ctx context.Context, taskID int64) error {
-//	// 查询 task 并将环境数据拷贝到 task_execute 库中用作快照
-//	// 根据 filter 和 exclude 条件匹配所有的符合条件的节点生成到 item 表中
-//	// 推送器开始依次推送任务
-//
-//	return te.doExec(ctx, taskID)
-//}
-
 type matcher interface {
 	Count(ctx context.Context) (int64, error)
 	Iter(ctx context.Context, batchSize int) iter.Seq2[[]*model.Minion, error]

@@ -18,19 +18,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type SubstanceTaskService interface {
-	AsyncTags(ctx context.Context, tags []string) (int64, error)
-	AsyncInets(ctx context.Context, inets []string) (int64, error)
-	Progress(ctx context.Context, tid int64) *mresponse.EffectProgress
-	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
-	BusyError(ctx context.Context) error
-
-	Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
-	Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask)
-}
-
-func SubstanceTask(qry *query.Query, seq SequenceService, pusher push.Pusher) SubstanceTaskService {
-	return &substanceTaskService{
+func NewSubstanceTask(qry *query.Query, seq SequenceService, pusher push.Pusher) *SubstanceTask {
+	return &SubstanceTask{
 		qry:     qry,
 		seq:     seq,
 		pusher:  pusher,
@@ -38,7 +27,7 @@ func SubstanceTask(qry *query.Query, seq SequenceService, pusher push.Pusher) Su
 	}
 }
 
-type substanceTaskService struct {
+type SubstanceTask struct {
 	qry     *query.Query
 	seq     SequenceService
 	pusher  push.Pusher
@@ -46,7 +35,7 @@ type substanceTaskService struct {
 	mutex   sync.Mutex
 }
 
-func (biz *substanceTaskService) Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+func (biz *SubstanceTask) Page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
 	if id == 0 {
 		id = biz.currentTaskID(ctx)
 	}
@@ -57,11 +46,11 @@ func (biz *substanceTaskService) Page(ctx context.Context, id int64, page param.
 	return biz.page(ctx, id, page, scope, likes)
 }
 
-func (biz *substanceTaskService) Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+func (biz *SubstanceTask) Histories(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
 	return biz.page(ctx, 0, page, scope, likes)
 }
 
-func (biz *substanceTaskService) page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
+func (biz *SubstanceTask) page(ctx context.Context, id int64, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*model.SubstanceTask) {
 	tbl := biz.qry.SubstanceTask
 	dao := tbl.WithContext(ctx).
 		Order(tbl.TaskID.Desc(), tbl.ID)
@@ -88,7 +77,7 @@ func (biz *substanceTaskService) page(ctx context.Context, id int64, page param.
 	return count, dats
 }
 
-func (biz *substanceTaskService) AsyncTags(ctx context.Context, tags []string) (int64, error) {
+func (biz *SubstanceTask) AsyncTags(ctx context.Context, tags []string) (int64, error) {
 	if len(tags) == 0 {
 		return 0, nil
 	}
@@ -105,7 +94,7 @@ func (biz *substanceTaskService) AsyncTags(ctx context.Context, tags []string) (
 	return tid, nil
 }
 
-func (biz *substanceTaskService) AsyncInets(ctx context.Context, inets []string) (int64, error) {
+func (biz *SubstanceTask) AsyncInets(ctx context.Context, inets []string) (int64, error) {
 	if len(inets) == 0 {
 		return 0, nil
 	}
@@ -122,7 +111,7 @@ func (biz *substanceTaskService) AsyncInets(ctx context.Context, inets []string)
 	return tid, nil
 }
 
-func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
+func (biz *SubstanceTask) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
 	if tid <= 0 {
 		tid = biz.currentTaskID(ctx)
 	}
@@ -133,7 +122,7 @@ func (biz *substanceTaskService) Progress(ctx context.Context, tid int64) *mresp
 	return biz.progress(ctx, tid)
 }
 
-func (biz *substanceTaskService) progress(ctx context.Context, id int64) *mresponse.EffectProgress {
+func (biz *SubstanceTask) progress(ctx context.Context, id int64) *mresponse.EffectProgress {
 	taskDo := biz.qry.SubstanceTask.WithContext(ctx)
 	db := taskDo.UnderlyingDB()
 	dialect := db.Dialector.Name()
@@ -144,7 +133,7 @@ func (biz *substanceTaskService) progress(ctx context.Context, id int64) *mrespo
 	}
 }
 
-func (biz *substanceTaskService) progressForOpenGauss(db *gorm.DB, id int64) *mresponse.EffectProgress {
+func (biz *SubstanceTask) progressForOpenGauss(db *gorm.DB, id int64) *mresponse.EffectProgress {
 	ret := new(mresponse.EffectProgress)
 	strSQL := "SELECT COUNT(*)                      AS count, " +
 		"COUNT(IF(executed, TRUE, NULL))            AS executed, " +
@@ -156,7 +145,7 @@ func (biz *substanceTaskService) progressForOpenGauss(db *gorm.DB, id int64) *mr
 	return ret
 }
 
-func (biz *substanceTaskService) progressForMySQL(db *gorm.DB, id int64) *mresponse.EffectProgress {
+func (biz *SubstanceTask) progressForMySQL(db *gorm.DB, id int64) *mresponse.EffectProgress {
 	ret := new(mresponse.EffectProgress)
 	strSQL := `
 SELECT COUNT(*)                                                    AS count,
@@ -170,7 +159,7 @@ SELECT COUNT(*)                                                    AS count,
 }
 
 // Progresses 获取当前最后一次运行的任务信息
-func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
+func (biz *SubstanceTask) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
 	if tid <= 0 {
 		tid = biz.currentTaskID(ctx)
 	}
@@ -200,7 +189,7 @@ func (biz *substanceTaskService) Progresses(ctx context.Context, tid int64, page
 	return count, dats
 }
 
-func (biz *substanceTaskService) BusyError(ctx context.Context) error {
+func (biz *SubstanceTask) BusyError(ctx context.Context) error {
 	// 超时控制
 	now := time.Now()
 	timeout := 10 * time.Minute
@@ -225,7 +214,7 @@ func (biz *substanceTaskService) BusyError(ctx context.Context) error {
 	return nil
 }
 
-func (biz *substanceTaskService) currentTaskID(ctx context.Context) int64 {
+func (biz *SubstanceTask) currentTaskID(ctx context.Context) int64 {
 	cat := time.Now().Add(-biz.timeout)
 	tbl := biz.qry.SubstanceTask
 	tsk, err := tbl.WithContext(ctx).
@@ -238,7 +227,7 @@ func (biz *substanceTaskService) currentTaskID(ctx context.Context) int64 {
 	return 0
 }
 
-func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
+func (biz *SubstanceTask) insertTagTask(tid int64, tags []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), biz.timeout)
 	defer cancel()
 
@@ -316,7 +305,7 @@ func (biz *substanceTaskService) insertTagTask(tid int64, tags []string) {
 	}
 }
 
-func (biz *substanceTaskService) insertInetTasks(tid int64, inets []string) {
+func (biz *SubstanceTask) insertInetTasks(tid int64, inets []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), biz.timeout)
 	defer cancel()
 
@@ -333,7 +322,7 @@ func (biz *substanceTaskService) insertInetTasks(tid int64, inets []string) {
 	biz.pusher.TaskTable(ctx, bids, tid)
 }
 
-func (biz *substanceTaskService) insertInetTask(ctx context.Context, tid int64, minions []*model.Minion) ([]int64, error) {
+func (biz *SubstanceTask) insertInetTask(ctx context.Context, tid int64, minions []*model.Minion) ([]int64, error) {
 	hm := make(map[int64]struct{}, 16)
 	size := len(minions)
 	if size == 0 {

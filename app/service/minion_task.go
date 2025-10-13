@@ -12,7 +12,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
-	"gorm.io/gen"
+	"github.com/vela-ssoc/ssoc-manager/param/mresponse"
 	"gorm.io/gorm"
 )
 
@@ -43,7 +43,7 @@ func (mt *MinionTask) Page(ctx context.Context, page param.Pager, scope dynsql.S
 	var dats param.TaskList
 	stmt.Select("minion_task.id", "minion_task.inet", "minion_task.minion_id", "minion_task.substance_id",
 		"minion_task.name", "minion_task.dialect", "minion_task.status", "minion_task.hash AS report_hash", "st.hash",
-		"minion_task.link" /* "minion_task.`from`",*/, "minion_task.failed", "minion_task.cause", "st.created_at",
+		"minion_task.link", "minion_task.from", "minion_task.failed", "minion_task.cause", "st.created_at",
 		"st.updated_at", "minion_task.created_at AS report_at").
 		Scopes(page.DBScope(count)).Find(&dats)
 
@@ -133,15 +133,15 @@ func (mt *MinionTask) Minion(ctx context.Context, mid int64) ([]*param.MinionTas
 	mts, _ := taskTbl.WithContext(ctx).Where(taskTbl.MinionID.Eq(mid)).Find()
 
 	taskMap := make(map[string]*model.MinionTask, len(mts))
-	for _, mt := range mts {
+	for _, m := range mts {
 		// 注意：从 console 加载的的配置脚本是没有 SubstanceID 的，要做特殊处理
 		var subID string
-		if mt.SubstanceID > 0 {
-			subID = strconv.FormatInt(mt.SubstanceID, 10)
+		if m.SubstanceID > 0 {
+			subID = strconv.FormatInt(m.SubstanceID, 10)
 		} else {
-			subID = strconv.FormatInt(mt.ID, 10) + mt.Name
+			subID = strconv.FormatInt(m.ID, 10) + m.Name
 		}
-		taskMap[subID] = mt
+		taskMap[subID] = m
 	}
 
 	// 上报的数据与数据库数据合并整理
@@ -308,54 +308,128 @@ func (mt *MinionTask) RCount(ctx context.Context, pager param.Pager) (int64, []*
 	return count, ret
 }
 
-// Exclude 将某个节点排除某个配置不下发。
-func (mt *MinionTask) Exclude(ctx context.Context, minionID, subID int64) error {
-	// 查询节点信息
+func (mt *MinionTask) Tasks(ctx context.Context, minionID int64) (*mresponse.MinionTask, error) {
+	// 查询 minionID 相关的配置
+	// 查询 minionID 排除的
+
 	monTbl := mt.qry.Minion
 	monDao := monTbl.WithContext(ctx)
-	if cnt, err := monDao.Where(monTbl.ID.Eq(minionID)).Count(); err != nil {
-		return err
-	} else if cnt == 0 {
-		return errcode.ErrNodeNotExist
+	taskTbl := mt.qry.MinionTask
+	taskDao := taskTbl.WithContext(ctx)
+	excTbl := mt.qry.MinionSubstanceExclude
+	excDao := excTbl.WithContext(ctx)
+
+	minion, err := monDao.Where(monTbl.ID.Eq(minionID)).First()
+	if err != nil {
+		return nil, err
+	}
+	// 1.0 通过 IP 简单排除
+	subs, excludeInets, err := mt.substances(ctx, minionID, minion.Inet)
+	if err != nil {
+		return nil, err
 	}
 
-	// 查询配置信息
-	subTbl := mt.qry.Substance
-	subDao := subTbl.WithContext(ctx)
-	if cnt, err := subDao.Where(subTbl.ID.Eq(subID)).Count(); err != nil {
-		return err
-	} else if cnt == 0 {
-		return errcode.ErrSubstanceNotExist
+	ret := &mresponse.MinionTask{Unload: minion.Unload}
+	reportTasks, _ := taskDao.Where(taskTbl.MinionID.Eq(minionID)).Find()
+	excludeTasks, _ := excDao.Where(excTbl.MinionID.Eq(minionID)).Find() // 2.0 排除
+
+	excludes := make(map[int64]bool, 4)
+	for _, tsk := range excludeTasks {
+		excludes[tsk.SubstanceID] = true
+	}
+	reportMaps := make(map[int64]*mresponse.MinionTaskItemReport, 8)
+	for _, tsk := range reportTasks {
+		reportMaps[tsk.SubstanceID] = &mresponse.MinionTaskItemReport{
+			From:      tsk.From,
+			Uptime:    tsk.Uptime,
+			Link:      tsk.Link,
+			Status:    tsk.Status,
+			Hash:      tsk.Hash,
+			Cause:     tsk.Cause,
+			Runners:   tsk.Runners,
+			CreatedAt: tsk.CreatedAt,
+		}
+	}
+	for _, sub := range subs {
+		id := sub.ID
+		report := reportMaps[id]
+		delete(reportMaps, id)
+		tsk := &mresponse.MinionTaskItem{
+			ID:           id,
+			Name:         sub.Name,
+			Icon:         sub.Icon,
+			Dialect:      sub.MinionID == minionID,
+			Excluded:     excludes[id],
+			ExcludedInet: excludeInets[id],
+			Hash:         sub.Hash,
+			Report:       report,
+			CreatedAt:    sub.CreatedAt,
+			UpdatedAt:    sub.UpdatedAt,
+		}
+		ret.Tasks = append(ret.Tasks, tsk)
+	}
+	for _, task := range reportTasks {
+		subID := task.SubstanceID
+		report := reportMaps[subID]
+		if report == nil {
+			continue
+		}
+		tsk := &mresponse.MinionTaskItem{
+			Name: task.Name,
+			Report: &mresponse.MinionTaskItemReport{
+				From:      task.From,
+				Uptime:    task.Uptime,
+				Link:      task.Link,
+				Status:    task.Status,
+				CreatedAt: task.CreatedAt,
+			},
+		}
+		ret.Tasks = append(ret.Tasks, tsk)
 	}
 
-	// 排除节点
-	mod := &model.MinionSubstanceExclude{
-		MinionID:    minionID,
-		SubstanceID: subID,
-	}
-	mseTbl := mt.qry.MinionSubstanceExclude
-	mseDao := mseTbl.WithContext(ctx)
-	if err := mseDao.Create(mod); err != nil {
-		return err
-	}
-	// TODO 通知节点刷新配置
-
-	return nil
+	return ret, nil
 }
 
-// Unexclude 移出排除列表。
-func (mt *MinionTask) Unexclude(ctx context.Context, minionID, subID int64) error {
-	mseTbl := mt.qry.MinionSubstanceExclude
-	mseDao := mseTbl.WithContext(ctx)
+func (mt *MinionTask) substances(ctx context.Context, minionID int64, inet string) (model.Substances, map[int64]bool, error) {
+	// 查询该节点所有相关的标签
+	tagTbl := mt.qry.MinionTag
+	tagDao := tagTbl.WithContext(ctx)
+	effTbl := mt.qry.Effect
+	effDao := effTbl.WithContext(ctx)
+	subTbl := mt.qry.Substance
+	subDao := subTbl.WithContext(ctx)
 
-	wheres := []gen.Condition{mseTbl.MinionID.Eq(minionID), mseTbl.SubstanceID.Eq(subID)}
-	ret, err := mseDao.Where(wheres...).Delete()
-	if err != nil {
-		return err
-	} else if ret.RowsAffected == 0 {
-		return nil
+	minionTags, _ := tagDao.Where(tagTbl.MinionID.Eq(minionID)).Find()
+
+	tags := make([]string, 0, len(minionTags))
+	for _, tag := range minionTags {
+		tags = append(tags, tag.Tag)
 	}
-	// TODO 通知节点刷新配置
 
-	return nil
+	excludes := make(map[int64]bool, 8)
+	subIDs := make([]int64, 0, 10)
+	if len(tags) != 0 {
+		effects, _ := effDao.Where(effTbl.Enable.Is(true), effTbl.Tag.In(tags...)).Find()
+		for _, eff := range effects {
+			subID := eff.EffectID
+			subIDs = append(subIDs, subID)
+			for _, v := range eff.Exclusion {
+				if v == inet {
+					excludes[subID] = true
+					break
+				}
+			}
+		}
+	}
+
+	dao := subDao.Where(subTbl.MinionID.Eq(minionID))
+	if len(subIDs) != 0 {
+		dao.Or(subTbl.ID.In(subIDs...))
+	}
+	subs, err := dao.Find()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return subs, excludes, nil
 }

@@ -21,24 +21,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type MinionService interface {
-	Cond() *response.Cond
-	Page2(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error)
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary)
-	Detail(ctx context.Context, id int64) (*param.MinionDetail, error)
-	Drop(ctx context.Context, id int64) error
-	Create(ctx context.Context, mc *param.MinionCreate) error
-	Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error
-	CSV(ctx context.Context) sheet.CSVStreamer
-	Upgrade(ctx context.Context, mid, binID int64) error
-	Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error
-	Command(ctx context.Context, mid int64, cmd string) error
-	Unload(ctx context.Context, mid int64, unload bool) error
-	BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error
-}
-
-func Minion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minionfilter.Filter) MinionService {
-	return &minionService{
+func NewMinion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minionfilter.Filter) *Minion {
+	return &Minion{
 		qry:    qry,
 		cmdbw:  cmdbw,
 		pusher: pusher,
@@ -46,22 +30,26 @@ func Minion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minion
 	}
 }
 
-type minionService struct {
+type Minion struct {
 	qry    *query.Query
 	cmdbw  cmdb.Client
 	pusher push.Pusher
 	flt    *minionfilter.Filter
 }
 
-func (biz *minionService) Cond() *response.Cond {
+func (biz *Minion) Cond() *response.Cond {
 	return biz.flt.Cond()
 }
 
-func (biz *minionService) Page2(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error) {
+func (biz *Minion) Page2(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error) {
 	return biz.flt.Page(ctx, args)
 }
 
-func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary) {
+func (biz *Minion) Delete2(ctx context.Context, args *request.PageKeywordConditions) error {
+	return biz.flt.Delete(ctx, args)
+}
+
+func (biz *Minion) Page(ctx context.Context, page param.Pager, scope dynsql.Scope, likes []gen.Condition) (int64, []*param.MinionSummary) {
 	tagTbl := biz.qry.MinionTag
 	monTbl := biz.qry.Minion
 	dao := monTbl.WithContext(ctx).
@@ -138,7 +126,7 @@ func (biz *minionService) Page(ctx context.Context, page param.Pager, scope dyns
 	return count, ret
 }
 
-func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDetail, error) {
+func (biz *Minion) Detail(ctx context.Context, id int64) (*param.MinionDetail, error) {
 	tbl := biz.qry.Minion
 	dat := new(param.MinionDetail)
 	if err := tbl.WithContext(ctx).
@@ -177,7 +165,7 @@ func (biz *minionService) Detail(ctx context.Context, id int64) (*param.MinionDe
 	return dat, nil
 }
 
-func (biz *minionService) Drop(ctx context.Context, id int64) error {
+func (biz *Minion) Drop(ctx context.Context, id int64) error {
 	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {
@@ -277,7 +265,7 @@ func (biz *minionService) Drop(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) error {
+func (biz *Minion) Create(ctx context.Context, mc *param.MinionCreate) error {
 	inet := net.ParseIP(mc.Inet)
 	if len(inet) == 0 || inet.IsLoopback() || inet.IsUnspecified() || inet.Equal(net.IPv4bcast) {
 		return errcode.ErrInetAddress
@@ -315,7 +303,7 @@ func (biz *minionService) Create(ctx context.Context, mc *param.MinionCreate) er
 	return nil
 }
 
-func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
+func (biz *Minion) Delete(ctx context.Context, scope dynsql.Scope, likes []gen.Condition) error {
 	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
 		tbl := biz.qry.Minion
 		deleted := uint8(model.MSDelete)
@@ -332,12 +320,12 @@ func (biz *minionService) Delete(ctx context.Context, scope dynsql.Scope, likes 
 	return err
 }
 
-func (biz *minionService) CSV(ctx context.Context) sheet.CSVStreamer {
+func (biz *Minion) CSV(ctx context.Context) sheet.CSVStreamer {
 	read := sheet.MinionCSV(ctx, biz.qry, 500, true)
 	return sheet.NewCSV(read)
 }
 
-func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
+func (biz *Minion) Upgrade(ctx context.Context, mid, binID int64) error {
 	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Status, tbl.BrokerID).
@@ -364,7 +352,7 @@ func (biz *minionService) Upgrade(ctx context.Context, mid, binID int64) error {
 	return nil
 }
 
-func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error {
+func (biz *Minion) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error {
 	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
 		// resync restart upgrade offline
 		biz.pusher.Command(ctx, bid, mids, cmd)
@@ -376,7 +364,7 @@ func (biz *minionService) Batch(ctx context.Context, scope dynsql.Scope, likes [
 	return nil
 }
 
-func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) error {
+func (biz *Minion) Command(ctx context.Context, mid int64, cmd string) error {
 	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.Status, tbl.BrokerID).
@@ -395,7 +383,7 @@ func (biz *minionService) Command(ctx context.Context, mid int64, cmd string) er
 	return nil
 }
 
-func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) error {
+func (biz *Minion) Unload(ctx context.Context, mid int64, unload bool) error {
 	// 查询节点信息
 	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
@@ -423,7 +411,7 @@ func (biz *minionService) Unload(ctx context.Context, mid int64, unload bool) er
 	return err
 }
 
-func (biz *minionService) BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error {
+func (biz *Minion) BatchTag(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, creates, deletes []string) error {
 	fn := func(ctx context.Context, bid int64, mids []int64) error {
 		err := biz.qry.Transaction(func(tx *query.Query) error {
 			ll := int8(model.TkLifelong)
@@ -453,7 +441,7 @@ func (biz *minionService) BatchTag(ctx context.Context, scope dynsql.Scope, like
 	return biz.batchFunc(scope, likes, fn)
 }
 
-func (biz *minionService) batchFunc(
+func (biz *Minion) batchFunc(
 	scope dynsql.Scope,
 	likes []gen.Condition,
 	cb func(ctx context.Context, bid int64, mids []int64) error,

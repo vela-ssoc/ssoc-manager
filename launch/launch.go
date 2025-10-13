@@ -220,8 +220,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client)
-	minionService := service.Minion(qry, cmdbClient, pusher, minionFilterSvc)
-	minionREST := mgtapi.Minion(qry, huber, minionService)
+	minionService := service.NewMinion(qry, cmdbClient, pusher, minionFilterSvc)
+	minionREST := mgtapi.NewMinion(qry, huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
 	intoService := service.Into(qry, huber)
@@ -263,18 +263,18 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	tagREST := mgtapi.Tag(tagService)
 	tagREST.Route(anon, bearer, basic)
 
-	substanceTaskService := service.SubstanceTask(qry, sequenceService, pusher)
+	substanceTaskService := service.NewSubstanceTask(qry, sequenceService, pusher)
 
 	// -----[ 配置与发布 ]-----
-	substanceService := service.Substance(qry, pusher, digestService, substanceTaskService)
-	substanceREST := mgtapi.Substance(substanceService)
+	substanceService := service.NewSubstance(qry, pusher, digestService, substanceTaskService)
+	substanceREST := mgtapi.NewSubstance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
 
 	effectService := service.Effect(qry, pusher, sequenceService, substanceTaskService)
 	effectREST := mgtapi.Effect(effectService)
 	effectREST.Route(anon, bearer, basic)
 
-	substanceTaskREST := mgtapi.SubstanceTask(qry, substanceTaskService)
+	substanceTaskREST := mgtapi.NewSubstanceTask(qry, substanceTaskService)
 	substanceTaskREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----
 

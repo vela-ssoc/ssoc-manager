@@ -16,7 +16,7 @@ import (
 	"gorm.io/gen/field"
 )
 
-func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) route.Router {
+func NewMinion(qry *query.Query, hub linkhub.Huber, svc *service.Minion) *Minion {
 	const (
 		idKey         = "minion.id"
 		tagKey        = "minion_tag.tag"
@@ -87,7 +87,7 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 		opDutyKey:     tbl.OpDuty,
 	}
 
-	return &minionREST{
+	return &Minion{
 		qry:   qry,
 		hub:   hub,
 		svc:   svc,
@@ -96,21 +96,21 @@ func Minion(qry *query.Query, hub linkhub.Huber, svc service.MinionService) rout
 	}
 }
 
-type minionREST struct {
+type Minion struct {
 	qry   *query.Query
 	hub   linkhub.Huber
-	svc   service.MinionService
+	svc   *service.Minion
 	table dynsql.Table
 	likes map[string]field.String
 }
 
-func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Minion) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/minion/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/minions").Data(route.Ignore()).GET(rest.Page2)
 	bearer.Route("/minion").
 		Data(route.Ignore()).GET(rest.Detail).
 		Data(route.Named("新增 agent 节点")).POST(rest.Create).
-		Data(route.Named("逻辑删除 agent 节点")).DELETE(rest.Delete)
+		Data(route.Named("逻辑删除 agent 节点")).DELETE(rest.Delete2)
 	bearer.Route("/minion/drop").Data(route.Named("物理删除 agent 节点")).DELETE(rest.Drop)
 	bearer.Route("/sheet/minion").Data(route.Ignore()).GET(rest.CSV)
 	bearer.Route("/minion/upgrade").Data(route.Named("节点检查更新")).PATCH(rest.Upgrade)
@@ -119,12 +119,12 @@ func (rest *minionREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/minion/batch/tag").Data(route.Named("批量标签管理")).PATCH(rest.BatchTag)
 }
 
-func (rest *minionREST) Cond(c *ship.Context) error {
+func (rest *Minion) Cond(c *ship.Context) error {
 	res := rest.svc.Cond()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionREST) Page2(c *ship.Context) error {
+func (rest *Minion) Page2(c *ship.Context) error {
 	req := new(request.PageKeywordConditions)
 	if err := c.BindQuery(req); err != nil {
 		return err
@@ -139,7 +139,7 @@ func (rest *minionREST) Page2(c *ship.Context) error {
 	return c.JSON(http.StatusOK, ret)
 }
 
-func (rest *minionREST) Page(c *ship.Context) error {
+func (rest *Minion) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -158,7 +158,7 @@ func (rest *minionREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionREST) Detail(c *ship.Context) error {
+func (rest *Minion) Detail(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -173,7 +173,7 @@ func (rest *minionREST) Detail(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionREST) Drop(c *ship.Context) error {
+func (rest *Minion) Drop(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -185,7 +185,7 @@ func (rest *minionREST) Drop(c *ship.Context) error {
 	return err
 }
 
-func (rest *minionREST) Create(c *ship.Context) error {
+func (rest *Minion) Create(c *ship.Context) error {
 	var req param.MinionCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -197,7 +197,7 @@ func (rest *minionREST) Create(c *ship.Context) error {
 	return err
 }
 
-func (rest *minionREST) CSV(c *ship.Context) error {
+func (rest *Minion) CSV(c *ship.Context) error {
 	ctx := c.Request().Context()
 	stm := rest.svc.CSV(ctx)
 
@@ -206,7 +206,7 @@ func (rest *minionREST) CSV(c *ship.Context) error {
 	return c.Stream(http.StatusOK, stm.MIME(), stm)
 }
 
-func (rest *minionREST) Upgrade(c *ship.Context) error {
+func (rest *Minion) Upgrade(c *ship.Context) error {
 	var req param.MinionUpgradeRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -217,7 +217,7 @@ func (rest *minionREST) Upgrade(c *ship.Context) error {
 	return rest.svc.Upgrade(ctx, req.ID, req.BinaryID)
 }
 
-func (rest *minionREST) Unload(c *ship.Context) error {
+func (rest *Minion) Unload(c *ship.Context) error {
 	var req param.MinionUnloadRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -228,7 +228,7 @@ func (rest *minionREST) Unload(c *ship.Context) error {
 	return rest.svc.Unload(ctx, req.ID, req.Unload)
 }
 
-func (rest *minionREST) Batch(c *ship.Context) error {
+func (rest *Minion) Batch(c *ship.Context) error {
 	var req param.MinionBatchRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -252,7 +252,7 @@ func (rest *minionREST) Batch(c *ship.Context) error {
 	return rest.svc.Batch(ctx, scope, likes, req.Cmd)
 }
 
-func (rest *minionREST) Delete(c *ship.Context) error {
+func (rest *Minion) Delete(c *ship.Context) error {
 	var req param.MinionDeleteRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -274,7 +274,17 @@ func (rest *minionREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, scope, likes)
 }
 
-func (rest *minionREST) BatchTag(c *ship.Context) error {
+func (rest *Minion) Delete2(c *ship.Context) error {
+	req := new(request.PageKeywordConditions)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+
+	return rest.svc.Delete2(ctx, req)
+}
+
+func (rest *Minion) BatchTag(c *ship.Context) error {
 	var req param.MinionTagRequest
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -297,7 +307,7 @@ func (rest *minionREST) BatchTag(c *ship.Context) error {
 	return rest.svc.BatchTag(ctx, scope, likes, req.Creates, req.Deletes)
 }
 
-func (rest *minionREST) keywordSQL(input dynsql.Input, keyword string) []gen.Condition {
+func (rest *Minion) keywordSQL(input dynsql.Input, keyword string) []gen.Condition {
 	if keyword == "" {
 		return nil
 	}

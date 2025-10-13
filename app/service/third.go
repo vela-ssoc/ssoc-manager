@@ -229,16 +229,14 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 
 func (biz *thirdService) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.Third
+	dao := tbl.WithContext(ctx).Where(tbl.ID.Eq(id))
 	// 查询原有的数据
-	th, err := tbl.WithContext(ctx).
-		Select(tbl.FileID).
-		Where(tbl.ID.Eq(id)).
-		First()
+	th, err := dao.First()
 	if err != nil {
 		return err
 	}
 
-	if _, err = tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Delete(); err != nil {
+	if _, err = dao.Delete(); err != nil {
 		return err
 	}
 	_ = biz.gfs.Remove(th.FileID)

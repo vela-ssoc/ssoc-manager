@@ -23,7 +23,7 @@ type EffectService interface {
 	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
 }
 
-func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
+func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task *SubstanceTask) EffectService {
 	return &effectService{
 		qry:    qry,
 		pusher: pusher,
@@ -36,7 +36,7 @@ type effectService struct {
 	qry    *query.Query
 	pusher push.Pusher
 	seq    SequenceService
-	task   SubstanceTaskService
+	task   *SubstanceTask
 	mutex  sync.RWMutex
 }
 
