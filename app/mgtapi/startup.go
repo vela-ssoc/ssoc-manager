@@ -11,23 +11,23 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Startup(svc service.StartupService) route.Router {
-	return &startupREST{
+func NewStartup(svc service.StartupService) *Startup {
+	return &Startup{
 		svc: svc,
 	}
 }
 
-type startupREST struct {
+type Startup struct {
 	svc service.StartupService
 }
 
-func (rest *startupREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Startup) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/startup").
 		Data(route.Ignore()).GET(rest.Detail).
 		Data(route.Named("修改 startup 配置")).PUT(rest.Update)
 }
 
-func (rest *startupREST) Detail(c *ship.Context) error {
+func (rest *Startup) Detail(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -43,7 +43,7 @@ func (rest *startupREST) Detail(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *startupREST) Update(c *ship.Context) error {
+func (rest *Startup) Update(c *ship.Context) error {
 	var req model.Startup
 	if err := c.Bind(&req); err != nil {
 		return err

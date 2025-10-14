@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func SBOMComponent(svc service.SBOMComponentService) route.Router {
+func NewSBOMComponent(svc service.SBOMComponentService) *SBOMComponent {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	nameCol := dynsql.StringColumn("name", "组件名").Build()
 	versionCol := dynsql.StringColumn("version", "版本").Build()
@@ -23,30 +23,30 @@ func SBOMComponent(svc service.SBOMComponentService) route.Router {
 		Filters(inetCol, nameCol, versionCol, purlCol, totalNumCol, pidCol, midCol, idCol).
 		Build()
 
-	return &sbomComponentREST{
+	return &SBOMComponent{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type sbomComponentREST struct {
+type SBOMComponent struct {
 	svc   service.SBOMComponentService
 	table dynsql.Table
 }
 
-func (rest *sbomComponentREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *SBOMComponent) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/sbom/count").Data(route.Ignore()).GET(rest.Count)
 	bearer.Route("/sbom/components").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/component/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/component/projects").Data(route.Ignore()).GET(rest.Project)
 }
 
-func (rest *sbomComponentREST) Cond(c *ship.Context) error {
+func (rest *SBOMComponent) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomComponentREST) Page(c *ship.Context) error {
+func (rest *SBOMComponent) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -64,7 +64,7 @@ func (rest *sbomComponentREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomComponentREST) Project(c *ship.Context) error {
+func (rest *SBOMComponent) Project(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (rest *sbomComponentREST) Project(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomComponentREST) Count(c *ship.Context) error {
+func (rest *SBOMComponent) Count(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err

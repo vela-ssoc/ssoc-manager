@@ -11,7 +11,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionTask(svc *service.MinionTask) route.Router {
+func NewMinionTask(svc *service.MinionTask) *MinionTask {
 	statusEnums := dynsql.StringEnum().
 		Set("running", "正常运行").
 		Set("doing", "正在启动").
@@ -31,18 +31,18 @@ func MinionTask(svc *service.MinionTask) route.Router {
 
 	table := dynsql.Builder().Filters(filters...).Build()
 
-	return &minionTaskREST{
+	return &MinionTask{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type minionTaskREST struct {
+type MinionTask struct {
 	svc   *service.MinionTask
 	table dynsql.Table
 }
 
-func (rest *minionTaskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *MinionTask) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/tasks").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/task").Data(route.Ignore()).GET(rest.Detail)
 	bearer.Route("/task/cond").Data(route.Ignore()).GET(rest.Cond)
@@ -54,12 +54,12 @@ func (rest *minionTaskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/minion/tasks").Data(route.Ignore()).GET(rest.tasks)
 }
 
-func (rest *minionTaskREST) Cond(c *ship.Context) error {
+func (rest *MinionTask) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) Page(c *ship.Context) error {
+func (rest *MinionTask) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -77,7 +77,7 @@ func (rest *minionTaskREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) Detail(c *ship.Context) error {
+func (rest *MinionTask) Detail(c *ship.Context) error {
 	var req param.MinionTaskDetailRequest
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -92,7 +92,7 @@ func (rest *minionTaskREST) Detail(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) Minion(c *ship.Context) error {
+func (rest *MinionTask) Minion(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -107,7 +107,7 @@ func (rest *minionTaskREST) Minion(c *ship.Context) error {
 	return c.JSON(http.StatusOK, dats)
 }
 
-func (rest *minionTaskREST) Gathers(c *ship.Context) error {
+func (rest *MinionTask) Gathers(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -121,13 +121,13 @@ func (rest *minionTaskREST) Gathers(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) Count(c *ship.Context) error {
+func (rest *MinionTask) Count(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Count(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) RCount(c *ship.Context) error {
+func (rest *MinionTask) RCount(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -141,7 +141,7 @@ func (rest *minionTaskREST) RCount(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionTaskREST) tasks(c *ship.Context) error {
+func (rest *MinionTask) tasks(c *ship.Context) error {
 	req := new(request.Int64ID)
 	if err := c.BindQuery(req); err != nil {
 		return err

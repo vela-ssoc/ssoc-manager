@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type AccountService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionAccount)
-}
-
-func Account(qry *query.Query) AccountService {
-	return &accountService{
+func NewAccount(qry *query.Query) *Account {
+	return &Account{
 		qry: qry,
 	}
 }
 
-type accountService struct {
+type Account struct {
 	qry *query.Query
 }
 
-func (biz *accountService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionAccount) {
+func (biz *Account) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionAccount) {
 	tbl := biz.qry.MinionAccount
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).

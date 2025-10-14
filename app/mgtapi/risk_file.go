@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func RiskFile(svc service.RiskFileService) route.Router {
+func NewRiskFile(svc service.RiskFileService) *RiskFile {
 	algorithms := []string{"MD2", "MD4", "MD5", "MD6", "SHA1", "SHA224", "SHA256", "SHA384", "SHA512"}
 	algorithmEnums := dynsql.StringEnum().Sames(algorithms)
 
@@ -23,28 +23,28 @@ func RiskFile(svc service.RiskFileService) route.Router {
 		dynsql.StringColumn("desc", "说明").Build(),
 	).Build()
 
-	return &riskFileREST{
+	return &RiskFile{
 		svc: svc,
 		tbl: tbl,
 	}
 }
 
-type riskFileREST struct {
+type RiskFile struct {
 	svc service.RiskFileService
 	tbl dynsql.Table
 }
 
-func (rest *riskFileREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *RiskFile) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/riskfile/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/riskfiles").Data(route.Ignore()).POST(rest.Page)
 }
 
-func (rest *riskFileREST) Cond(c *ship.Context) error {
+func (rest *RiskFile) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskFileREST) Page(c *ship.Context) error {
+func (rest *RiskFile) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err

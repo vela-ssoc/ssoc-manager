@@ -11,21 +11,21 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Elastic(svc service.ElasticService, headerKey string, queryKey string) route.Router {
-	return &elasticREST{
+func NewElastic(svc service.ElasticService, headerKey string, queryKey string) *Elastic {
+	return &Elastic{
 		svc:       svc,
 		headerKey: headerKey,
 		queryKey:  queryKey,
 	}
 }
 
-type elasticREST struct {
+type Elastic struct {
 	svc       service.ElasticService
 	headerKey string
 	queryKey  string
 }
 
-func (ela *elasticREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (ela *Elastic) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/elastics").Data(route.Ignore()).GET(ela.Page)
 	bearer.Route("/ribana/*path").Data(route.Named("Ribana")).Any(ela.Forward)
 	bearer.Route("/ribana").Data(route.Named("Ribana")).Any(ela.Forward)
@@ -37,7 +37,7 @@ func (ela *elasticREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("探测 es 集群节点")).POST(ela.Detect)
 }
 
-func (ela *elasticREST) Forward(c *ship.Context) error {
+func (ela *Elastic) Forward(c *ship.Context) error {
 	path := "/" + c.Param("path")
 	w, r := c.Response(), c.Request()
 	ctx := r.Context()
@@ -48,7 +48,7 @@ func (ela *elasticREST) Forward(c *ship.Context) error {
 	return ela.svc.Forward(ctx, w, r)
 }
 
-func (ela *elasticREST) Page(c *ship.Context) error {
+func (ela *Elastic) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (ela *elasticREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (ela *elasticREST) Create(c *ship.Context) error {
+func (ela *Elastic) Create(c *ship.Context) error {
 	var req mrequest.ElasticCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (ela *elasticREST) Create(c *ship.Context) error {
 	return ela.svc.Create(ctx, &req)
 }
 
-func (ela *elasticREST) Update(c *ship.Context) error {
+func (ela *Elastic) Update(c *ship.Context) error {
 	var req mrequest.ElasticUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -85,7 +85,7 @@ func (ela *elasticREST) Update(c *ship.Context) error {
 	return err
 }
 
-func (ela *elasticREST) Delete(c *ship.Context) error {
+func (ela *Elastic) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (ela *elasticREST) Delete(c *ship.Context) error {
 	return ela.svc.Delete(ctx, req.ID)
 }
 
-func (ela *elasticREST) Detect(c *ship.Context) error {
+func (ela *Elastic) Detect(c *ship.Context) error {
 	var req mrequest.ElasticDetect
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -108,7 +108,7 @@ func (ela *elasticREST) Detect(c *ship.Context) error {
 }
 
 // desensitization 对代理转发的请求脱敏，前端用户请求携带的认证信息不应该带到后面的节点请求中。
-func (ela *elasticREST) desensitization(r *http.Request) {
+func (ela *Elastic) desensitization(r *http.Request) {
 	r.Header.Del(ela.headerKey)
 	query := r.URL.Query()
 	query.Del(ela.queryKey)

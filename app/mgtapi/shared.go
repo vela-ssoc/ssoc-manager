@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Shared(svc service.SharedService) route.Router {
+func NewShared(svc service.SharedService) *Shared {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("bucket", "bucket").Build(),
 		dynsql.StringColumn("key", "key").Build(),
@@ -19,18 +19,18 @@ func Shared(svc service.SharedService) route.Router {
 	}
 	tbl := dynsql.Builder().Filters(filters...).Build()
 
-	return &sharedREST{
+	return &Shared{
 		svc: svc,
 		tbl: tbl,
 	}
 }
 
-type sharedREST struct {
+type Shared struct {
 	svc service.SharedService
 	tbl dynsql.Table
 }
 
-func (rest *sharedREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Shared) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/shared/strings/cond").
 		Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/shared/strings/sweep").
@@ -45,12 +45,12 @@ func (rest *sharedREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Ignore()).POST(rest.Update)
 }
 
-func (rest *sharedREST) Cond(c *ship.Context) error {
+func (rest *Shared) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sharedREST) Keys(c *ship.Context) error {
+func (rest *Shared) Keys(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (rest *sharedREST) Keys(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sharedREST) Sweep(c *ship.Context) error {
+func (rest *Shared) Sweep(c *ship.Context) error {
 	req := new(param.SharedBucketKey)
 	if err := c.BindQuery(req); err != nil {
 		return err
@@ -79,14 +79,14 @@ func (rest *sharedREST) Sweep(c *ship.Context) error {
 	return rest.svc.Sweep(ctx, req.Bucket, req.Key)
 }
 
-func (rest *sharedREST) Buckets(c *ship.Context) error {
+func (rest *Shared) Buckets(c *ship.Context) error {
 	ctx := c.Request().Context()
 	ret := rest.svc.Buckets(ctx)
 
 	return c.JSON(http.StatusOK, ret)
 }
 
-func (rest *sharedREST) Audits(c *ship.Context) error {
+func (rest *Shared) Audits(c *ship.Context) error {
 	req := new(param.SharedAuditPage)
 	if err := c.BindQuery(req); err != nil {
 		return err
@@ -100,7 +100,7 @@ func (rest *sharedREST) Audits(c *ship.Context) error {
 	return c.JSON(http.StatusOK, ret)
 }
 
-func (rest *sharedREST) Update(c *ship.Context) error {
+func (rest *Shared) Update(c *ship.Context) error {
 	req := new(param.SharedUpdate)
 	if err := c.Bind(req); err != nil {
 		return err

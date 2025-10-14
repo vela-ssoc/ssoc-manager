@@ -12,14 +12,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Broker(svc service.BrokerService) route.Router {
+func Broker(svc *service.Broker) route.Router {
 	return &brokerREST{
 		svc: svc,
 	}
 }
 
 type brokerREST struct {
-	svc service.BrokerService
+	svc *service.Broker
 }
 
 func (rest *brokerREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {

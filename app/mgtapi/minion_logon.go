@@ -12,7 +12,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionLogon(svc service.MinionLogonService) route.Router {
+func NewMinionLogon(svc service.MinionLogonService) *MinionLogon {
 	msgEnums := []string{"登录成功", "登录失败", "用户注销"}
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	userCol := dynsql.StringColumn("user", "账户").Build()
@@ -26,18 +26,18 @@ func MinionLogon(svc service.MinionLogonService) route.Router {
 		Filters(inetCol, userCol, msgCol, addrCol, logonAtCol, typeCol, midCol, devCol).
 		Build()
 
-	return &minionLogonREST{
+	return &MinionLogon{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type minionLogonREST struct {
+type MinionLogon struct {
 	svc   service.MinionLogonService
 	table dynsql.Table
 }
 
-func (rest *minionLogonREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *MinionLogon) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/logon/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/logons").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/logon/attack").Data(route.Ignore()).POST(rest.Attack)
@@ -47,12 +47,12 @@ func (rest *minionLogonREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/logon/alert").Data(route.Ignore()).PATCH(rest.Alert)
 }
 
-func (rest *minionLogonREST) Cond(c *ship.Context) error {
+func (rest *MinionLogon) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionLogonREST) Page(c *ship.Context) error {
+func (rest *MinionLogon) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -70,7 +70,7 @@ func (rest *minionLogonREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionLogonREST) Attack(c *ship.Context) error {
+func (rest *MinionLogon) Attack(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (rest *minionLogonREST) Attack(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionLogonREST) Recent(c *ship.Context) error {
+func (rest *MinionLogon) Recent(c *ship.Context) error {
 	day := c.Query("day")
 	days, _ := strconv.Atoi(day)
 	if days > 30 || days < 1 { // 最多支持30天内查询，参数错误或超过有效范围默认为7天
@@ -101,7 +101,7 @@ func (rest *minionLogonREST) Recent(c *ship.Context) error {
 	return c.JSON(http.StatusOK, dats)
 }
 
-func (rest *minionLogonREST) History(c *ship.Context) error {
+func (rest *MinionLogon) History(c *ship.Context) error {
 	var req param.MinionLogonHistory
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -115,11 +115,11 @@ func (rest *minionLogonREST) History(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionLogonREST) Alert(*ship.Context) error {
+func (rest *MinionLogon) Alert(*ship.Context) error {
 	return nil
 }
 
-func (rest *minionLogonREST) Ignore(c *ship.Context) error {
+func (rest *MinionLogon) Ignore(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err

@@ -38,11 +38,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
 	defer cancel()
 
-	log := slog.Default()
-	log.Info("按 [Ctrl+C] 停止运行")
+	slog.Info("按 [Ctrl+C] 停止运行")
 	if err := launch.Run(ctx, *c); err != nil {
-		log.Error("程序运行错误", slog.Any("error", err))
+		slog.Error("程序运行错误", slog.Any("error", err))
 	} else {
-		log.Warn("程序运行结束")
+		slog.Warn("程序运行结束")
 	}
 }

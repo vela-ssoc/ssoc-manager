@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Process(svc service.ProcessService) route.Router {
+func NewProcess(svc service.ProcessService) *Process {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	pidCol := dynsql.IntColumn("pid", "PID").Build()
 	nameCol := dynsql.StringColumn("name", "进程名称").Build()
@@ -24,28 +24,28 @@ func Process(svc service.ProcessService) route.Router {
 	table := dynsql.Builder().
 		Filters(inetCol, pidCol, nameCol, unameCol, execCol, stateCol, cmdlineCol, minionIDCol, updateAtCol).
 		Build()
-	return &processREST{
+	return &Process{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type processREST struct {
+type Process struct {
 	svc   service.ProcessService
 	table dynsql.Table
 }
 
-func (rest *processREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Process) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/process/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/processes").Data(route.Ignore()).GET(rest.Page)
 }
 
-func (rest *processREST) Cond(c *ship.Context) error {
+func (rest *Process) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *processREST) Page(c *ship.Context) error {
+func (rest *Process) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

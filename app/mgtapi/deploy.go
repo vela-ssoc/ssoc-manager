@@ -12,17 +12,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Deploy(svc service.DeployService) route.Router {
-	return &deployREST{
+func NewDeploy(svc service.DeployService) *Deploy {
+	return &Deploy{
 		svc: svc,
 	}
 }
 
-type deployREST struct {
+type Deploy struct {
 	svc service.DeployService
 }
 
-func (rest *deployREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Deploy) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/deploy/lan").Data(route.Ignore()).GET(rest.LAN)
 	anon.Route("/deploy/minion").
 		Data(route.Ignore()).GET(rest.Script)
@@ -30,7 +30,7 @@ func (rest *deployREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Ignore()).GET(rest.MinionDownload)
 }
 
-func (rest *deployREST) LAN(c *ship.Context) error {
+func (rest *Deploy) LAN(c *ship.Context) error {
 	res := &mrequest.DeployLAN{Scheme: "http"}
 	r := c.Request()
 	if r.TLS != nil {
@@ -53,7 +53,7 @@ func (rest *deployREST) LAN(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *deployREST) Script(c *ship.Context) error {
+func (rest *Deploy) Script(c *ship.Context) error {
 	var req mrequest.DeployMinionDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (rest *deployREST) Script(c *ship.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, redirectURL.String())
 }
 
-func (rest *deployREST) MinionDownload(c *ship.Context) error {
+func (rest *Deploy) MinionDownload(c *ship.Context) error {
 	var req mrequest.DeployMinionDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err

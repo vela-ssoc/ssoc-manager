@@ -11,17 +11,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Pprof(svc service.PprofService) route.Router {
-	return &pprofREST{
+func NewPprof(svc service.PprofService) *Pprof {
+	return &Pprof{
 		svc: svc,
 	}
 }
 
-type pprofREST struct {
+type Pprof struct {
 	svc service.PprofService
 }
 
-func (rest *pprofREST) Route(_, _, basic *ship.RouteGroupBuilder) {
+func (rest *Pprof) Route(_, _, basic *ship.RouteGroupBuilder) {
 	basic.Route("/flame/load").Data(route.Named("pprof-load")).GET(rest.Load)
 	basic.Route("/flame/view").Data(route.Named("pprof-view")).GET(rest.View)
 	basic.Route("/flame/view/*path").Data(route.Named("pprof-view")).GET(rest.View)
@@ -33,38 +33,38 @@ func (rest *pprofREST) Route(_, _, basic *ship.RouteGroupBuilder) {
 	basic.Route("/pprof/*path").Data(route.Named("pprof-path")).GET(rest.Path)
 }
 
-func (rest *pprofREST) Index(c *ship.Context) error {
+func (rest *Pprof) Index(c *ship.Context) error {
 	pprof.Index(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Cmdline(c *ship.Context) error {
+func (rest *Pprof) Cmdline(c *ship.Context) error {
 	pprof.Cmdline(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Profile(c *ship.Context) error {
+func (rest *Pprof) Profile(c *ship.Context) error {
 	pprof.Profile(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Symbol(c *ship.Context) error {
+func (rest *Pprof) Symbol(c *ship.Context) error {
 	pprof.Symbol(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Trace(c *ship.Context) error {
+func (rest *Pprof) Trace(c *ship.Context) error {
 	pprof.Trace(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Path(c *ship.Context) error {
+func (rest *Pprof) Path(c *ship.Context) error {
 	path := c.Param("path")
 	pprof.Handler(path).ServeHTTP(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *pprofREST) Load(c *ship.Context) error {
+func (rest *Pprof) Load(c *ship.Context) error {
 	var req param.PprofLoad
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (rest *pprofREST) Load(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *pprofREST) View(c *ship.Context) error {
+func (rest *Pprof) View(c *ship.Context) error {
 	var req param.StrID
 	if err := c.BindQuery(&req); err != nil {
 		return err

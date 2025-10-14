@@ -110,7 +110,7 @@ func (rest *Minion) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/minion").
 		Data(route.Ignore()).GET(rest.Detail).
 		Data(route.Named("新增 agent 节点")).POST(rest.Create).
-		Data(route.Named("逻辑删除 agent 节点")).DELETE(rest.Delete2)
+		Data(route.Named("逻辑删除 agent 节点")).DELETE(rest.Delete)
 	bearer.Route("/minion/drop").Data(route.Named("物理删除 agent 节点")).DELETE(rest.Drop)
 	bearer.Route("/sheet/minion").Data(route.Ignore()).GET(rest.CSV)
 	bearer.Route("/minion/upgrade").Data(route.Named("节点检查更新")).PATCH(rest.Upgrade)

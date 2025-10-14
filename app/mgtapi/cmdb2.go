@@ -9,19 +9,19 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Cmdb2(svc service.Cmdb2Service) route.Router {
-	return &cmdb2REST{svc: svc}
+func NewCmdb2(svc service.Cmdb2Service) *Cmdb2 {
+	return &Cmdb2{svc: svc}
 }
 
-type cmdb2REST struct {
+type Cmdb2 struct {
 	svc service.Cmdb2Service
 }
 
-func (rest *cmdb2REST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Cmdb2) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/cmdb2/minion/rsync").Data(route.Ignore()).GET(rest.Rsync)
 }
 
-func (rest *cmdb2REST) Rsync(c *ship.Context) error {
+func (rest *Cmdb2) Rsync(c *ship.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Hour)
 	defer cancel()
 

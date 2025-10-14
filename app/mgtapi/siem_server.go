@@ -9,17 +9,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewSIEMServer(svc *service.SIEMServer) route.Router {
-	return &siemServerREST{
+func NewSIEMServer(svc *service.SIEMServer) *SIEMServer {
+	return &SIEMServer{
 		svc: svc,
 	}
 }
 
-type siemServerREST struct {
+type SIEMServer struct {
 	svc *service.SIEMServer
 }
 
-func (rest *siemServerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *SIEMServer) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/siem-server").
 		Data(route.Ignore()).
 		GET(rest.find).
@@ -27,7 +27,7 @@ func (rest *siemServerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		DELETE(rest.delete)
 }
 
-func (rest *siemServerREST) upsert(c *ship.Context) error {
+func (rest *SIEMServer) upsert(c *ship.Context) error {
 	req := new(param.SIEMServerUpsert)
 	if err := c.Bind(req); err != nil {
 		return err
@@ -37,12 +37,12 @@ func (rest *siemServerREST) upsert(c *ship.Context) error {
 	return rest.svc.Upsert(ctx, req)
 }
 
-func (rest *siemServerREST) delete(c *ship.Context) error {
+func (rest *SIEMServer) delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 	return rest.svc.Delete(ctx)
 }
 
-func (rest *siemServerREST) find(c *ship.Context) error {
+func (rest *SIEMServer) find(c *ship.Context) error {
 	ctx := c.Request().Context()
 	data, err := rest.svc.Find(ctx)
 	if err != nil {

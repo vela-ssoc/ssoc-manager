@@ -10,18 +10,18 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Auth(svc service.AuthService) route.Router {
-	return &authREST{
+func NewAuth(svc *service.Auth) *Auth {
+	return &Auth{
 		svc: svc,
 	}
 }
 
-type authREST struct {
-	svc service.AuthService
+type Auth struct {
+	svc *service.Auth
 }
 
 // Route 注册路由
-func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (ath *Auth) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	// anon.Route("/captcha/generate").Data(route.Ignore()).POST(ath.Picture)
 	// anon.Route("/captcha/verify").Data(route.Ignore()).POST(ath.Verify)
 	// anon.Route("/ding").Data(route.Ignore()).POST(ath.Dong)
@@ -35,12 +35,12 @@ func (ath *authREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/logout").Data(route.Named("用户退出登录")).DELETE(ath.Logout)
 }
 
-func (ath *authREST) Logout(c *ship.Context) error {
+func (ath *Auth) Logout(c *ship.Context) error {
 	cu := session.Cast(c.Any)
 	return c.DelSession(cu.Token)
 }
 
-func (ath *authREST) Valid(c *ship.Context) error {
+func (ath *Auth) Valid(c *ship.Context) error {
 	var req mrequest.AuthBase
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -59,7 +59,7 @@ func (ath *authREST) Valid(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (ath *authREST) Totp(c *ship.Context) error {
+func (ath *Auth) Totp(c *ship.Context) error {
 	var req mrequest.AuthUID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -79,7 +79,7 @@ func (ath *authREST) Totp(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (ath *authREST) Submit(c *ship.Context) error {
+func (ath *Auth) Submit(c *ship.Context) error {
 	var req mrequest.AuthSubmit
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -102,7 +102,7 @@ func (ath *authREST) Submit(c *ship.Context) error {
 }
 
 // Oauth 通过咚咚扫码登录。
-func (ath *authREST) Oauth(c *ship.Context) error {
+func (ath *Auth) Oauth(c *ship.Context) error {
 	req := new(mrequest.AuthOauth)
 	if err := c.Bind(req); err != nil {
 		return err

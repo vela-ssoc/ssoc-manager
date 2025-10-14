@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Domain(svc service.DomainService) route.Router {
+func NewDomain(svc service.DomainService) *Domain {
 	enums := []string{"A", "AAAA", "CNAME", "MX", "NS", "TXT", "SRV", "CAA"}
 	typeEnums := dynsql.StringEnum().Sames(enums)
 
@@ -26,28 +26,28 @@ func Domain(svc service.DomainService) route.Router {
 		Filters(ispCol, rcdCol, typCol, addrCol, comCol, oriCol, idCol).
 		Build()
 
-	return &domainREST{
+	return &Domain{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type domainREST struct {
+type Domain struct {
 	svc   service.DomainService
 	table dynsql.Table
 }
 
-func (rest *domainREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Domain) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/domain/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/domains").Data(route.Ignore()).GET(rest.Page)
 }
 
-func (rest *domainREST) Cond(c *ship.Context) error {
+func (rest *Domain) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *domainREST) Page(c *ship.Context) error {
+func (rest *Domain) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

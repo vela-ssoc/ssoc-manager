@@ -10,25 +10,25 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func DavFS(base string) route.Router {
+func NewDavFS(base string) *DavFS {
 	base = strings.TrimRight(base, "/")
 	still := "/dav"
 	prefix := base + still
 
 	fs := davfs.FS("/", prefix)
 
-	return &davREST{
+	return &DavFS{
 		still: still,
 		dav:   fs,
 	}
 }
 
-type davREST struct {
+type DavFS struct {
 	still string
 	dav   http.Handler
 }
 
-func (rest *davREST) Route(_, _, basic *ship.RouteGroupBuilder) {
+func (rest *DavFS) Route(_, _, basic *ship.RouteGroupBuilder) {
 	allows := []string{
 		http.MethodOptions, http.MethodGet, http.MethodHead, http.MethodPost, "LOCK", "UNLOCK", "PROPFIND",
 	}
@@ -44,7 +44,7 @@ func (rest *davREST) Route(_, _, basic *ship.RouteGroupBuilder) {
 		Method(rest.Forbidden, forbids...)
 }
 
-func (rest *davREST) DAV(c *ship.Context) error {
+func (rest *DavFS) DAV(c *ship.Context) error {
 	// path := "/" + c.Param("path")
 	w, r := c.Response(), c.Request()
 	// r.URL.Path = path
@@ -52,6 +52,6 @@ func (rest *davREST) DAV(c *ship.Context) error {
 	return nil
 }
 
-func (rest *davREST) Forbidden(*ship.Context) error {
+func (rest *DavFS) Forbidden(*ship.Context) error {
 	return errcode.ErrForbidden
 }

@@ -10,34 +10,34 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func PassIP(svc service.PassIPService) route.Router {
+func NewPassIP(svc service.PassIPService) *PassIP {
 	tbl := dynsql.Builder().Filters(
 		dynsql.StringColumn("domain", "域名").Build(),
 		dynsql.StringColumn("kind", "数据维度").Build(),
 		dynsql.TimeColumn("before_at", "有效期").Build(),
 	).Build()
-	return &passIPREST{
+	return &PassIP{
 		svc: svc,
 		tbl: tbl,
 	}
 }
 
-type passIPREST struct {
+type PassIP struct {
 	svc service.PassIPService
 	tbl dynsql.Table
 }
 
-func (rest *passIPREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *PassIP) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/passip/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/passips").Data(route.Ignore()).POST(rest.Page)
 }
 
-func (rest *passIPREST) Cond(c *ship.Context) error {
+func (rest *PassIP) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *passIPREST) Page(c *ship.Context) error {
+func (rest *PassIP) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err

@@ -9,17 +9,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Dash(svc service.DashService) route.Router {
-	return &dashREST{
+func NewDash(svc service.DashService) *Dash {
+	return &Dash{
 		svc: svc,
 	}
 }
 
-type dashREST struct {
+type Dash struct {
 	svc service.DashService
 }
 
-func (rest *dashREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Dash) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	anon.Route("/dash/status").Data(route.Ignore()).GET(rest.Status)
 	anon.Route("/dash/goos").Data(route.Ignore()).GET(rest.Goos)
 	bearer.Route("/dash/edition").Data(route.Ignore()).GET(rest.Edition)
@@ -29,19 +29,19 @@ func (rest *dashREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/dash/broker/goos").Data(route.Ignore()).GET(rest.BGoos)
 }
 
-func (rest *dashREST) Status(c *ship.Context) error {
+func (rest *Dash) Status(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Status(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *dashREST) Goos(c *ship.Context) error {
+func (rest *Dash) Goos(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Goos(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *dashREST) Edition(c *ship.Context) error {
+func (rest *Dash) Edition(c *ship.Context) error {
 	ctx := c.Request().Context()
 	dats := rest.svc.Edition(ctx)
 	res := param.WarpData(dats)
@@ -49,28 +49,28 @@ func (rest *dashREST) Edition(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *dashREST) Evtlvl(c *ship.Context) error {
+func (rest *Dash) Evtlvl(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Evtlvl(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
 // Risklvl 通过 level 维度统计 risk
-func (rest *dashREST) Risklvl(c *ship.Context) error {
+func (rest *Dash) Risklvl(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Risklvl(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
 // Risksts 通过 status 维度统计 risk
-func (rest *dashREST) Risksts(c *ship.Context) error {
+func (rest *Dash) Risksts(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res := rest.svc.Risksts(ctx)
 	return c.JSON(http.StatusOK, res)
 }
 
 // BGoos 通过 status 维度统计 risk
-func (rest *dashREST) BGoos(c *ship.Context) error {
+func (rest *Dash) BGoos(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err

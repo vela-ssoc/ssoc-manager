@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func SBOMProject(svc service.SBOMProjectService) route.Router {
+func NewSBOMProject(svc service.SBOMProjectService) *SBOMProject {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	fpCol := dynsql.StringColumn("filepath", "文件").Build()
 	pidCol := dynsql.IntColumn("pid", "PID").Build()
@@ -22,28 +22,28 @@ func SBOMProject(svc service.SBOMProjectService) route.Router {
 		Filters(inetCol, fpCol, pidCol, cnumCol, exeCol, pidCol, midCol, idCol).
 		Build()
 
-	return &sbomProjectREST{
+	return &SBOMProject{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type sbomProjectREST struct {
+type SBOMProject struct {
 	svc   service.SBOMProjectService
 	table dynsql.Table
 }
 
-func (rest *sbomProjectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *SBOMProject) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/sbom/projects").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/project/cond").Data(route.Ignore()).GET(rest.Cond)
 }
 
-func (rest *sbomProjectREST) Cond(c *ship.Context) error {
+func (rest *SBOMProject) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomProjectREST) Page(c *ship.Context) error {
+func (rest *SBOMProject) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

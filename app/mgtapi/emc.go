@@ -11,17 +11,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Emc(svc service.EmcService) route.Router {
-	return &emcREST{
+func NewEmc(svc service.EmcService) *Emc {
+	return &Emc{
 		svc: svc,
 	}
 }
 
-type emcREST struct {
+type Emc struct {
 	svc service.EmcService
 }
 
-func (rest *emcREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Emc) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/emcs").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/emc").
 		Data(route.Named("新则咚咚服务号")).POST(rest.Create).
@@ -29,7 +29,7 @@ func (rest *emcREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除咚咚服务号")).DELETE(rest.Delete)
 }
 
-func (rest *emcREST) Page(c *ship.Context) error {
+func (rest *Emc) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -43,7 +43,7 @@ func (rest *emcREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *emcREST) Create(c *ship.Context) error {
+func (rest *Emc) Create(c *ship.Context) error {
 	var req mrequest.EmcCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -54,7 +54,7 @@ func (rest *emcREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *emcREST) Update(c *ship.Context) error {
+func (rest *Emc) Update(c *ship.Context) error {
 	var req mrequest.EmcUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (rest *emcREST) Update(c *ship.Context) error {
 	return rest.svc.Update(ctx, &req)
 }
 
-func (rest *emcREST) Delete(c *ship.Context) error {
+func (rest *Emc) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err

@@ -12,17 +12,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func BrokerBinary(svc *service.BrokerBinary) route.Router {
-	return &brokerBinaryREST{
+func NewBrokerBinary(svc *service.BrokerBinary) *BrokerBinary {
+	return &BrokerBinary{
 		svc: svc,
 	}
 }
 
-type brokerBinaryREST struct {
+type BrokerBinary struct {
 	svc *service.BrokerBinary
 }
 
-func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *BrokerBinary) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brkbins").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/brkbin/latest").Data(route.Ignore()).GET(rest.latest)
 	bearer.Route("/brkbin/supports").Data(route.Ignore()).GET(rest.supports)
@@ -32,7 +32,7 @@ func (rest *brokerBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除 broker 客户端")).DELETE(rest.Delete)
 }
 
-func (rest *brokerBinaryREST) Page(c *ship.Context) error {
+func (rest *BrokerBinary) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -46,7 +46,7 @@ func (rest *brokerBinaryREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *brokerBinaryREST) Delete(c *ship.Context) error {
+func (rest *BrokerBinary) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -57,7 +57,7 @@ func (rest *brokerBinaryREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, req.ID)
 }
 
-func (rest *brokerBinaryREST) Create(c *ship.Context) error {
+func (rest *BrokerBinary) Create(c *ship.Context) error {
 	var req param.NodeBinaryCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (rest *brokerBinaryREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *brokerBinaryREST) Download(c *ship.Context) error {
+func (rest *BrokerBinary) Download(c *ship.Context) error {
 	var req mrequest.BrokerDownload
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -101,7 +101,7 @@ func (rest *brokerBinaryREST) Download(c *ship.Context) error {
 	return c.Stream(http.StatusOK, file.ContentType(), file)
 }
 
-func (rest *brokerBinaryREST) latest(c *ship.Context) error {
+func (rest *BrokerBinary) latest(c *ship.Context) error {
 	req := new(mrequest.BrokerBinaryLatest)
 	if err := c.BindQuery(req); err != nil {
 		return err
@@ -112,7 +112,7 @@ func (rest *brokerBinaryREST) latest(c *ship.Context) error {
 	return c.JSON(http.StatusOK, bin)
 }
 
-func (rest *brokerBinaryREST) supports(c *ship.Context) error {
+func (rest *BrokerBinary) supports(c *ship.Context) error {
 	dat := rest.svc.Supports()
 	return c.JSON(http.StatusOK, dat)
 }
