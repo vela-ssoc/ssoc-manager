@@ -9,19 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type VIPService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.VIPMembers)
+func NewVIP(qry *query.Query) *VIP {
+	return &VIP{qry: qry}
 }
 
-func VIP(qry *query.Query) VIPService {
-	return &vipService{qry: qry}
-}
-
-type vipService struct {
+type VIP struct {
 	qry *query.Query
 }
 
-func (biz *vipService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.VIPMembers) {
+func (biz *VIP) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.VIPMembers) {
 	tbl := biz.qry.VIP
 	db := tbl.WithContext(ctx).
 		Distinct(tbl.VirtualAddr).

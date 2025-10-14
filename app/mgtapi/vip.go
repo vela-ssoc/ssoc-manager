@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewVIP(svc service.VIPService) *VIP {
+func NewVIP(svc *service.VIP) *VIP {
 	vipCol := dynsql.StringColumn("virtual_ip", "公网地址").Build()
 	vportCol := dynsql.IntColumn("virtual_port", "公网端口").Build()
 	deptCol := dynsql.StringColumn("biz_dept", "业务部门").Build()
@@ -26,7 +26,7 @@ func NewVIP(svc service.VIPService) *VIP {
 }
 
 type VIP struct {
-	svc   service.VIPService
+	svc   *service.VIP
 	table dynsql.Table
 }
 

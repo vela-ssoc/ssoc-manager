@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewProcess(svc service.ProcessService) *Process {
+func NewProcess(svc *service.Process) *Process {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	pidCol := dynsql.IntColumn("pid", "PID").Build()
 	nameCol := dynsql.StringColumn("name", "进程名称").Build()
@@ -31,7 +31,7 @@ func NewProcess(svc service.ProcessService) *Process {
 }
 
 type Process struct {
-	svc   service.ProcessService
+	svc   *service.Process
 	table dynsql.Table
 }
 

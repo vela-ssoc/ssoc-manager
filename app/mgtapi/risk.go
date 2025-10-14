@@ -16,7 +16,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewRisk(svc service.RiskService) *Risk {
+func NewRisk(svc *service.Risk) *Risk {
 	riskTypeCol := dynsql.StringColumn("risk_type", "风险类型").Build()
 	subjectCol := dynsql.StringColumn("subject", "主题").Build()
 	inetCol := dynsql.StringColumn("inet", "终端 IP").Build()
@@ -46,7 +46,7 @@ func NewRisk(svc service.RiskService) *Risk {
 
 type Risk struct {
 	qry   *query.Query
-	svc   service.RiskService
+	svc   *service.Risk
 	table dynsql.Table
 }
 

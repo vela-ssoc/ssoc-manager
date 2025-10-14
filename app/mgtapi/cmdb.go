@@ -9,12 +9,12 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewCmdb(svc service.CmdbService) *Cmdb {
+func NewCmdb(svc *service.Cmdb) *Cmdb {
 	return &Cmdb{svc: svc}
 }
 
 type Cmdb struct {
-	svc service.CmdbService
+	svc *service.Cmdb
 }
 
 func (rest *Cmdb) Route(_, bearer, _ *ship.RouteGroupBuilder) {

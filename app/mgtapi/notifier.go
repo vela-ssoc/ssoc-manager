@@ -10,14 +10,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewNotifier(svc service.NotifierService) *Notifier {
+func NewNotifier(svc *service.Notifier) *Notifier {
 	return &Notifier{
 		svc: svc,
 	}
 }
 
 type Notifier struct {
-	svc service.NotifierService
+	svc *service.Notifier
 }
 
 func (rest *Notifier) Route(_, bearer, _ *ship.RouteGroupBuilder) {

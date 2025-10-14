@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewRiskDNS(svc service.RiskDNSService) *RiskDNS {
+func NewRiskDNS(svc *service.RiskDNS) *RiskDNS {
 	tbl := dynsql.Builder().
 		Filters(
 			dynsql.StringColumn("domain", "域名").Build(),
@@ -26,7 +26,7 @@ func NewRiskDNS(svc service.RiskDNSService) *RiskDNS {
 }
 
 type RiskDNS struct {
-	svc service.RiskDNSService
+	svc *service.RiskDNS
 	tbl dynsql.Table
 }
 

@@ -7,27 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 )
 
-type ElasticService interface {
-	Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error
-	Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic)
-	Create(ctx context.Context, ec *mrequest.ElasticCreate) error
-	Update(ctx context.Context, eu *mrequest.ElasticUpdate) error
-	Delete(ctx context.Context, id int64) error
-	Detect(ctx context.Context, host, uname, passwd string) []string
-}
-
-func Elastic(qry *query.Query, pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer, client netutil.HTTPClient) ElasticService {
-	return &elasticService{
+func NewElastic(qry *query.Query, pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer, client netutil.HTTPClient) *Elastic {
+	return &Elastic{
 		qry:     qry,
 		client:  client,
 		pusher:  pusher,
@@ -36,7 +26,7 @@ func Elastic(qry *query.Query, pusher push.Pusher, forward elastic.Searcher, cfg
 	}
 }
 
-type elasticService struct {
+type Elastic struct {
 	qry     *query.Query
 	client  netutil.HTTPClient
 	forward elastic.Searcher
@@ -44,11 +34,11 @@ type elasticService struct {
 	pusher  push.Pusher
 }
 
-func (biz *elasticService) Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (biz *Elastic) Forward(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	return biz.forward.ServeHTTP(ctx, w, r)
 }
 
-func (biz *elasticService) Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic) {
+func (biz *Elastic) Page(ctx context.Context, page param.Pager) (int64, []*model.Elastic) {
 	ret := make([]*model.Elastic, 0, page.Size())
 	tbl := biz.qry.Elastic
 	db := tbl.WithContext(ctx)
@@ -74,7 +64,7 @@ func (biz *elasticService) Page(ctx context.Context, page param.Pager) (int64, [
 	return count, ret
 }
 
-func (biz *elasticService) Create(ctx context.Context, ec *mrequest.ElasticCreate) error {
+func (biz *Elastic) Create(ctx context.Context, ec *mrequest.ElasticCreate) error {
 	dat := &model.Elastic{
 		Host:     ec.Hosts[0],
 		Hosts:    ec.Hosts,
@@ -106,7 +96,7 @@ func (biz *elasticService) Create(ctx context.Context, ec *mrequest.ElasticCreat
 }
 
 // Update 更新 es 后端代理
-func (biz *elasticService) Update(ctx context.Context, eu *mrequest.ElasticUpdate) error {
+func (biz *Elastic) Update(ctx context.Context, eu *mrequest.ElasticUpdate) error {
 	// 先查询原有数据
 	id := eu.ID
 	tbl := biz.qry.Elastic
@@ -159,7 +149,7 @@ func (biz *elasticService) Update(ctx context.Context, eu *mrequest.ElasticUpdat
 }
 
 // Delete 根据 ID 删除 es 配置
-func (biz *elasticService) Delete(ctx context.Context, id int64) error {
+func (biz *Elastic) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.Elastic
 	db := tbl.WithContext(ctx)
 	es, err := db.Where(tbl.ID.Eq(id)).First()
@@ -180,7 +170,7 @@ func (biz *elasticService) Delete(ctx context.Context, id int64) error {
 // Detect 根据 ID 删除 es 配置
 //
 // https://www.elastic.co/guide/en/elasticsearch/reference/8.3/cat-nodes.html
-func (biz *elasticService) Detect(parent context.Context, addr, uname, passwd string) []string {
+func (biz *Elastic) Detect(parent context.Context, addr, uname, passwd string) []string {
 	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
 	defer cancel()
 

@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
@@ -16,32 +14,24 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-type ThirdService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Third)
-	Create(ctx context.Context, name, desc, customized string, r io.Reader, userID int64) error
-	Update(ctx context.Context, id int64, desc, customized string, r io.Reader, userID int64) error
-	Download(ctx context.Context, id int64) (gridfs.File, error)
-	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, keyword string) []*mrequest.ThirdListItem
-}
-
-func Third(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) ThirdService {
-	return &thirdService{
+func NewThird(qry *query.Query, pusher push.Pusher, gfs gridfs.FS) *Third {
+	return &Third{
 		qry:    qry,
 		gfs:    gfs,
 		pusher: pusher,
 	}
 }
 
-type thirdService struct {
+type Third struct {
 	qry    *query.Query
 	gfs    gridfs.FS
 	pusher push.Pusher
 }
 
-func (biz *thirdService) List(ctx context.Context, keyword string) []*mrequest.ThirdListItem {
+func (biz *Third) List(ctx context.Context, keyword string) []*mrequest.ThirdListItem {
 	tbl := biz.qry.Third
 	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if keyword != "" {
@@ -92,7 +82,7 @@ func (biz *thirdService) List(ctx context.Context, keyword string) []*mrequest.T
 	return ret
 }
 
-func (biz *thirdService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Third) {
+func (biz *Third) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Third) {
 	tbl := biz.qry.Third
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
@@ -109,7 +99,7 @@ func (biz *thirdService) Page(ctx context.Context, page param.Pager, scope dynsq
 	return count, ret
 }
 
-func (biz *thirdService) Create(ctx context.Context, name, desc, customized string, r io.Reader, userID int64) error {
+func (biz *Third) Create(ctx context.Context, name, desc, customized string, r io.Reader, userID int64) error {
 	// 将文件名统一转为小写后再查询名字是否重复，因为再 windows 下
 	// 文件名不区分大小写，所以在上传时就严格把关，防止下发的三方文件
 	// 在 agent 出现不可预知的错误。
@@ -160,7 +150,7 @@ func (biz *thirdService) Create(ctx context.Context, name, desc, customized stri
 }
 
 // Download 下载文件
-func (biz *thirdService) Download(ctx context.Context, id int64) (gridfs.File, error) {
+func (biz *Third) Download(ctx context.Context, id int64) (gridfs.File, error) {
 	tbl := biz.qry.Third
 	th, err := tbl.WithContext(ctx).
 		Select(tbl.FileID).
@@ -173,7 +163,7 @@ func (biz *thirdService) Download(ctx context.Context, id int64) (gridfs.File, e
 	return biz.gfs.OpenID(th.FileID)
 }
 
-func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized string, r io.Reader, userID int64) error {
+func (biz *Third) Update(ctx context.Context, id int64, desc, customized string, r io.Reader, userID int64) error {
 	tbl := biz.qry.Third
 	// 查询原有的数据
 	th, err := tbl.WithContext(ctx).
@@ -227,7 +217,7 @@ func (biz *thirdService) Update(ctx context.Context, id int64, desc, customized 
 	return nil
 }
 
-func (biz *thirdService) Delete(ctx context.Context, id int64) error {
+func (biz *Third) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.Third
 	dao := tbl.WithContext(ctx).Where(tbl.ID.Eq(id))
 	// 查询原有的数据

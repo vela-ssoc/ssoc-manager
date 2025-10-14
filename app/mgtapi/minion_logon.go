@@ -12,7 +12,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewMinionLogon(svc service.MinionLogonService) *MinionLogon {
+func NewMinionLogon(svc *service.MinionLogon) *MinionLogon {
 	msgEnums := []string{"登录成功", "登录失败", "用户注销"}
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	userCol := dynsql.StringColumn("user", "账户").Build()
@@ -33,7 +33,7 @@ func NewMinionLogon(svc service.MinionLogonService) *MinionLogon {
 }
 
 type MinionLogon struct {
-	svc   service.MinionLogonService
+	svc   *service.MinionLogon
 	table dynsql.Table
 }
 

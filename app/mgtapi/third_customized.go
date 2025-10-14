@@ -10,14 +10,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewThirdCustomized(svc service.ThirdCustomizedService) *ThirdCustomized {
+func NewThirdCustomized(svc *service.ThirdCustomized) *ThirdCustomized {
 	return &ThirdCustomized{
 		svc: svc,
 	}
 }
 
 type ThirdCustomized struct {
-	svc service.ThirdCustomizedService
+	svc *service.ThirdCustomized
 }
 
 func (rest *ThirdCustomized) Route(_, bearer, _ *ship.RouteGroupBuilder) {

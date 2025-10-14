@@ -16,15 +16,10 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 )
 
-type PprofService interface {
-	Load(ctx context.Context, node string, second int) (string, error)
-	View(ctx context.Context, name string) (http.Handler, error)
-}
-
-func Pprof(qry *query.Query, dir string, pusher push.Pusher) PprofService {
+func NewPprof(qry *query.Query, dir string, pusher push.Pusher) *Pprof {
 	nano := time.Now().UnixNano()
 	random := rand.New(rand.NewSource(nano))
-	return &pprofService{
+	return &Pprof{
 		qry:    qry,
 		dir:    dir,
 		random: random,
@@ -32,14 +27,14 @@ func Pprof(qry *query.Query, dir string, pusher push.Pusher) PprofService {
 	}
 }
 
-type pprofService struct {
+type Pprof struct {
 	qry    *query.Query
 	dir    string
 	random *rand.Rand
 	pusher push.Pusher
 }
 
-func (svc *pprofService) Load(ctx context.Context, node string, second int) (string, error) {
+func (svc *Pprof) Load(ctx context.Context, node string, second int) (string, error) {
 	id, _ := strconv.ParseInt(node, 10, 64)
 
 	tbl := svc.qry.Minion
@@ -71,7 +66,7 @@ func (svc *pprofService) Load(ctx context.Context, node string, second int) (str
 	return name, nil
 }
 
-func (svc *pprofService) View(_ context.Context, name string) (http.Handler, error) {
+func (svc *Pprof) View(_ context.Context, name string) (http.Handler, error) {
 	name = filepath.Join("/", name)
 	name = filepath.Join(svc.dir, name)
 	return prof.New(name)

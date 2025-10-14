@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type ProcessService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionProcess)
-}
-
-func Process(qry *query.Query) ProcessService {
-	return &processService{
+func NewProcess(qry *query.Query) *Process {
+	return &Process{
 		qry: qry,
 	}
 }
 
-type processService struct {
+type Process struct {
 	qry *query.Query
 }
 
-func (biz *processService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionProcess) {
+func (biz *Process) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionProcess) {
 	tbl := biz.qry.MinionProcess
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).

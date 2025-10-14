@@ -9,19 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type RiskFileService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.RiskFiles)
+func NewRiskFile(qry *query.Query) *RiskFile {
+	return &RiskFile{qry: qry}
 }
 
-func RiskFile(qry *query.Query) RiskFileService {
-	return &riskFileService{qry: qry}
-}
-
-type riskFileService struct {
+type RiskFile struct {
 	qry *query.Query
 }
 
-func (biz riskFileService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.RiskFiles) {
+func (biz RiskFile) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, model.RiskFiles) {
 	tbl := biz.qry.RiskFile
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64

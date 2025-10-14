@@ -14,7 +14,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-func NewAuth(qry *query.Query, lock LoginLockService, user UserService, oauth oauth.Client) *Auth {
+func NewAuth(qry *query.Query, lock *LoginLock, user *User, oauth oauth.Client) *Auth {
 	return &Auth{
 		qry:   qry,
 		lock:  lock,
@@ -25,8 +25,8 @@ func NewAuth(qry *query.Query, lock LoginLockService, user UserService, oauth oa
 
 type Auth struct {
 	qry   *query.Query
-	lock  LoginLockService
-	user  UserService
+	lock  *LoginLock
+	user  *User
 	oauth oauth.Client
 }
 

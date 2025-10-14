@@ -16,27 +16,27 @@ type DigestService interface {
 	SumMD5([]byte) string
 }
 
-func Digest() DigestService {
-	return &digestService{}
+func NewDigest() *Digest {
+	return &Digest{}
 }
 
-type digestService struct{}
+type Digest struct{}
 
-func (dig *digestService) Hashed(passwd string) (string, error) {
+func (dig *Digest) Hashed(passwd string) (string, error) {
 	pwd, err := bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
 	return string(pwd), err
 }
 
-func (dig *digestService) Compare(hashed, plaintext string) bool {
+func (dig *Digest) Compare(hashed, plaintext string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plaintext))
 	return err == nil
 }
 
-func (dig *digestService) SHA1() hash.Hash {
+func (dig *Digest) SHA1() hash.Hash {
 	return sha1.New()
 }
 
-func (dig *digestService) SumMD5(dat []byte) string {
+func (dig *Digest) SumMD5(dat []byte) string {
 	sum := md5.Sum(dat)
 	return hex.EncodeToString(sum[:])
 }

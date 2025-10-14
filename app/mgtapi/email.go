@@ -11,14 +11,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewEmail(svc service.EmailService) *Email {
+func NewEmail(svc *service.Email) *Email {
 	return &Email{
 		svc: svc,
 	}
 }
 
 type Email struct {
-	svc service.EmailService
+	svc *service.Email
 }
 
 func (rest *Email) Route(_, bearer, _ *ship.RouteGroupBuilder) {

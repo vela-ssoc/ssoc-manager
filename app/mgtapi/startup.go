@@ -11,14 +11,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewStartup(svc service.StartupService) *Startup {
+func NewStartup(svc *service.Startup) *Startup {
 	return &Startup{
 		svc: svc,
 	}
 }
 
 type Startup struct {
-	svc service.StartupService
+	svc *service.Startup
 }
 
 func (rest *Startup) Route(_, bearer, _ *ship.RouteGroupBuilder) {

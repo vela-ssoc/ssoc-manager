@@ -11,7 +11,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewElastic(svc service.ElasticService, headerKey string, queryKey string) *Elastic {
+func NewElastic(svc *service.Elastic, headerKey string, queryKey string) *Elastic {
 	return &Elastic{
 		svc:       svc,
 		headerKey: headerKey,
@@ -20,7 +20,7 @@ func NewElastic(svc service.ElasticService, headerKey string, queryKey string) *
 }
 
 type Elastic struct {
-	svc       service.ElasticService
+	svc       *service.Elastic
 	headerKey string
 	queryKey  string
 }

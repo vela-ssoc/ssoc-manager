@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewSBOMProject(svc service.SBOMProjectService) *SBOMProject {
+func NewSBOMProject(svc *service.SBOMProject) *SBOMProject {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	fpCol := dynsql.StringColumn("filepath", "文件").Build()
 	pidCol := dynsql.IntColumn("pid", "PID").Build()
@@ -29,7 +29,7 @@ func NewSBOMProject(svc service.SBOMProjectService) *SBOMProject {
 }
 
 type SBOMProject struct {
-	svc   service.SBOMProjectService
+	svc   *service.SBOMProject
 	table dynsql.Table
 }
 

@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type PassDNSService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassDNS)
-}
-
-func PassDNS(qry *query.Query) PassDNSService {
-	return &passDNSService{
+func NewPassDNS(qry *query.Query) *PassDNS {
+	return &PassDNS{
 		qry: qry,
 	}
 }
 
-type passDNSService struct {
+type PassDNS struct {
 	qry *query.Query
 }
 
-func (biz *passDNSService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassDNS) {
+func (biz *PassDNS) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassDNS) {
 	tbl := biz.qry.PassDNS
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64

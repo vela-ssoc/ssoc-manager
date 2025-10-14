@@ -11,23 +11,19 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type Cmdb2Service interface {
-	Rsync(ctx context.Context) error
-}
-
-func Cmdb2(qry *query.Query, cli cmdb2.Client) Cmdb2Service {
-	return &cmdb2Service{
+func NewCmdb2(qry *query.Query, cli cmdb2.Client) *Cmdb2 {
+	return &Cmdb2{
 		qry: qry,
 		cli: cli,
 	}
 }
 
-type cmdb2Service struct {
+type Cmdb2 struct {
 	qry *query.Query
 	cli cmdb2.Client
 }
 
-func (biz *cmdb2Service) Rsync(ctx context.Context) error {
+func (biz *Cmdb2) Rsync(ctx context.Context) error {
 	offset, limit := 0, 100
 	for {
 		inets, err := biz.scroll(ctx, offset, limit)
@@ -43,7 +39,7 @@ func (biz *cmdb2Service) Rsync(ctx context.Context) error {
 	}
 }
 
-func (biz *cmdb2Service) scroll(ctx context.Context, offset int, limit int) ([]string, error) {
+func (biz *Cmdb2) scroll(ctx context.Context, offset int, limit int) ([]string, error) {
 	tbl := biz.qry.Minion
 	ret := make([]string, 0, limit)
 	err := tbl.WithContext(ctx).
@@ -55,7 +51,7 @@ func (biz *cmdb2Service) scroll(ctx context.Context, offset int, limit int) ([]s
 	return ret, err
 }
 
-func (biz *cmdb2Service) fetchCmdb2(ctx context.Context, inets []string) (map[string]*cmdb2.Server, error) {
+func (biz *Cmdb2) fetchCmdb2(ctx context.Context, inets []string) (map[string]*cmdb2.Server, error) {
 	length := len(inets)
 	srvs, err := biz.cli.Servers(ctx, inets, 0, length)
 	if err != nil {
@@ -71,7 +67,7 @@ func (biz *cmdb2Service) fetchCmdb2(ctx context.Context, inets []string) (map[st
 	return hms, nil
 }
 
-func (biz *cmdb2Service) updateCmdb2(ctx context.Context, inets []string, hms map[string]*cmdb2.Server) {
+func (biz *Cmdb2) updateCmdb2(ctx context.Context, inets []string, hms map[string]*cmdb2.Server) {
 	for _, inet := range inets {
 		srv := hms[inet]
 		if srv == nil {

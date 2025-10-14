@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewSBOMComponent(svc service.SBOMComponentService) *SBOMComponent {
+func NewSBOMComponent(svc *service.SBOMComponent) *SBOMComponent {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	nameCol := dynsql.StringColumn("name", "组件名").Build()
 	versionCol := dynsql.StringColumn("version", "版本").Build()
@@ -30,7 +30,7 @@ func NewSBOMComponent(svc service.SBOMComponentService) *SBOMComponent {
 }
 
 type SBOMComponent struct {
-	svc   service.SBOMComponentService
+	svc   *service.SBOMComponent
 	table dynsql.Table
 }
 

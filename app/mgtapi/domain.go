@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewDomain(svc service.DomainService) *Domain {
+func NewDomain(svc *service.Domain) *Domain {
 	enums := []string{"A", "AAAA", "CNAME", "MX", "NS", "TXT", "SRV", "CAA"}
 	typeEnums := dynsql.StringEnum().Sames(enums)
 
@@ -33,7 +33,7 @@ func NewDomain(svc service.DomainService) *Domain {
 }
 
 type Domain struct {
-	svc   service.DomainService
+	svc   *service.Domain
 	table dynsql.Table
 }
 

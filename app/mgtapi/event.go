@@ -14,7 +14,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewEvent(svc service.EventService) *Event {
+func NewEvent(svc *service.Event) *Event {
 	levels := []string{
 		model.ELvlCritical.String(),
 		model.ELvlMajor.String(),
@@ -49,7 +49,7 @@ func NewEvent(svc service.EventService) *Event {
 }
 
 type Event struct {
-	svc   service.EventService
+	svc   *service.Event
 	table dynsql.Table
 }
 

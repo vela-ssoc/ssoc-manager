@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewShared(svc service.SharedService) *Shared {
+func NewShared(svc *service.Shared) *Shared {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("bucket", "bucket").Build(),
 		dynsql.StringColumn("key", "key").Build(),
@@ -26,7 +26,7 @@ func NewShared(svc service.SharedService) *Shared {
 }
 
 type Shared struct {
-	svc service.SharedService
+	svc *service.Shared
 	tbl dynsql.Table
 }
 

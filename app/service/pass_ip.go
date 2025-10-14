@@ -9,19 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type PassIPService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassIP)
+func NewPassIP(qry *query.Query) *PassIP {
+	return &PassIP{qry: qry}
 }
 
-func PassIP(qry *query.Query) PassIPService {
-	return &passIPService{qry: qry}
-}
-
-type passIPService struct {
+type PassIP struct {
 	qry *query.Query
 }
 
-func (biz *passIPService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassIP) {
+func (biz *PassIP) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.PassIP) {
 	tbl := biz.qry.PassIP
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64

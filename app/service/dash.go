@@ -8,26 +8,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-type DashService interface {
-	Status(ctx context.Context) *mrequest.DashStatusResp
-	Goos(ctx context.Context) *mrequest.DashGoosVO
-	Edition(ctx context.Context) []*mrequest.DashEditionVO
-	Evtlvl(ctx context.Context) *mrequest.DashELevelResp
-	Risklvl(ctx context.Context) *mrequest.DashRLevelResp
-	Risksts(ctx context.Context) *mrequest.DashRiskstsResp
-}
-
-func Dash(qry *query.Query) DashService {
-	return &dashService{
+func NewDash(qry *query.Query) *Dash {
+	return &Dash{
 		qry: qry,
 	}
 }
 
-type dashService struct {
+type Dash struct {
 	qry *query.Query
 }
 
-func (biz *dashService) Status(ctx context.Context) *mrequest.DashStatusResp {
+func (biz *Dash) Status(ctx context.Context) *mrequest.DashStatusResp {
 	var tmp []*struct {
 		Status model.MinionStatus `gorm:"column:status"`
 		Count  int                `gorm:"column:count"`
@@ -54,7 +45,7 @@ func (biz *dashService) Status(ctx context.Context) *mrequest.DashStatusResp {
 	return ret
 }
 
-func (biz *dashService) Goos(ctx context.Context) *mrequest.DashGoosVO {
+func (biz *Dash) Goos(ctx context.Context) *mrequest.DashGoosVO {
 	ql := "SELECT COUNT(IF(goos = 'linux', TRUE, NULL))   AS linux,   " +
 		"         COUNT(IF(goos = 'windows', TRUE, NULL)) AS windows, " +
 		"         COUNT(IF(goos = 'darwin', TRUE, NULL))  AS darwin   " +
@@ -65,7 +56,7 @@ func (biz *dashService) Goos(ctx context.Context) *mrequest.DashGoosVO {
 	return ret
 }
 
-func (biz *dashService) Edition(ctx context.Context) []*mrequest.DashEditionVO {
+func (biz *Dash) Edition(ctx context.Context) []*mrequest.DashEditionVO {
 	var dats []*mrequest.DashEditionVO
 	biz.qry.Minion.WithContext(ctx).UnderlyingDB().
 		Select("edition", "COUNT(*) AS total").
@@ -76,7 +67,7 @@ func (biz *dashService) Edition(ctx context.Context) []*mrequest.DashEditionVO {
 	return dats
 }
 
-func (biz *dashService) Evtlvl(ctx context.Context) *mrequest.DashELevelResp {
+func (biz *Dash) Evtlvl(ctx context.Context) *mrequest.DashELevelResp {
 	var tmp []*struct {
 		Level model.EventLevel `gorm:"column:level"`
 		Count int              `gorm:"column:count"`
@@ -104,7 +95,7 @@ func (biz *dashService) Evtlvl(ctx context.Context) *mrequest.DashELevelResp {
 	return &res
 }
 
-func (biz *dashService) Risklvl(ctx context.Context) *mrequest.DashRLevelResp {
+func (biz *Dash) Risklvl(ctx context.Context) *mrequest.DashRLevelResp {
 	var tmp []*struct {
 		Level model.RiskLevel `gorm:"column:level"`
 		Count int             `gorm:"column:count"`
@@ -131,7 +122,7 @@ func (biz *dashService) Risklvl(ctx context.Context) *mrequest.DashRLevelResp {
 	return &res
 }
 
-func (biz *dashService) Risksts(ctx context.Context) *mrequest.DashRiskstsResp {
+func (biz *Dash) Risksts(ctx context.Context) *mrequest.DashRiskstsResp {
 	var tmp []*struct {
 		Status model.RiskStatus `gorm:"column:status"`
 		Count  int              `gorm:"column:count"`

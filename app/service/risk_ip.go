@@ -10,25 +10,17 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type RiskIPService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskIP)
-	Delete(ctx context.Context, ids []int64) error
-	Create(ctx context.Context, rc *param.RiskIPCreate) error
-	Update(ctx context.Context, rc *param.RiskIPUpdate) error
-	Import(ctx context.Context, rii *param.RiskIPImport) error
-}
-
-func RiskIP(qry *query.Query) RiskIPService {
-	return &riskIPService{
+func NewRiskIP(qry *query.Query) *RiskIP {
+	return &RiskIP{
 		qry: qry,
 	}
 }
 
-type riskIPService struct {
+type RiskIP struct {
 	qry *query.Query
 }
 
-func (biz *riskIPService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskIP) {
+func (biz *RiskIP) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskIP) {
 	tbl := biz.qry.RiskIP
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().
@@ -44,13 +36,13 @@ func (biz *riskIPService) Page(ctx context.Context, page param.Pager, scope dyns
 	return count, dats
 }
 
-func (biz *riskIPService) Delete(ctx context.Context, ids []int64) error {
+func (biz *RiskIP) Delete(ctx context.Context, ids []int64) error {
 	tbl := biz.qry.RiskIP
 	_, err := tbl.WithContext(ctx).Where(tbl.ID.In(ids...)).Delete()
 	return err
 }
 
-func (biz *riskIPService) Create(ctx context.Context, rc *param.RiskIPCreate) error {
+func (biz *RiskIP) Create(ctx context.Context, rc *param.RiskIPCreate) error {
 	dats := rc.Models()
 	tbl := biz.qry.RiskIP
 	return tbl.WithContext(ctx).
@@ -58,7 +50,7 @@ func (biz *riskIPService) Create(ctx context.Context, rc *param.RiskIPCreate) er
 		Create(dats...)
 }
 
-func (biz *riskIPService) Update(ctx context.Context, rc *param.RiskIPUpdate) error {
+func (biz *RiskIP) Update(ctx context.Context, rc *param.RiskIPUpdate) error {
 	dat := &model.RiskIP{
 		ID:       rc.ID,
 		IP:       rc.IP,
@@ -74,7 +66,7 @@ func (biz *riskIPService) Update(ctx context.Context, rc *param.RiskIPUpdate) er
 	return err
 }
 
-func (biz *riskIPService) Import(ctx context.Context, rii *param.RiskIPImport) error {
+func (biz *RiskIP) Import(ctx context.Context, rii *param.RiskIPImport) error {
 	mods := rii.Models()
 	conflict := clause.OnConflict{DoNothing: true} // 默认冲突时跳过
 	if rii.Update {                                // 如果规则冲突时执行更新操作

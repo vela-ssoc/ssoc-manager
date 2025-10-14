@@ -13,12 +13,12 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewUser(svc service.UserService) *User {
+func NewUser(svc *service.User) *User {
 	return &User{svc: svc}
 }
 
 type User struct {
-	svc service.UserService
+	svc *service.User
 }
 
 func (rest *User) Route(_, bearer, _ *ship.RouteGroupBuilder) {

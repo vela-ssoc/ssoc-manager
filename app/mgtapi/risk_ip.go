@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewRiskIP(svc service.RiskIPService) *RiskIP {
+func NewRiskIP(svc *service.RiskIP) *RiskIP {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("ip", "IP地址").Build(),
 		dynsql.StringColumn("kind", "风险类型").Build(),
@@ -25,7 +25,7 @@ func NewRiskIP(svc service.RiskIPService) *RiskIP {
 }
 
 type RiskIP struct {
-	svc   service.RiskIPService
+	svc   *service.RiskIP
 	table dynsql.Table
 }
 

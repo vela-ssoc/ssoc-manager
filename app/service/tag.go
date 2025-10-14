@@ -13,25 +13,19 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type TagService interface {
-	Indices(ctx context.Context, idx param.Indexer) []string
-	Update(ctx context.Context, id int64, tags []string) error
-	Sidebar(ctx context.Context, req *param.TagSidebar) (request.NameCounts, error)
-}
-
-func Tag(qry *query.Query, pusher push.Pusher) TagService {
-	return &tagService{
+func NewTag(qry *query.Query, pusher push.Pusher) *Tag {
+	return &Tag{
 		qry:    qry,
 		pusher: pusher,
 	}
 }
 
-type tagService struct {
+type Tag struct {
 	qry    *query.Query
 	pusher push.Pusher
 }
 
-func (biz *tagService) Indices(ctx context.Context, idx param.Indexer) []string {
+func (biz *Tag) Indices(ctx context.Context, idx param.Indexer) []string {
 	tbl := biz.qry.MinionTag
 
 	dao := tbl.WithContext(ctx).
@@ -50,7 +44,7 @@ func (biz *tagService) Indices(ctx context.Context, idx param.Indexer) []string 
 	return dats
 }
 
-func (biz *tagService) Update(ctx context.Context, id int64, tags []string) error {
+func (biz *Tag) Update(ctx context.Context, id int64, tags []string) error {
 	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.Status, monTbl.BrokerID, monTbl.Inet).
@@ -88,7 +82,7 @@ func (biz *tagService) Update(ctx context.Context, id int64, tags []string) erro
 	return err
 }
 
-func (biz *tagService) Sidebar(ctx context.Context, req *param.TagSidebar) (request.NameCounts, error) {
+func (biz *Tag) Sidebar(ctx context.Context, req *param.TagSidebar) (request.NameCounts, error) {
 	tbl := biz.qry.MinionTag
 	dao := tbl.WithContext(ctx)
 	var conds []gen.Condition

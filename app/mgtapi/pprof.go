@@ -11,14 +11,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewPprof(svc service.PprofService) *Pprof {
+func NewPprof(svc *service.Pprof) *Pprof {
 	return &Pprof{
 		svc: svc,
 	}
 }
 
 type Pprof struct {
-	svc service.PprofService
+	svc *service.Pprof
 }
 
 func (rest *Pprof) Route(_, _, basic *ship.RouteGroupBuilder) {

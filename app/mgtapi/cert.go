@@ -11,14 +11,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewCert(svc service.CertService) *Cert {
+func NewCert(svc *service.Cert) *Cert {
 	return &Cert{
 		svc: svc,
 	}
 }
 
 type Cert struct {
-	svc service.CertService
+	svc *service.Cert
 }
 
 func (rest *Cert) Route(_, bearer, _ *ship.RouteGroupBuilder) {

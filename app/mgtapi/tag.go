@@ -9,14 +9,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewTag(svc service.TagService) *Tag {
+func NewTag(svc *service.Tag) *Tag {
 	return &Tag{
 		svc: svc,
 	}
 }
 
 type Tag struct {
-	svc service.TagService
+	svc *service.Tag
 }
 
 func (rest *Tag) Route(_, bearer, _ *ship.RouteGroupBuilder) {

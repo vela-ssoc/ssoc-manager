@@ -12,14 +12,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewDeploy(svc service.DeployService) *Deploy {
+func NewDeploy(svc *service.Deploy) *Deploy {
 	return &Deploy{
 		svc: svc,
 	}
 }
 
 type Deploy struct {
-	svc service.DeployService
+	svc *service.Deploy
 }
 
 func (rest *Deploy) Route(anon, bearer, _ *ship.RouteGroupBuilder) {

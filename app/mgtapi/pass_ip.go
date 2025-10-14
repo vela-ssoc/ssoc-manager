@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewPassIP(svc service.PassIPService) *PassIP {
+func NewPassIP(svc *service.PassIP) *PassIP {
 	tbl := dynsql.Builder().Filters(
 		dynsql.StringColumn("domain", "域名").Build(),
 		dynsql.StringColumn("kind", "数据维度").Build(),
@@ -23,7 +23,7 @@ func NewPassIP(svc service.PassIPService) *PassIP {
 }
 
 type PassIP struct {
-	svc service.PassIPService
+	svc *service.PassIP
 	tbl dynsql.Table
 }
 

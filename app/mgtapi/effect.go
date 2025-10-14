@@ -12,12 +12,12 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewEffect(svc service.EffectService) *Effect {
+func NewEffect(svc *service.Effect) *Effect {
 	return &Effect{svc: svc}
 }
 
 type Effect struct {
-	svc service.EffectService
+	svc *service.Effect
 }
 
 func (eff *Effect) Route(_, bearer, _ *ship.RouteGroupBuilder) {

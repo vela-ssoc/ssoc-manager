@@ -12,11 +12,11 @@ import (
 )
 
 type Oplog struct {
-	svc   service.OplogService
+	svc   *service.Oplog
 	table dynsql.Table
 }
 
-func NewOplog(svc service.OplogService) *Oplog {
+func NewOplog(svc *service.Oplog) *Oplog {
 	methods := []string{
 		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
 		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace,

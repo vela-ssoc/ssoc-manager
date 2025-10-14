@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewPassDNS(svc service.PassDNSService) *PassDNS {
+func NewPassDNS(svc *service.PassDNS) *PassDNS {
 	tbl := dynsql.Builder().Filters(
 		dynsql.StringColumn("domain", "域名").Build(),
 		dynsql.StringColumn("kind", "数据维度").Build(),
@@ -23,7 +23,7 @@ func NewPassDNS(svc service.PassDNSService) *PassDNS {
 }
 
 type PassDNS struct {
-	svc service.PassDNSService
+	svc *service.PassDNS
 	tbl dynsql.Table
 }
 

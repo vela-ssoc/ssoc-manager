@@ -10,14 +10,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewMinionAccount(svc service.MinionAccountService) *MinionAccount {
+func NewMinionAccount(svc *service.MinionAccount) *MinionAccount {
 	return &MinionAccount{
 		svc: svc,
 	}
 }
 
 type MinionAccount struct {
-	svc   service.MinionAccountService
+	svc   *service.MinionAccount
 	table dynsql.Table
 }
 

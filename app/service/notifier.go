@@ -10,26 +10,19 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 )
 
-type NotifierService interface {
-	Page(ctx context.Context, page param.Pager) (int64, []*model.Notifier)
-	Create(ctx context.Context, req *param.NotifierCreate) error
-	Update(ctx context.Context, req *param.NotifierUpdate) error
-	Delete(ctx context.Context, id int64) error
-}
-
-func Notifier(qry *query.Query, pusher push.Pusher) NotifierService {
-	return &notifierService{
+func NewNotifier(qry *query.Query, pusher push.Pusher) *Notifier {
+	return &Notifier{
 		qry:    qry,
 		pusher: pusher,
 	}
 }
 
-type notifierService struct {
+type Notifier struct {
 	qry    *query.Query
 	pusher push.Pusher
 }
 
-func (biz *notifierService) Page(ctx context.Context, page param.Pager) (int64, []*model.Notifier) {
+func (biz *Notifier) Page(ctx context.Context, page param.Pager) (int64, []*model.Notifier) {
 	tbl := biz.qry.Notifier
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
@@ -45,7 +38,7 @@ func (biz *notifierService) Page(ctx context.Context, page param.Pager) (int64, 
 	return count, dats
 }
 
-func (biz *notifierService) Create(ctx context.Context, req *param.NotifierCreate) error {
+func (biz *Notifier) Create(ctx context.Context, req *param.NotifierCreate) error {
 	dat := &model.Notifier{
 		Name:      req.Name,
 		Events:    req.Events,
@@ -66,7 +59,7 @@ func (biz *notifierService) Create(ctx context.Context, req *param.NotifierCreat
 	return err
 }
 
-func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdate) error {
+func (biz *Notifier) Update(ctx context.Context, req *param.NotifierUpdate) error {
 	tbl := biz.qry.Notifier
 	dat, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(req.ID)).
@@ -95,7 +88,7 @@ func (biz *notifierService) Update(ctx context.Context, req *param.NotifierUpdat
 	return nil
 }
 
-func (biz *notifierService) Delete(ctx context.Context, id int64) error {
+func (biz *Notifier) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.Notifier
 	ret, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Delete()
 	if err != nil {

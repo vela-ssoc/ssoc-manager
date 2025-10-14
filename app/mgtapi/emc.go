@@ -11,14 +11,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewEmc(svc service.EmcService) *Emc {
+func NewEmc(svc *service.Emc) *Emc {
 	return &Emc{
 		svc: svc,
 	}
 }
 
 type Emc struct {
-	svc service.EmcService
+	svc *service.Emc
 }
 
 func (rest *Emc) Route(_, bearer, _ *ship.RouteGroupBuilder) {

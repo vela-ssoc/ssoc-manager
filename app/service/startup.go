@@ -10,26 +10,21 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 )
 
-type StartupService interface {
-	Detail(ctx context.Context, id int64) (*model.Startup, error)
-	Update(ctx context.Context, req *model.Startup) error
-}
-
-func Startup(qry *query.Query, store storage.Storer, pusher push.Pusher) StartupService {
-	return &startupService{
+func NewStartup(qry *query.Query, store storage.Storer, pusher push.Pusher) *Startup {
+	return &Startup{
 		qry:    qry,
 		store:  store,
 		pusher: pusher,
 	}
 }
 
-type startupService struct {
+type Startup struct {
 	qry    *query.Query
 	store  storage.Storer
 	pusher push.Pusher
 }
 
-func (biz *startupService) Detail(ctx context.Context, id int64) (*model.Startup, error) {
+func (biz *Startup) Detail(ctx context.Context, id int64) (*model.Startup, error) {
 	tbl := biz.qry.Startup
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err == nil {
@@ -46,7 +41,7 @@ func (biz *startupService) Detail(ctx context.Context, id int64) (*model.Startup
 	return ret, nil
 }
 
-func (biz *startupService) Update(ctx context.Context, req *model.Startup) error {
+func (biz *Startup) Update(ctx context.Context, req *model.Startup) error {
 	// 查询节点状态
 	monTbl := biz.qry.Minion
 	mon, err := monTbl.WithContext(ctx).

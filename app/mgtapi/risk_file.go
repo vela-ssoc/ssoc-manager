@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewRiskFile(svc service.RiskFileService) *RiskFile {
+func NewRiskFile(svc *service.RiskFile) *RiskFile {
 	algorithms := []string{"MD2", "MD4", "MD5", "MD6", "SHA1", "SHA224", "SHA256", "SHA384", "SHA512"}
 	algorithmEnums := dynsql.StringEnum().Sames(algorithms)
 
@@ -30,7 +30,7 @@ func NewRiskFile(svc service.RiskFileService) *RiskFile {
 }
 
 type RiskFile struct {
-	svc service.RiskFileService
+	svc *service.RiskFile
 	tbl dynsql.Table
 }
 

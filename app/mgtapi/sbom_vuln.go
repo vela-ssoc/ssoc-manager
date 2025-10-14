@@ -11,7 +11,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewSBOMVuln(svc service.SBOMVulnService) *SBOMVuln {
+func NewSBOMVuln(svc *service.SBOMVuln) *SBOMVuln {
 	purlCol := dynsql.StringColumn("purl", "PURL").Build()
 	vidCol := dynsql.StringColumn("vuln_id", "漏洞编号").Build()
 	table := dynsql.Builder().Filters(purlCol, vidCol).Build()
@@ -22,7 +22,7 @@ func NewSBOMVuln(svc service.SBOMVulnService) *SBOMVuln {
 }
 
 type SBOMVuln struct {
-	svc   service.SBOMVulnService
+	svc   *service.SBOMVuln
 	table dynsql.Table
 }
 

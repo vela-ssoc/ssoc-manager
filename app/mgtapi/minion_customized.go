@@ -10,14 +10,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewMinionCustomized(svc service.MinionCustomizedService) *MinionCustomized {
+func NewMinionCustomized(svc *service.MinionCustomized) *MinionCustomized {
 	return &MinionCustomized{
 		svc: svc,
 	}
 }
 
 type MinionCustomized struct {
-	svc service.MinionCustomizedService
+	svc *service.MinionCustomized
 }
 
 func (rest *MinionCustomized) Route(_, bearer, _ *ship.RouteGroupBuilder) {

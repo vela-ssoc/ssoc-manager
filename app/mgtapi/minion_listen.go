@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewMinionListen(svc service.MinionListenService) *MinionListen {
+func NewMinionListen(svc *service.MinionListen) *MinionListen {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	protoCol := dynsql.IntColumn("protocol", "协议").Build()
 	lportCol := dynsql.IntColumn("local_port", "本地端口").Build()
@@ -33,7 +33,7 @@ func NewMinionListen(svc service.MinionListenService) *MinionListen {
 }
 
 type MinionListen struct {
-	svc   service.MinionListenService
+	svc   *service.MinionListen
 	table dynsql.Table
 }
 

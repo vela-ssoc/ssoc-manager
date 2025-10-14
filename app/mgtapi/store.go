@@ -9,14 +9,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewStore(svc service.StoreService) *Store {
+func NewStore(svc *service.Store) *Store {
 	return &Store{
 		svc: svc,
 	}
 }
 
 type Store struct {
-	svc service.StoreService
+	svc *service.Store
 }
 
 func (rest *Store) Route(_, bearer, _ *ship.RouteGroupBuilder) {

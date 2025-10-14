@@ -13,25 +13,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-type CertService interface {
-	Page(ctx context.Context, pager param.Pager) (int64, []*model.Certificate)
-	Indices(ctx context.Context, idx param.Indexer) request.IDNames
-	Create(ctx context.Context, dat *mrequest.CertCreate) error
-	Update(ctx context.Context, dat *mrequest.CertUpdate) error
-	Delete(ctx context.Context, id int64) error
-}
-
-func Cert(qry *query.Query) CertService {
-	return &certService{
+func NewCert(qry *query.Query) *Cert {
+	return &Cert{
 		qry: qry,
 	}
 }
 
-type certService struct {
+type Cert struct {
 	qry *query.Query
 }
 
-func (biz *certService) Page(ctx context.Context, pager param.Pager) (int64, []*model.Certificate) {
+func (biz *Cert) Page(ctx context.Context, pager param.Pager) (int64, []*model.Certificate) {
 	tbl := biz.qry.Certificate
 	dao := tbl.WithContext(ctx).
 		Order(tbl.ID)
@@ -47,7 +39,7 @@ func (biz *certService) Page(ctx context.Context, pager param.Pager) (int64, []*
 	return count, dats
 }
 
-func (biz *certService) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
+func (biz *Cert) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
 	tbl := biz.qry.Certificate
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
@@ -62,7 +54,7 @@ func (biz *certService) Indices(ctx context.Context, idx param.Indexer) request.
 	return dats
 }
 
-func (biz *certService) Create(ctx context.Context, dat *mrequest.CertCreate) error {
+func (biz *Cert) Create(ctx context.Context, dat *mrequest.CertCreate) error {
 	// 检查证书与私钥是否匹配
 	pair, err := tls.X509KeyPair([]byte(dat.Certificate), []byte(dat.PrivateKey))
 	if err != nil || len(pair.Certificate) == 0 {
@@ -111,7 +103,7 @@ func (biz *certService) Create(ctx context.Context, dat *mrequest.CertCreate) er
 		Create(insert)
 }
 
-func (biz *certService) Update(ctx context.Context, dat *mrequest.CertUpdate) error {
+func (biz *Cert) Update(ctx context.Context, dat *mrequest.CertUpdate) error {
 	tbl := biz.qry.Certificate
 	old, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.CreatedAt).
@@ -169,7 +161,7 @@ func (biz *certService) Update(ctx context.Context, dat *mrequest.CertUpdate) er
 	return tbl.WithContext(ctx).Save(save)
 }
 
-func (biz *certService) Delete(ctx context.Context, id int64) error {
+func (biz *Cert) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.Certificate
 	_, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.CreatedAt).

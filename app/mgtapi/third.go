@@ -14,7 +14,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewThird(svc service.ThirdService) *Third {
+func NewThird(svc *service.Third) *Third {
 	nameCol := dynsql.StringColumn("name", "文件名称").Build()
 	descCol := dynsql.StringColumn("desc", "文件描述").Build()
 	extCol := dynsql.StringColumn("extension", "文件后缀").Build()
@@ -29,7 +29,7 @@ func NewThird(svc service.ThirdService) *Third {
 }
 
 type Third struct {
-	svc   service.ThirdService
+	svc   *service.Third
 	table dynsql.Table
 }
 

@@ -9,14 +9,14 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewDash(svc service.DashService) *Dash {
+func NewDash(svc *service.Dash) *Dash {
 	return &Dash{
 		svc: svc,
 	}
 }
 
 type Dash struct {
-	svc service.DashService
+	svc *service.Dash
 }
 
 func (rest *Dash) Route(anon, bearer, _ *ship.RouteGroupBuilder) {

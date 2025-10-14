@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type MinionListenService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen)
-}
-
-func MinionListen(qry *query.Query) MinionListenService {
-	return &minionListenService{
+func NewMinionListen(qry *query.Query) *MinionListen {
+	return &MinionListen{
 		qry: qry,
 	}
 }
 
-type minionListenService struct {
+type MinionListen struct {
 	qry *query.Query
 }
 
-func (biz *minionListenService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen) {
+func (biz *MinionListen) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionListen) {
 	tbl := biz.qry.MinionListen
 	db := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc()).
