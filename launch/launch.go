@@ -248,7 +248,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	taskExecuteItemAPI.Route(anon, bearer, basic)
 
 	{
-		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {
+		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(30*time.Second), func() {
 			cctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 			defer cancel()
 			taskExecuteSvc.TimeoutMonitor(cctx)
