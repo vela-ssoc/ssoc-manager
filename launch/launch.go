@@ -256,6 +256,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	}
 
 	taskExtensionSvc := service.NewTaskExtension(qry, huber, minionFilterSvc, crond)
+	taskExtensionSvc.Init(ctx) // 启动自动加入任务
 	taskExtensionAPI := mgtapi.NewTaskExtension(taskExtensionSvc)
 	taskExtensionAPI.Route(anon, bearer, basic)
 

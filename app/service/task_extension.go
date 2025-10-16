@@ -41,6 +41,22 @@ type TaskExtension struct {
 }
 
 func (tim *TaskExtension) Init(ctx context.Context) {
+	tbl := tim.qry.TaskExtension
+	dao := tbl.WithContext(ctx)
+
+	ors := dao.Where(tbl.Cron.Neq("")).Or(tbl.SpecificTimes.IsNotNull())
+	tasks, _ := dao.Where(tbl.Enabled.Is(true), ors).Find()
+
+	for _, task := range tasks {
+		cronName := tim.taskName(task.ID)
+		cronFunc := tim.execute(task.ID)
+		if len(task.SpecificTimes) != 0 {
+			times := cronv3.NewSpecificTimes(task.SpecificTimes)
+			tim.crontab.Schedule(cronName, times, cronFunc)
+		} else if task.Cron != "" {
+			tim.crontab.AddFunc(cronName, task.Cron, cronFunc)
+		}
+	}
 }
 
 func (tim *TaskExtension) FromMarket(ctx context.Context, req *mrequest.TaskExtensionFromMarket, cu *session.Ident) error {
@@ -236,34 +252,29 @@ func (tim *TaskExtension) UpdateCode(ctx context.Context, req *mrequest.TaskExte
 		)
 	} else if quote := old.ContentQuote; quote != nil {
 		extensionID := req.ExtensionID
-		var name, content string
-		if extensionID != 0 && extensionID != quote.ID {
-			mrkTbl := tim.qry.ExtensionMarket
-			mrk, err := mrkTbl.WithContext(ctx).
-				Where(mrkTbl.ID.Eq(extensionID), mrkTbl.Category.Eq("task")).
-				First()
-			if err != nil {
-				return nil, err
-			}
-			contentQuote := &model.ExtensionQuote{
-				ID:          mrk.ID,
-				Name:        mrk.Name,
-				Intro:       mrk.Intro,
-				Version:     mrk.Version,
-				Data:        req.Data,
-				Content:     mrk.Content,
-				ContentSHA1: mrk.ContentSHA1,
-				CreatedBy:   mrk.CreatedBy,
-				UpdatedBy:   mrk.UpdatedBy,
-				CreatedAt:   mrk.CreatedAt,
-				UpdatedAt:   mrk.UpdatedAt,
-			}
-			updates = append(updates, tbl.ContentQuote.Value(contentQuote))
-		} else {
-			name = quote.Name
-			content = quote.Content
+		mrkTbl := tim.qry.ExtensionMarket
+		mrk, err := mrkTbl.WithContext(ctx).
+			Where(mrkTbl.ID.Eq(extensionID), mrkTbl.Category.Eq("task")).
+			First()
+		if err != nil {
+			return nil, err
 		}
+		contentQuote := &model.ExtensionQuote{
+			ID:          mrk.ID,
+			Name:        mrk.Name,
+			Intro:       mrk.Intro,
+			Version:     mrk.Version,
+			Data:        req.Data,
+			Content:     mrk.Content,
+			ContentSHA1: mrk.ContentSHA1,
+			CreatedBy:   mrk.CreatedBy,
+			UpdatedBy:   mrk.UpdatedBy,
+			CreatedAt:   mrk.CreatedAt,
+			UpdatedAt:   mrk.UpdatedAt,
+		}
+		updates = append(updates, tbl.ContentQuote.Value(contentQuote))
 
+		name, content := mrk.Name, mrk.Content
 		tmpl, err := luatemplate.New(name).Parse(content)
 		if err != nil {
 			return nil, errcode.FmtErrGenerateCode.Fmt(err)
@@ -412,6 +423,8 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 		tbl.UpdatedBy.Value(operator),
 		tbl.Filters.Value(req.Filters.ConvertModel()),
 		tbl.Excludes.Value(req.Excludes),
+		tbl.StepDone.Value(true),
+		tbl.Timeout.Value(req.Timeout),
 	}
 	if cron := req.Cron; cron != "" {
 		updates = append(updates, tbl.Cron.Value(cron), tbl.SpecificTimes.Value(nil))
@@ -427,37 +440,32 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 		updates = append(updates, tbl.Code.Value(code), tbl.CodeSHA1.Value(codeSHA1))
 	} else if quote := old.ContentQuote; quote != nil {
 		extensionID := req.ExtensionID
-		var name, content string
-		if extensionID != 0 && extensionID != quote.ID {
-			mrkTbl := tim.qry.ExtensionMarket
-			mrk, err := mrkTbl.WithContext(ctx).
-				Where(mrkTbl.ID.Eq(extensionID), mrkTbl.Category.Eq("task")).
-				First()
-			if err != nil {
-				return err
-			}
-			contentQuote := &model.ExtensionQuote{
-				ID:          mrk.ID,
-				Name:        mrk.Name,
-				Intro:       mrk.Intro,
-				Version:     mrk.Version,
-				Data:        req.Data,
-				Content:     mrk.Content,
-				ContentSHA1: mrk.ContentSHA1,
-				CreatedBy:   mrk.CreatedBy,
-				UpdatedBy:   mrk.UpdatedBy,
-				CreatedAt:   mrk.CreatedAt,
-				UpdatedAt:   mrk.UpdatedAt,
-			}
-			updates = append(updates, tbl.ContentQuote.Value(contentQuote))
-		} else {
-			name = quote.Name
-			content = quote.Content
+		mrkTbl := tim.qry.ExtensionMarket
+		mrk, err1 := mrkTbl.WithContext(ctx).
+			Where(mrkTbl.ID.Eq(extensionID), mrkTbl.Category.Eq("task")).
+			First()
+		if err1 != nil {
+			return err1
 		}
+		contentQuote := &model.ExtensionQuote{
+			ID:          mrk.ID,
+			Name:        mrk.Name,
+			Intro:       mrk.Intro,
+			Version:     mrk.Version,
+			Data:        req.Data,
+			Content:     mrk.Content,
+			ContentSHA1: mrk.ContentSHA1,
+			CreatedBy:   mrk.CreatedBy,
+			UpdatedBy:   mrk.UpdatedBy,
+			CreatedAt:   mrk.CreatedAt,
+			UpdatedAt:   mrk.UpdatedAt,
+		}
+		updates = append(updates, tbl.ContentQuote.Value(contentQuote))
 
-		tmpl, err := luatemplate.New(name).Parse(content)
-		if err != nil {
-			return errcode.FmtErrGenerateCode.Fmt(err)
+		name, content := mrk.Name, mrk.Content
+		tmpl, err2 := luatemplate.New(name).Parse(content)
+		if err2 != nil {
+			return errcode.FmtErrGenerateCode.Fmt(err2)
 		}
 		buf := new(bytes.Buffer)
 		if err = tmpl.Execute(buf, req.Data); err != nil {
