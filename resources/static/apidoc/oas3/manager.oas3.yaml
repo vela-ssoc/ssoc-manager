@@ -2336,7 +2336,7 @@ paths:
                 - minion_id
                 - substance_id
       tags:
-        - "\U0001F195 新增接口"
+        - 插件
   /substance/unexclude:
     post:
       summary: 取消节点排除配置
@@ -2365,7 +2365,7 @@ paths:
                 - minion_id
                 - substance_id
       tags:
-        - "\U0001F195 新增接口"
+        - 插件
   /minion/tasks:
     get:
       summary: 查询节点关联的配置
@@ -2376,32 +2376,6 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  unload:
-                    type: boolean
-                  tasks:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        name:
-                          type: string
-                        icon:
-                          type: string
-                        dialect:
-                          type: boolean
-                        excluded:
-                          type: boolean
-                        hash:
-                          type: string
-                        report:
-                          type: 'null'
-                        created_at:
-                          type: string
-                        updated_at:
-                          type: string
                 x-examples:
                   Example 1:
                     unload: false
@@ -2433,6 +2407,33 @@ paths:
                         report: null
                         created_at: '2025-09-11T05:08:56.986Z'
                         updated_at: '2025-09-11T05:08:56.986Z'
+                properties:
+                  unload:
+                    type: boolean
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        icon:
+                          type: string
+                        dialect:
+                          type: boolean
+                        excluded:
+                          type: boolean
+                        hash:
+                          type: string
+                        report:
+                          type: object
+                          nullable: true
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
               examples:
                 示例:
                   value:
@@ -2466,8 +2467,6 @@ paths:
                         created_at: '2025-09-11T05:08:56.986Z'
                         updated_at: '2025-09-11T05:08:56.986Z'
       operationId: get-minion-tasks
-      tags:
-        - "\U0001F195 新增接口"
       description: |-
         - 如果节点 `unload` 是静默模式，则所有的 report 应该为 null，否则说明配置不一致。
 
@@ -2483,6 +2482,58 @@ paths:
           name: id
           description: 节点ID
           required: true
+      tags:
+        - 插件
+  /startup:
+    get:
+      summary: 查看 agent startup 配置
+      responses:
+        '200':
+          description: OK
+      operationId: get-startup
+      description: agent startup 配置
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: id
+          description: 节点ID
+      tags:
+        - "\U0001F195 新增接口"
+    post:
+      summary: 修改 agent startup 配置
+      operationId: post-startup
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 修改 agent startup 配置
+  /startup/fallback:
+    post:
+      summary: 修改 startup 默认参数
+      operationId: post-startup-fallback
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 修改 startup 默认参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+    get:
+      summary: 获取 startup 默认参数
+      operationId: get-startup-fallback
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 获取 startup 默认参数
 components:
   securitySchemes:
     Authorization:
