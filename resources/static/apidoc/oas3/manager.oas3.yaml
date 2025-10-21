@@ -2506,6 +2506,64 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    x-stoplight:
+                      id: stfr0qy7ajfy6
+                    description: 节点ID
+                    example: '490511447637016576'
+                  logger:
+                    type: object
+                    x-stoplight:
+                      id: d3kjuaxg73302
+                    properties:
+                      level:
+                        type: string
+                        x-stoplight:
+                          id: v8c5elp654dbn
+                        description: 日志级别
+                        enum:
+                          - debug
+                          - info
+                          - warn
+                          - error
+                      filename:
+                        type: string
+                        x-stoplight:
+                          id: 7war8i6fupfw9
+                        description: 日志输出文件
+                      console:
+                        type: boolean
+                        x-stoplight:
+                          id: hn3qn2vsc6nox
+                        description: 是否输出到控制台
+                      format:
+                        type: string
+                        x-stoplight:
+                          id: hjrbuyu2alkvu
+                        enum:
+                          - text
+                          - json
+                        description: 日志输出格式
+                      caller:
+                        type: boolean
+                        x-stoplight:
+                          id: 3grgpx6johtzr
+                        description: 是否显示调用者
+                      skip:
+                        type: integer
+                        x-stoplight:
+                          id: mslzjjdrayng3
+                        minimum: -100
+                        maximum: 100
+                        description: 跳过代码层级
+                required:
+                  - id
       tags:
         - "\U0001F195 新增接口"
       description: 修改 agent startup 配置
@@ -2524,7 +2582,50 @@ paths:
           application/json:
             schema:
               type: object
-              properties: {}
+              properties:
+                logger:
+                  type: object
+                  x-stoplight:
+                    id: wq61laoid4w7i
+                  properties:
+                    level:
+                      type: string
+                      x-stoplight:
+                        id: d8pqsd7k0c4la
+                      description: 日志级别
+                      example: info
+                      enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                    filename:
+                      type: string
+                      x-stoplight:
+                        id: d3jdwchmbjyt7
+                      description: 日志输出文件
+                    console:
+                      type: boolean
+                      x-stoplight:
+                        id: v41h1a1feipxz
+                      description: 是否输出到控制台
+                    format:
+                      type: string
+                      x-stoplight:
+                        id: sntzxujrv8a3h
+                      description: 日志格式
+                      enum:
+                        - text
+                        - json
+                      example: text
+                    caller:
+                      type: boolean
+                      x-stoplight:
+                        id: nswl2spzwf70f
+                    skip:
+                      type: integer
+                      x-stoplight:
+                        id: mwoxbyfvckfko
     get:
       summary: 获取 startup 默认参数
       operationId: get-startup-fallback
@@ -2534,6 +2635,16 @@ paths:
       tags:
         - "\U0001F195 新增接口"
       description: 获取 startup 默认参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                '':
+                  type: string
+                  x-stoplight:
+                    id: 57kwfcves7j8m
 components:
   securitySchemes:
     Authorization:
