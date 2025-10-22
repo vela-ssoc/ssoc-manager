@@ -97,7 +97,8 @@ func (biz *Tag) Sidebar(ctx context.Context, req *param.TagSidebar) (request.Nam
 	//	conds = append(conds, tbl.Kind.Neq(lifelong), or)
 	//}
 
-	ret := make(request.NameCounts, 0, 100)
+	limit := 50
+	ret := make(request.NameCounts, 0, limit)
 	name, count := ret.Aliases()
 	nameAlias := name.ColumnName().String()
 	countAlias := count.ColumnName().String()
@@ -106,7 +107,7 @@ func (biz *Tag) Sidebar(ctx context.Context, req *param.TagSidebar) (request.Nam
 		Select(tbl.Tag.As(nameAlias), tbl.Tag.Count().As(countAlias)).
 		Group(tbl.Tag).
 		Order(count.Desc()).
-		Limit(100).
+		Limit(limit).
 		Scan(&ret); err != nil {
 		return nil, err
 	}
