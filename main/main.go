@@ -45,3 +45,5 @@ func main() {
 		slog.Warn("程序运行结束")
 	}
 }
+
+// POST /api/v1/agent/task/stop
