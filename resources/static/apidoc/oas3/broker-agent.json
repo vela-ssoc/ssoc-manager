@@ -171,10 +171,28 @@
                     },
                     "description": "日志内容",
                     "example": "hello world"
+                  },
+                  "level": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "vxufllns00y2r"
+                    },
+                    "description": "级别",
+                    "example": "INFO"
+                  },
+                  "from": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "4rdh2f3mawe34"
+                    },
+                    "description": "来源模块",
+                    "example": "os-scan"
                   }
                 },
                 "required": [
-                  "content"
+                  "content",
+                  "level",
+                  "from"
                 ]
               }
             }
