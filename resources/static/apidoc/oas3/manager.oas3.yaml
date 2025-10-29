@@ -2645,6 +2645,28 @@ paths:
                   type: string
                   x-stoplight:
                     id: 57kwfcves7j8m
+  /agent/console/read:
+    get:
+      summary: 读取 agent 控制台输出
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      operationId: get-agent-console-read
+      parameters:
+        - $ref: '#/components/parameters/ID'
+        - schema:
+            type: integer
+          in: query
+          name: 'n'
+          description: 向上读取行数（类似于 tail 命令）
+      description: 本接口为 SSE 协议
 components:
   securitySchemes:
     Authorization:

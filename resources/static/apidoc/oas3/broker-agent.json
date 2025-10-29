@@ -150,7 +150,7 @@
     },
     "/console/write": {
       "post": {
-        "summary": "agent 向 broker 写入控制台日志。",
+        "summary": "agent 向 broker 写入控制台日志",
         "operationId": "post-console-write",
         "responses": {
           "200": {
