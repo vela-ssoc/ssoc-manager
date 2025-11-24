@@ -14,7 +14,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Third(svc service.ThirdService) route.Router {
+func NewThird(svc *service.Third) *Third {
 	nameCol := dynsql.StringColumn("name", "文件名称").Build()
 	descCol := dynsql.StringColumn("desc", "文件描述").Build()
 	extCol := dynsql.StringColumn("extension", "文件后缀").Build()
@@ -22,18 +22,18 @@ func Third(svc service.ThirdService) route.Router {
 		Filters(nameCol, descCol, extCol).
 		Build()
 
-	return &thirdREST{
+	return &Third{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type thirdREST struct {
-	svc   service.ThirdService
+type Third struct {
+	svc   *service.Third
 	table dynsql.Table
 }
 
-func (rest *thirdREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Third) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/third/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/third").
 		Data(route.Ignore()).GET(rest.Download).
@@ -43,12 +43,12 @@ func (rest *thirdREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/thirds").Data(route.Ignore()).GET(rest.List)
 }
 
-func (rest *thirdREST) Cond(c *ship.Context) error {
+func (rest *Third) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *thirdREST) Page(c *ship.Context) error {
+func (rest *Third) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -66,7 +66,7 @@ func (rest *thirdREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *thirdREST) Create(c *ship.Context) error {
+func (rest *Third) Create(c *ship.Context) error {
 	var req mrequest.ThirdCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (rest *thirdREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, req.Name, req.Desc, req.Customized, file, cu.ID)
 }
 
-func (rest *thirdREST) Download(c *ship.Context) error {
+func (rest *Third) Download(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -104,7 +104,7 @@ func (rest *thirdREST) Download(c *ship.Context) error {
 	return c.Stream(http.StatusOK, file.ContentType(), file)
 }
 
-func (rest *thirdREST) Delete(c *ship.Context) error {
+func (rest *Third) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -115,7 +115,7 @@ func (rest *thirdREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, req.ID)
 }
 
-func (rest *thirdREST) Update(c *ship.Context) error {
+func (rest *Third) Update(c *ship.Context) error {
 	var req mrequest.ThirdUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -138,7 +138,7 @@ func (rest *thirdREST) Update(c *ship.Context) error {
 	return rest.svc.Update(ctx, req.ID, req.Desc, req.Customized, r, cu.ID)
 }
 
-func (rest *thirdREST) List(c *ship.Context) error {
+func (rest *Third) List(c *ship.Context) error {
 	keyword := c.Query("keyword")
 	ctx := c.Request().Context()
 

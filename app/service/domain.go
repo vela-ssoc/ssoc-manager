@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type DomainService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Domain)
-}
-
-func Domain(qry *query.Query) DomainService {
-	return &domainService{
+func NewDomain(qry *query.Query) *Domain {
+	return &Domain{
 		qry: qry,
 	}
 }
 
-type domainService struct {
+type Domain struct {
 	qry *query.Query
 }
 
-func (biz *domainService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Domain) {
+func (biz *Domain) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Domain) {
 	tbl := biz.qry.Domain
 	db := tbl.WithContext(ctx).
 		UnderlyingDB().

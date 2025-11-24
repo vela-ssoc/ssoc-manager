@@ -9,7 +9,7 @@
 <body class="bg-black text-white py-6">
 <div class="max-w-7xl mx-auto px-4">
     <h1 class="text-3xl font-bold mb-2 text-center">接口文档</h1>
-    <div class="text-center text-gray-400 text-sm mb-6">
+    <div class="text-center text-gray-400 text-lg mb-10">
         <ul>
             <li>
                 接口文档遵循 <a href="https://swagger.io/specification/" target="_blank">OpenAPI OAS3</a> 标准。
@@ -23,12 +23,26 @@
     <div id="projectGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         <!-- 卡片将由 JS 插入 -->
     </div>
+
+    <br/>
+    <br/>
+    <div class="text-left text-gray-400 text-sm mb-10">
+        <ul>
+            <li>
+                <a href="https://ossindex.sonatype.org/rest" target="_blank">Sonatype</a>
+            </li>
+            <li>
+                <a href="https://google.github.io/osv.dev/api/" target="_blank">OSV</a>
+            </li>
+        </ul>
+    </div>
 </div>
 
 <script>
     const projects = [
         {name: 'SSOC 管理中心端', oas3: 'oas3/manager.oas3.yaml', image: 'img/ssoc-manager.png'},
-        {name: 'Sonatype OSS Index', oas3: 'oas3/sonatype.json', image: 'img/sonatype.jpg'},
+        {name: 'Broker-Agent 接口交互', oas3: 'oas3/broker-agent.json', image: 'img/broker-agent.png'},
+        {name: 'Sonatype OSS Index', oas3: 'oas3/sonatype_oss_index.json', image: 'img/sonatype.png'},
         {name: 'OSV', oas3: 'oas3/osv_service_v1.json', image: 'img/osv.webp'},
     ]
     const pages = [
@@ -46,7 +60,7 @@
         card.innerHTML = `
         <div class="relative w-full h-60">
           <img src="${proj.image}" alt="${proj.name}" class="w-full h-full object-cover">
-          <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm px-3 py-2">${proj.name}</div>
+          <div class="absolute bottom-0 left-0 right-0 bg-black/30 text-white text-sm px-3 py-2">${proj.name}</div>
         </div>
 
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3">

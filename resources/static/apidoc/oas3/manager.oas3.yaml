@@ -14,24 +14,16 @@ servers:
   - url: /api/v1
     description: 中心端
 tags:
+  - name: "\U0001F195 新增接口"
   - name: 登录模块
-    description: 用户登录用到的接口
   - name: Agent
-    description: Agent 节点模块
   - name: Broker
-    description: 代理节点模块
   - name: 用户模块
-    description: 对系统用户管理
   - name: 用户日志
-    description: 用户操作访问日志
   - name: 节点调用
-    description: 对节点直接操作
   - name: 插件配置
-    description: substance lua 脚本
   - name: 配置参数
-    description: 配置参数
   - name: 插件
-    description: 插件
 paths:
   /login/han:
     post:
@@ -2316,6 +2308,365 @@ paths:
           description: OK
       operationId: get-monbin-supports
       description: 获取客户端二进制支持的系统
+  /substance/exclude:
+    post:
+      summary: 节点排除指定配置
+      operationId: post-substance-exclude
+      responses:
+        '200':
+          description: OK
+      description: 节点排除指定配置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minion_id:
+                  type: string
+                  x-stoplight:
+                    id: 41le8s860vahc
+                  description: 节点ID
+                substance_id:
+                  type: string
+                  x-stoplight:
+                    id: q1gdqi7jl3leq
+                  description: 配置ID
+              required:
+                - minion_id
+                - substance_id
+      tags:
+        - 插件
+  /substance/unexclude:
+    post:
+      summary: 取消节点排除配置
+      operationId: post-substance-unexclude
+      responses:
+        '200':
+          description: OK
+      description: 取消节点排除配置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minion_id:
+                  type: string
+                  x-stoplight:
+                    id: dqk0t38d1uzs0
+                  description: 节点ID
+                substance_id:
+                  type: string
+                  x-stoplight:
+                    id: bqyjn90aao4vg
+                  description: 配置ID
+              required:
+                - minion_id
+                - substance_id
+      tags:
+        - 插件
+  /minion/tasks:
+    get:
+      summary: 查询节点关联的配置
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    unload: false
+                    tasks:
+                      - id: '468130470839365632'
+                        name: debug
+                        icon: ZGVidWc=
+                        dialect: true
+                        excluded: false
+                        hash: f60b4dcac50183dca95c6509c035c1a3
+                        report: null
+                        created_at: '2025-08-15T11:03:21.687Z'
+                        updated_at: '2025-09-10T07:43:52.768Z'
+                      - id: '477178386283409408'
+                        name: table
+                        icon: 5pWw5o2u5bqT
+                        dialect: true
+                        excluded: false
+                        hash: eb99b719f64938385cc541d49ae14b88
+                        report: null
+                        created_at: '2025-09-09T10:16:32.83Z'
+                        updated_at: '2025-09-09T10:16:32.83Z'
+                      - id: '477825752585908224'
+                        name: echo
+                        icon: ZGVidWc=
+                        dialect: false
+                        excluded: true
+                        hash: 28f35476af08ba7d170529ec46484b98
+                        report: null
+                        created_at: '2025-09-11T05:08:56.986Z'
+                        updated_at: '2025-09-11T05:08:56.986Z'
+                properties:
+                  unload:
+                    type: boolean
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        icon:
+                          type: string
+                        dialect:
+                          type: boolean
+                        excluded:
+                          type: boolean
+                        hash:
+                          type: string
+                        report:
+                          type: object
+                          nullable: true
+                        created_at:
+                          type: string
+                        updated_at:
+                          type: string
+              examples:
+                示例:
+                  value:
+                    unload: false
+                    tasks:
+                      - id: '468130470839365632'
+                        name: debug
+                        icon: ZGVidWc=
+                        dialect: true
+                        excluded: false
+                        hash: f60b4dcac50183dca95c6509c035c1a3
+                        report: null
+                        created_at: '2025-08-15T11:03:21.687Z'
+                        updated_at: '2025-09-10T07:43:52.768Z'
+                      - id: '477178386283409408'
+                        name: table
+                        icon: 5pWw5o2u5bqT
+                        dialect: true
+                        excluded: false
+                        hash: eb99b719f64938385cc541d49ae14b88
+                        report: null
+                        created_at: '2025-09-09T10:16:32.83Z'
+                        updated_at: '2025-09-09T10:16:32.83Z'
+                      - id: '477825752585908224'
+                        name: echo
+                        icon: ZGVidWc=
+                        dialect: false
+                        excluded: true
+                        hash: 28f35476af08ba7d170529ec46484b98
+                        report: null
+                        created_at: '2025-09-11T05:08:56.986Z'
+                        updated_at: '2025-09-11T05:08:56.986Z'
+      operationId: get-minion-tasks
+      description: |-
+        - 如果节点 `unload` 是静默模式，则所有的 report 应该为 null，否则说明配置不一致。
+
+        - 如果配置 `tasks.$.excluded` 已排除，则对应的 `report` 应该为 null，否则说明配置不一致。
+
+        - 其他情况下，`tasks.$.hash` 必须与 `tasks.$.report.hash` 相等才算配置同步。
+
+        - 注意：如果 `tasks.$.report` 有值，但是 `from != "tunnel"`，说明该配置不是来自于中心端下发，无需逻辑判断，只需原样展示即可（也不需要展示各种操作按钮）。
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: id
+          description: 节点ID
+          required: true
+      tags:
+        - 插件
+  /startup:
+    get:
+      summary: 查看 agent startup 配置
+      responses:
+        '200':
+          description: OK
+      operationId: get-startup
+      description: agent startup 配置
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: id
+          description: 节点ID
+      tags:
+        - "\U0001F195 新增接口"
+    post:
+      summary: 修改 agent startup 配置
+      operationId: post-startup
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    x-stoplight:
+                      id: stfr0qy7ajfy6
+                    description: 节点ID
+                    example: '490511447637016576'
+                  logger:
+                    type: object
+                    x-stoplight:
+                      id: d3kjuaxg73302
+                    properties:
+                      level:
+                        type: string
+                        x-stoplight:
+                          id: v8c5elp654dbn
+                        description: 日志级别
+                        enum:
+                          - debug
+                          - info
+                          - warn
+                          - error
+                      filename:
+                        type: string
+                        x-stoplight:
+                          id: 7war8i6fupfw9
+                        description: 日志输出文件
+                      console:
+                        type: boolean
+                        x-stoplight:
+                          id: hn3qn2vsc6nox
+                        description: 是否输出到控制台
+                      format:
+                        type: string
+                        x-stoplight:
+                          id: hjrbuyu2alkvu
+                        enum:
+                          - text
+                          - json
+                        description: 日志输出格式
+                      caller:
+                        type: boolean
+                        x-stoplight:
+                          id: 3grgpx6johtzr
+                        description: 是否显示调用者
+                      skip:
+                        type: integer
+                        x-stoplight:
+                          id: mslzjjdrayng3
+                        minimum: -100
+                        maximum: 100
+                        description: 跳过代码层级
+                required:
+                  - id
+      tags:
+        - "\U0001F195 新增接口"
+      description: 修改 agent startup 配置
+  /startup/fallback:
+    post:
+      summary: 修改 startup 默认参数
+      operationId: post-startup-fallback
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 修改 startup 默认参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logger:
+                  type: object
+                  x-stoplight:
+                    id: wq61laoid4w7i
+                  properties:
+                    level:
+                      type: string
+                      x-stoplight:
+                        id: d8pqsd7k0c4la
+                      description: 日志级别
+                      example: info
+                      enum:
+                        - debug
+                        - info
+                        - warn
+                        - error
+                    filename:
+                      type: string
+                      x-stoplight:
+                        id: d3jdwchmbjyt7
+                      description: 日志输出文件
+                    console:
+                      type: boolean
+                      x-stoplight:
+                        id: v41h1a1feipxz
+                      description: 是否输出到控制台
+                    format:
+                      type: string
+                      x-stoplight:
+                        id: sntzxujrv8a3h
+                      description: 日志格式
+                      enum:
+                        - text
+                        - json
+                      example: text
+                    caller:
+                      type: boolean
+                      x-stoplight:
+                        id: nswl2spzwf70f
+                    skip:
+                      type: integer
+                      x-stoplight:
+                        id: mwoxbyfvckfko
+    get:
+      summary: 获取 startup 默认参数
+      operationId: get-startup-fallback
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 获取 startup 默认参数
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                '':
+                  type: string
+                  x-stoplight:
+                    id: 57kwfcves7j8m
+  /agent/console/read:
+    get:
+      summary: 读取 agent 控制台输出
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      operationId: get-agent-console-read
+      parameters:
+        - $ref: '#/components/parameters/ID'
+        - schema:
+            type: integer
+          in: query
+          name: 'n'
+          description: 向上读取行数（类似于 tail 命令）
+      description: 本接口为 SSE 协议
 components:
   securitySchemes:
     Authorization:

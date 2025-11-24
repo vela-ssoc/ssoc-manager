@@ -37,6 +37,15 @@ func (flt *Filter) Cond() *response.Cond {
 	return response.ParseCond(flt.tbl)
 }
 
+func (flt *Filter) Delete(ctx context.Context, args *request.PageKeywordConditions) error {
+	fdata := &request.KeywordConditions{Keywords: args.Keywords, Conditions: args.Conditions}
+	err := flt.FindInBatches(ctx, fdata, nil, 100, func(tx gen.Dao, buf []*model.Minion) error {
+		return nil
+	})
+
+	return err
+}
+
 func (flt *Filter) Page(ctx context.Context, args *request.PageKeywordConditions) (*response.Pages[*mresponse.MinionItem], error) {
 	fdata := &request.KeywordConditions{Keywords: args.Keywords, Conditions: args.Conditions}
 	wheres, err := flt.Wheres(fdata, nil)
@@ -109,7 +118,6 @@ func (flt *Filter) FindInBatches(ctx context.Context, args *request.KeywordCondi
 
 	var buf []*model.Minion
 	return minion.WithContext(ctx).
-		Distinct(minion.ID).
 		LeftJoin(minionTagDo, minion.ID.EqCol(minionTag.MinionID)).
 		Where(wheres...).
 		FindInBatches(&buf, batchSize, func(tx gen.Dao, _ int) error {

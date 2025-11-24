@@ -14,17 +14,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mresponse"
 )
 
-type EffectService interface {
-	Page(ctx context.Context, page param.Pager) (int64, []*mrequest.EffectSummary)
-	Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error)
-	Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error)
-	Delete(ctx context.Context, submitID int64) (int64, error)
-	Progress(ctx context.Context, tid int64) *mresponse.EffectProgress
-	Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask)
-}
-
-func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task SubstanceTaskService) EffectService {
-	return &effectService{
+func NewEffect(qry *query.Query, pusher push.Pusher, seq SequenceService, task *SubstanceTask) *Effect {
+	return &Effect{
 		qry:    qry,
 		pusher: pusher,
 		seq:    seq,
@@ -32,15 +23,15 @@ func Effect(qry *query.Query, pusher push.Pusher, seq SequenceService, task Subs
 	}
 }
 
-type effectService struct {
+type Effect struct {
 	qry    *query.Query
 	pusher push.Pusher
 	seq    SequenceService
-	task   SubstanceTaskService
+	task   *SubstanceTask
 	mutex  sync.RWMutex
 }
 
-func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []*mrequest.EffectSummary) {
+func (eff *Effect) Page(ctx context.Context, page param.Pager) (int64, []*mrequest.EffectSummary) {
 	effTbl := eff.qry.Effect
 	dao := effTbl.WithContext(ctx).Distinct(effTbl.SubmitID)
 	if kw := page.Keyword(); kw != "" {
@@ -139,7 +130,7 @@ func (eff *effectService) Page(ctx context.Context, page param.Pager) (int64, []
 	return count, ret
 }
 
-func (eff *effectService) Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error) {
+func (eff *Effect) Create(ctx context.Context, ec *mrequest.EffectCreate, userID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
@@ -171,7 +162,7 @@ func (eff *effectService) Create(ctx context.Context, ec *mrequest.EffectCreate,
 	return eff.task.AsyncTags(ctx, ec.Tags)
 }
 
-func (eff *effectService) Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error) {
+func (eff *Effect) Update(ctx context.Context, eu *mrequest.EffectUpdate, userID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
@@ -247,7 +238,7 @@ func (eff *effectService) Update(ctx context.Context, eu *mrequest.EffectUpdate,
 	return eff.task.AsyncTags(ctx, allTags)
 }
 
-func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, error) {
+func (eff *Effect) Delete(ctx context.Context, submitID int64) (int64, error) {
 	eff.mutex.Lock()
 	defer eff.mutex.Unlock()
 
@@ -275,16 +266,16 @@ func (eff *effectService) Delete(ctx context.Context, submitID int64) (int64, er
 }
 
 // Progress 任务进度
-func (eff *effectService) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
+func (eff *Effect) Progress(ctx context.Context, tid int64) *mresponse.EffectProgress {
 	return eff.task.Progress(ctx, tid)
 }
 
 // Progresses 获取当前最后一次运行的任务信息
-func (eff *effectService) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
+func (eff *Effect) Progresses(ctx context.Context, tid int64, page mrequest.Pager) (int64, []*model.SubstanceTask) {
 	return eff.task.Progresses(ctx, tid, page)
 }
 
-func (*effectService) equalsStrings(as, bs []string) bool {
+func (*Effect) equalsStrings(as, bs []string) bool {
 	size := len(as)
 	if size != len(bs) {
 		return false
@@ -303,7 +294,7 @@ func (*effectService) equalsStrings(as, bs []string) bool {
 	return len(hm) == 0
 }
 
-func (*effectService) equalsInt64s(as, bs []int64) bool {
+func (*Effect) equalsInt64s(as, bs []int64) bool {
 	size := len(as)
 	if size != len(bs) {
 		return false
@@ -322,7 +313,7 @@ func (*effectService) equalsInt64s(as, bs []int64) bool {
 	return len(hm) == 0
 }
 
-func (*effectService) mergeStrings(as, bs []string) []string {
+func (*Effect) mergeStrings(as, bs []string) []string {
 	size := len(as) + len(bs)
 	ret := make([]string, 0, size)
 	hm := make(map[string]struct{}, size)
@@ -343,7 +334,7 @@ func (*effectService) mergeStrings(as, bs []string) []string {
 	return ret
 }
 
-func (*effectService) diff(as, bs []string) []string {
+func (*Effect) diff(as, bs []string) []string {
 	hm := make(map[string]struct{}, len(as))
 	for _, s := range as {
 		hm[s] = struct{}{}

@@ -12,23 +12,15 @@ import (
 	"gorm.io/gen"
 )
 
-type SharedService interface {
-	Buckets(ctx context.Context) []string
-	Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData)
-	Sweep(ctx context.Context, bucket, key string) error
-	Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit)
-	Update(ctx context.Context, req *param.SharedUpdate) error
+func NewShared(qry *query.Query) *Shared {
+	return &Shared{qry: qry}
 }
 
-func Shared(qry *query.Query) SharedService {
-	return &sharedService{qry: qry}
-}
-
-type sharedService struct {
+type Shared struct {
 	qry *query.Query
 }
 
-func (svc *sharedService) Buckets(ctx context.Context) []string {
+func (svc *Shared) Buckets(ctx context.Context) []string {
 	ret := make([]string, 0, 1024)
 	tbl := svc.qry.KVData
 	_ = tbl.WithContext(ctx).
@@ -39,7 +31,7 @@ func (svc *sharedService) Buckets(ctx context.Context) []string {
 	return ret
 }
 
-func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData) {
+func (svc *Shared) Keys(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.KVData) {
 	tbl := svc.qry.KVData
 	db := tbl.WithContext(ctx).
 		Order(tbl.UpdatedAt.Desc()).
@@ -57,7 +49,7 @@ func (svc *sharedService) Keys(ctx context.Context, page param.Pager, scope dyns
 }
 
 // Sweep 清除 kv 数据。
-func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
+func (svc *Shared) Sweep(ctx context.Context, bucket, key string) error {
 	now := time.Now()
 	tbl := svc.qry.KVData
 	if bucket == "" { // 仅清理过期的数据。
@@ -83,7 +75,7 @@ func (svc *sharedService) Sweep(ctx context.Context, bucket, key string) error {
 	return err
 }
 
-func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit) {
+func (svc *Shared) Audits(ctx context.Context, page param.Pager, bucket, key string) (int64, []*model.KVAudit) {
 	tbl := svc.qry.KVAudit
 	stmt := tbl.WithContext(ctx).
 		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key))
@@ -97,7 +89,7 @@ func (svc *sharedService) Audits(ctx context.Context, page param.Pager, bucket, 
 	return count, dats
 }
 
-func (svc *sharedService) Update(ctx context.Context, req *param.SharedUpdate) error {
+func (svc *Shared) Update(ctx context.Context, req *param.SharedUpdate) error {
 	tbl := svc.qry.KVData
 	bucket, key := req.Bucket, req.Key
 

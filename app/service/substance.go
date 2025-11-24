@@ -11,22 +11,11 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"gorm.io/gen"
 )
 
-type SubstanceService interface {
-	Indices(ctx context.Context, idx param.Indexer) request.IDNames
-	Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary)
-	Detail(ctx context.Context, id int64) (*model.Substance, error)
-	Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error
-	Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) (int64, error)
-	Delete(ctx context.Context, id int64) error
-	Reload(ctx context.Context, mid, sid int64) error
-	Resync(ctx context.Context, mid int64) error
-	Command(ctx context.Context, mid int64, cmd string) error
-}
-
-func Substance(qry *query.Query, pusher push.Pusher, digest DigestService, task SubstanceTaskService) SubstanceService {
-	return &substanceService{
+func NewSubstance(qry *query.Query, pusher push.Pusher, digest DigestService, task *SubstanceTask) *Substance {
+	return &Substance{
 		qry:    qry,
 		pusher: pusher,
 		digest: digest,
@@ -34,16 +23,16 @@ func Substance(qry *query.Query, pusher push.Pusher, digest DigestService, task 
 	}
 }
 
-type substanceService struct {
+type Substance struct {
 	qry    *query.Query
 	mutex  sync.Mutex
 	pusher push.Pusher
 	digest DigestService
-	task   SubstanceTaskService
+	task   *SubstanceTask
 }
 
-func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
-	tbl := biz.qry.Substance
+func (sst *Substance) Indices(ctx context.Context, idx param.Indexer) request.IDNames {
+	tbl := sst.qry.Substance
 	dao := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Name).
 		Where(tbl.MinionID.Eq(0))
@@ -57,8 +46,8 @@ func (biz *substanceService) Indices(ctx context.Context, idx param.Indexer) req
 	return dats
 }
 
-func (biz *substanceService) Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary) {
-	tbl := biz.qry.Substance
+func (sst *Substance) Page(ctx context.Context, page param.Pager) (int64, []*param.SubstanceSummary) {
+	tbl := sst.qry.Substance
 	dao := tbl.WithContext(ctx).
 		Where(tbl.MinionID.Eq(0)) // minion_id = 0 就是公有配置
 	if kw := page.Keyword(); kw != "" {
@@ -94,8 +83,8 @@ func (biz *substanceService) Page(ctx context.Context, page param.Pager) (int64,
 	return count, dats
 }
 
-func (biz *substanceService) Detail(ctx context.Context, id int64) (*model.Substance, error) {
-	tbl := biz.qry.Substance
+func (sst *Substance) Detail(ctx context.Context, id int64) (*model.Substance, error) {
+	tbl := sst.qry.Substance
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if dat != nil && dat.Links == nil {
 		dat.Links = []string{}
@@ -104,15 +93,15 @@ func (biz *substanceService) Detail(ctx context.Context, id int64) (*model.Subst
 	return dat, err
 }
 
-func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error {
+func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, userID int64) error {
 	now := time.Now()
 	name, mid := sc.Name, sc.MinionID
 
 	var bid int64
-	tbl := biz.qry.Substance
+	tbl := sst.qry.Substance
 	if mid != 0 {
 		// 检查节点
-		monTbl := biz.qry.Minion
+		monTbl := sst.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.Status, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
@@ -142,7 +131,7 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	}
 
 	// 计算 hash
-	sum := biz.digest.SumMD5(sc.Chunk)
+	sum := sst.digest.SumMD5(sc.Chunk)
 	dat := &model.Substance{
 		Name:      name,
 		Icon:      sc.Icon,
@@ -162,19 +151,19 @@ func (biz *substanceService) Create(ctx context.Context, sc *param.SubstanceCrea
 	}
 
 	if mid != 0 { // 推送
-		biz.pusher.TaskSync(ctx, bid, []int64{mid})
+		sst.pusher.TaskSync(ctx, bid, []int64{mid})
 	}
 
 	return nil
 }
 
-func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) (int64, error) {
-	biz.mutex.Lock()
-	defer biz.mutex.Unlock()
+func (sst *Substance) Update(ctx context.Context, su *param.SubstanceUpdate, userID int64) (int64, error) {
+	sst.mutex.Lock()
+	defer sst.mutex.Unlock()
 
 	// 1. 查询数据库中原有的数据
 	id, version := su.ID, su.Version
-	tbl := biz.qry.Substance
+	tbl := sst.qry.Substance
 	sub, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
 		First()
@@ -185,7 +174,7 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		return 0, errcode.ErrVersion
 	}
 
-	sum := biz.digest.SumMD5(su.Chunk)
+	sum := sst.digest.SumMD5(su.Chunk)
 	change := sum != sub.Hash
 
 	sub.Hash = sum
@@ -198,32 +187,32 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 
 	if mid := sub.MinionID; mid != 0 {
 		if _, err = tbl.WithContext(ctx).
-			Where(tbl.Version.Eq(version)).
+			Where(tbl.ID.Eq(su.ID), tbl.Version.Eq(version)).
 			Updates(sub); err != nil || !change {
 			return 0, err
 		}
-		monTbl := biz.qry.Minion
+		monTbl := sst.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+			sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 		return 0, nil
 	}
 
-	if err = biz.task.BusyError(ctx); err != nil {
+	if err = sst.task.BusyError(ctx); err != nil {
 		return 0, err
 	}
 
 	if _, err = tbl.WithContext(ctx).
-		Where(tbl.Version.Eq(version)).
+		Where(tbl.Version.Eq(version), tbl.ID.Eq(id)).
 		Updates(sub); err != nil || !change {
 		return 0, err
 	}
 
-	effTbl := biz.qry.Effect
+	effTbl := sst.qry.Effect
 	var tags []string
 	err = effTbl.WithContext(ctx).
 		Distinct(effTbl.Tag).
@@ -234,12 +223,12 @@ func (biz *substanceService) Update(ctx context.Context, su *param.SubstanceUpda
 		return 0, err
 	}
 
-	return biz.task.AsyncTags(ctx, tags)
+	return sst.task.AsyncTags(ctx, tags)
 }
 
-func (biz *substanceService) Delete(ctx context.Context, id int64) error {
+func (sst *Substance) Delete(ctx context.Context, id int64) error {
 	// 查询数据
-	subTbl := biz.qry.Substance
+	subTbl := sst.qry.Substance
 	dat, err := subTbl.WithContext(ctx).
 		Select(subTbl.ID, subTbl.MinionID, subTbl.Name).
 		Where(subTbl.ID.Eq(id)).
@@ -252,7 +241,7 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 	if mid == 0 { // 公有配置删除前检查
 		// 1. 公有配置发布后不能被删除
 		var count int64
-		effTbl := biz.qry.Effect
+		effTbl := sst.qry.Effect
 		if count, err = effTbl.WithContext(ctx).
 			Where(effTbl.EffectID.Eq(id)).
 			Count(); err != nil || count != 0 {
@@ -267,13 +256,13 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 
 	// 私有配置通知节点
 	if mid != 0 {
-		monTbl := biz.qry.Minion
+		monTbl := sst.qry.Minion
 		mon, err := monTbl.WithContext(ctx).
 			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+			sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 	}
 
@@ -282,9 +271,9 @@ func (biz *substanceService) Delete(ctx context.Context, id int64) error {
 
 // Reload 命令 agent 节点重新加载指定配置。
 // 该配置必须在该 agent 上发布且已启用，注意要防止越权重启。
-func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
+func (sst *Substance) Reload(ctx context.Context, mid, sid int64) error {
 	// 检查 minion 节点
-	monTbl := biz.qry.Minion
+	monTbl := sst.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).
@@ -293,12 +282,12 @@ func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 		return err
 	}
 	status := mon.Status
-	if status != model.MSOnline && status != model.MSOffline {
+	if status != model.MSOnline {
 		return errcode.ErrNodeStatus
 	}
 
 	// 1. 查询配置是否存在
-	tbl := biz.qry.Substance
+	tbl := sst.qry.Substance
 	sub, err := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.MinionID).
 		Where(tbl.ID.Eq(sid)).
@@ -309,16 +298,22 @@ func (biz *substanceService) Reload(ctx context.Context, mid, sid int64) error {
 	if did := sub.MinionID; did != 0 && did != mid {
 		return errcode.ErrExceedAuthority
 	}
+	// TODO 检查是否排除
 
-	biz.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
+	sst.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
 
 	return nil
 }
 
 // Resync 重新同步节点上的配置状态
-func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
+func (sst *Substance) Resync(ctx context.Context, mid int64) error {
+	// 先清除现有上报的配置
+	taskTbl := sst.qry.MinionTask
+	taskDao := taskTbl.WithContext(ctx)
+	_, _ = taskDao.Where(taskTbl.MinionID.Eq(mid)).Delete()
+
 	// 检查 minion 节点
-	monTbl := biz.qry.Minion
+	monTbl := sst.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Inet, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).
@@ -331,15 +326,15 @@ func (biz *substanceService) Resync(ctx context.Context, mid int64) error {
 		return errcode.ErrNodeStatus
 	}
 
-	biz.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+	sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 
 	return nil
 }
 
 // Command 向指定节点发送指令
-func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string) error {
+func (sst *Substance) Command(ctx context.Context, mid int64, cmd string) error {
 	// 检查 minion 节点
-	monTbl := biz.qry.Minion
+	monTbl := sst.qry.Minion
 	mon, err := monTbl.WithContext(ctx).
 		Select(monTbl.ID, monTbl.Status, monTbl.BrokerID).
 		Where(monTbl.ID.Eq(mid)).
@@ -352,7 +347,63 @@ func (biz *substanceService) Command(ctx context.Context, mid int64, cmd string)
 		return errcode.ErrNodeStatus
 	}
 
-	biz.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
+	sst.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
+
+	return nil
+}
+
+// Exclude 将某个节点排除某个配置不下发。
+func (sst *Substance) Exclude(ctx context.Context, minionID, subID int64) error {
+	// 查询节点信息
+	monTbl := sst.qry.Minion
+	monDao := monTbl.WithContext(ctx)
+	if cnt, err := monDao.Where(monTbl.ID.Eq(minionID)).Count(); err != nil {
+		return err
+	} else if cnt == 0 {
+		return errcode.ErrNodeNotExist
+	}
+
+	// 查询配置信息
+	subTbl := sst.qry.Substance
+	subDao := subTbl.WithContext(ctx)
+	if cnt, err := subDao.Where(subTbl.ID.Eq(subID)).Count(); err != nil {
+		return err
+	} else if cnt == 0 {
+		return errcode.ErrSubstanceNotExist
+	}
+
+	// 排除节点
+	mod := &model.MinionSubstanceExclude{
+		MinionID:    minionID,
+		SubstanceID: subID,
+	}
+	mseTbl := sst.qry.MinionSubstanceExclude
+	mseDao := mseTbl.WithContext(ctx)
+	if err := mseDao.Create(mod); err != nil {
+		return err
+	}
+
+	// 通知节点刷新配置
+	_ = sst.Resync(ctx, minionID)
+
+	return nil
+}
+
+// Unexclude 移出排除列表。
+func (sst *Substance) Unexclude(ctx context.Context, minionID, subID int64) error {
+	mseTbl := sst.qry.MinionSubstanceExclude
+	mseDao := mseTbl.WithContext(ctx)
+
+	wheres := []gen.Condition{mseTbl.MinionID.Eq(minionID), mseTbl.SubstanceID.Eq(subID)}
+	ret, err := mseDao.Where(wheres...).Delete()
+	if err != nil {
+		return err
+	} else if ret.RowsAffected == 0 {
+		return nil
+	}
+
+	// 通知节点刷新配置
+	_ = sst.Resync(ctx, minionID)
 
 	return nil
 }

@@ -9,17 +9,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Store(svc service.StoreService) route.Router {
-	return &storeREST{
+func NewStore(svc *service.Store) *Store {
+	return &Store{
 		svc: svc,
 	}
 }
 
-type storeREST struct {
-	svc service.StoreService
+type Store struct {
+	svc *service.Store
 }
 
-func (rest *storeREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Store) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/store/indices").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/stores").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/store").
@@ -28,7 +28,7 @@ func (rest *storeREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除模板")).DELETE(rest.Delete)
 }
 
-func (rest *storeREST) Page(c *ship.Context) error {
+func (rest *Store) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -43,7 +43,7 @@ func (rest *storeREST) Page(c *ship.Context) error {
 }
 
 // Detail 查询单个配置数据
-func (rest *storeREST) Detail(c *ship.Context) error {
+func (rest *Store) Detail(c *ship.Context) error {
 	id := c.Query("id")
 	ctx := c.Request().Context()
 	res, err := rest.svc.FindID(ctx, id)
@@ -53,7 +53,7 @@ func (rest *storeREST) Detail(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *storeREST) Upsert(c *ship.Context) error {
+func (rest *Store) Upsert(c *ship.Context) error {
 	var req param.StoreUpsert
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -64,7 +64,7 @@ func (rest *storeREST) Upsert(c *ship.Context) error {
 	return rest.svc.Upsert(ctx, &req)
 }
 
-func (rest *storeREST) Delete(c *ship.Context) error {
+func (rest *Store) Delete(c *ship.Context) error {
 	id := c.Query("id")
 	ctx := c.Request().Context()
 

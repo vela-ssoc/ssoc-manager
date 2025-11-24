@@ -12,26 +12,19 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 )
 
-type EventService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event)
-	Confirm(ctx context.Context, id []int64) error
-	Delete(ctx context.Context, scope dynsql.Scope) error
-	HTML(ctx context.Context, id int64, secret string) *bytes.Buffer
-}
-
-func Event(qry *query.Query, store storage.Storer) EventService {
-	return &eventService{
+func NewEvent(qry *query.Query, store storage.Storer) *Event {
+	return &Event{
 		qry:   qry,
 		store: store,
 	}
 }
 
-type eventService struct {
+type Event struct {
 	qry   *query.Query
 	store storage.Storer
 }
 
-func (biz *eventService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event) {
+func (biz *Event) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.Event) {
 	tbl := biz.qry.Event
 	db := tbl.WithContext(ctx).
 		Where(tbl.HaveRead.Is(false)).
@@ -50,7 +43,7 @@ func (biz *eventService) Page(ctx context.Context, page param.Pager, scope dynsq
 	return count, dats
 }
 
-func (biz *eventService) Confirm(ctx context.Context, id []int64) error {
+func (biz *Event) Confirm(ctx context.Context, id []int64) error {
 	tbl := biz.qry.Event
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.In(id...), tbl.HaveRead.Is(false)).
@@ -62,7 +55,7 @@ func (biz *eventService) Confirm(ctx context.Context, id []int64) error {
 	return errcode.ErrOperateFailed
 }
 
-func (biz *eventService) Delete(ctx context.Context, scope dynsql.Scope) error {
+func (biz *Event) Delete(ctx context.Context, scope dynsql.Scope) error {
 	ret := biz.qry.Event.WithContext(ctx).
 		UnderlyingDB().
 		Scopes(scope.Where).
@@ -74,7 +67,7 @@ func (biz *eventService) Delete(ctx context.Context, scope dynsql.Scope) error {
 	return errcode.ErrDeleteFailed
 }
 
-func (biz *eventService) HTML(ctx context.Context, id int64, secret string) *bytes.Buffer {
+func (biz *Event) HTML(ctx context.Context, id int64, secret string) *bytes.Buffer {
 	tbl := biz.qry.Event
 	evt, _ := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id), tbl.Secret.Eq(secret), tbl.SendAlert.Is(true)).

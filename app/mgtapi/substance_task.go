@@ -13,7 +13,7 @@ import (
 	"gorm.io/gen/field"
 )
 
-func SubstanceTask(qry *query.Query, svc service.SubstanceTaskService) route.Router {
+func NewSubstanceTask(qry *query.Query, svc *service.SubstanceTask) *SubstanceTask {
 	inetKey := "inet"
 	bnameKey := "broker_name"
 	reasonKey := "reason"
@@ -38,31 +38,31 @@ func SubstanceTask(qry *query.Query, svc service.SubstanceTaskService) route.Rou
 		reasonKey: dao.Reason,
 	}
 
-	return &substanceTaskREST{
+	return &SubstanceTask{
 		svc:   svc,
 		tbl:   tbl,
 		likes: likes,
 	}
 }
 
-type substanceTaskREST struct {
-	svc   service.SubstanceTaskService
+type SubstanceTask struct {
+	svc   *service.SubstanceTask
 	tbl   dynsql.Table
 	likes map[string]field.String
 }
 
-func (rest *substanceTaskREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *SubstanceTask) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/effect/progress/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/effect/progresses").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/effect/progress/histories").Data(route.Ignore()).GET(rest.Histories)
 }
 
-func (rest *substanceTaskREST) Cond(c *ship.Context) error {
+func (rest *SubstanceTask) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *substanceTaskREST) Page(c *ship.Context) error {
+func (rest *SubstanceTask) Page(c *ship.Context) error {
 	var req param.IDPageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -80,7 +80,7 @@ func (rest *substanceTaskREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *substanceTaskREST) keywordSQL(input dynsql.Input, keyword string) []gen.Condition {
+func (rest *SubstanceTask) keywordSQL(input dynsql.Input, keyword string) []gen.Condition {
 	if keyword == "" {
 		return nil
 	}
@@ -101,7 +101,7 @@ func (rest *substanceTaskREST) keywordSQL(input dynsql.Input, keyword string) []
 	return ret
 }
 
-func (rest *substanceTaskREST) Histories(c *ship.Context) error {
+func (rest *SubstanceTask) Histories(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

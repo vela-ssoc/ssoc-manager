@@ -8,21 +8,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type MinionAccountService interface {
-	Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount)
-}
-
-func MinionAccount(qry *query.Query) MinionAccountService {
-	return &minionAccountService{
+func NewMinionAccount(qry *query.Query) *MinionAccount {
+	return &MinionAccount{
 		qry: qry,
 	}
 }
 
-type minionAccountService struct {
+type MinionAccount struct {
 	qry *query.Query
 }
 
-func (biz *minionAccountService) Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount) {
+func (biz *MinionAccount) Page(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionAccount) {
 	tbl := biz.qry.MinionAccount
 	dao := tbl.WithContext(ctx).
 		Order(tbl.ID.Desc())

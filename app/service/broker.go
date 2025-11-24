@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
-	"math/rand"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
@@ -13,31 +13,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-type BrokerService interface {
-	Page(ctx context.Context, page param.Pager) (int64, mrequest.BrokerSummaries)
-	Indices(ctx context.Context, idx param.Indexer) []*model.Broker
-	Create(ctx context.Context, req *mrequest.BrokerCreate) error
-	Update(ctx context.Context, req *mrequest.BrokerUpdate) error
-	Delete(ctx context.Context, id int64) error
-	Goos(ctx context.Context) []*mrequest.BrokerGoos
-	Stats(ctx context.Context) ([]*model.BrokerStat, error)
-}
-
-func Broker(qry *query.Query) BrokerService {
-	nano := time.Now().UnixNano()
-	random := rand.New(rand.NewSource(nano))
-	return &brokerService{
-		qry:    qry,
-		random: random,
+func NewBroker(qry *query.Query) *Broker {
+	return &Broker{
+		qry: qry,
 	}
 }
 
-type brokerService struct {
-	qry    *query.Query
-	random *rand.Rand
+type Broker struct {
+	qry *query.Query
 }
 
-func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, mrequest.BrokerSummaries) {
+func (biz *Broker) Page(ctx context.Context, page param.Pager) (int64, mrequest.BrokerSummaries) {
 	tbl := biz.qry.Broker
 	dao := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
@@ -72,7 +58,7 @@ func (biz *brokerService) Page(ctx context.Context, page param.Pager) (int64, mr
 	return count, ret
 }
 
-func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*model.Broker {
+func (biz *Broker) Indices(ctx context.Context, idx param.Indexer) []*model.Broker {
 	tbl := biz.qry.Broker
 	dao := tbl.WithContext(ctx).Order(tbl.ID)
 	if kw := idx.Keyword(); kw != "" {
@@ -84,7 +70,7 @@ func (biz *brokerService) Indices(ctx context.Context, idx param.Indexer) []*mod
 	return dats
 }
 
-func (biz *brokerService) Create(ctx context.Context, req *mrequest.BrokerCreate) error {
+func (biz *Broker) Create(ctx context.Context, req *mrequest.BrokerCreate) error {
 	if certID := req.CertID; certID != 0 {
 		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
@@ -94,7 +80,7 @@ func (biz *brokerService) Create(ctx context.Context, req *mrequest.BrokerCreate
 	}
 
 	buf := make([]byte, 20)
-	biz.random.Read(buf)
+	rand.Read(buf)
 	secret := hex.EncodeToString(buf)
 
 	now := time.Now()
@@ -116,7 +102,7 @@ func (biz *brokerService) Create(ctx context.Context, req *mrequest.BrokerCreate
 		Create(brk)
 }
 
-func (biz *brokerService) Update(ctx context.Context, req *mrequest.BrokerUpdate) error {
+func (biz *Broker) Update(ctx context.Context, req *mrequest.BrokerUpdate) error {
 	if certID := req.CertID; certID != 0 {
 		tbl := biz.qry.Certificate
 		count, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(certID)).Count()
@@ -143,7 +129,7 @@ func (biz *brokerService) Update(ctx context.Context, req *mrequest.BrokerUpdate
 		Save(brk)
 }
 
-func (biz *brokerService) Delete(ctx context.Context, id int64) error {
+func (biz *Broker) Delete(ctx context.Context, id int64) error {
 	// 查询节点是否在线，在线的节点目前不允许删除
 	tbl := biz.qry.Broker
 	brk, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
@@ -159,7 +145,7 @@ func (biz *brokerService) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *brokerService) Goos(ctx context.Context) []*mrequest.BrokerGoos {
+func (biz *Broker) Goos(ctx context.Context) []*mrequest.BrokerGoos {
 	strSQL := "SELECT broker_id AS id, " +
 		"COUNT(IF(goos = 'linux', TRUE, NULL))   AS linux,   " +
 		"COUNT(IF(goos = 'windows', TRUE, NULL)) AS windows, " +
@@ -207,7 +193,7 @@ func (biz *brokerService) Goos(ctx context.Context) []*mrequest.BrokerGoos {
 	return ret
 }
 
-func (biz *brokerService) Stats(ctx context.Context) ([]*model.BrokerStat, error) {
+func (biz *Broker) Stats(ctx context.Context) ([]*model.BrokerStat, error) {
 	tbl := biz.qry.BrokerStat
 	return tbl.WithContext(ctx).Order(tbl.ID).Limit(100).Find()
 }

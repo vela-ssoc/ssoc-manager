@@ -10,34 +10,34 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func PassDNS(svc service.PassDNSService) route.Router {
+func NewPassDNS(svc *service.PassDNS) *PassDNS {
 	tbl := dynsql.Builder().Filters(
 		dynsql.StringColumn("domain", "域名").Build(),
 		dynsql.StringColumn("kind", "数据维度").Build(),
 		dynsql.TimeColumn("before_at", "有效期").Build(),
 	).Build()
-	return &passDNSREST{
+	return &PassDNS{
 		svc: svc,
 		tbl: tbl,
 	}
 }
 
-type passDNSREST struct {
-	svc service.PassDNSService
+type PassDNS struct {
+	svc *service.PassDNS
 	tbl dynsql.Table
 }
 
-func (rest *passDNSREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *PassDNS) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/passdns/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/passdnss").Data(route.Ignore()).POST(rest.Page)
 }
 
-func (rest *passDNSREST) Cond(c *ship.Context) error {
+func (rest *PassDNS) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *passDNSREST) Page(c *ship.Context) error {
+func (rest *PassDNS) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err

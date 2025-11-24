@@ -9,21 +9,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type RiskDNSService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskDNS)
-}
-
-func RiskDNS(qry *query.Query) RiskDNSService {
-	return &riskDNSService{
+func NewRiskDNS(qry *query.Query) *RiskDNS {
+	return &RiskDNS{
 		qry: qry,
 	}
 }
 
-type riskDNSService struct {
+type RiskDNS struct {
 	qry *query.Query
 }
 
-func (biz *riskDNSService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskDNS) {
+func (biz *RiskDNS) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.RiskDNS) {
 	tbl := biz.qry.RiskDNS
 	db := tbl.WithContext(ctx).UnderlyingDB().Scopes(scope.Where)
 	var count int64

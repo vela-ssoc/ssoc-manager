@@ -22,34 +22,26 @@ type StoreConfigurer interface {
 	Validate([]byte) error
 }
 
-type StoreService interface {
-	FindID(ctx context.Context, id string) (*model.Store, error)
-	FindJSON(ctx context.Context, id string, v any) error
-	Page(ctx context.Context, page param.Pager) (int64, []*model.Store)
-	Upsert(ctx context.Context, req *param.StoreUpsert) error
-	Delete(ctx context.Context, id string) error
-}
-
-type storeService struct {
+type Store struct {
 	qry    *query.Query
 	pusher push.Pusher
 	store  storage.Storer
 }
 
-func Store(qry *query.Query, pusher push.Pusher, store storage.Storer) StoreService {
-	return &storeService{
+func NewStore(qry *query.Query, pusher push.Pusher, store storage.Storer) *Store {
+	return &Store{
 		qry:    qry,
 		pusher: pusher,
 		store:  store,
 	}
 }
 
-func (biz *storeService) FindID(ctx context.Context, id string) (*model.Store, error) {
+func (biz *Store) FindID(ctx context.Context, id string) (*model.Store, error) {
 	tbl := biz.qry.Store
 	return tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 }
 
-func (biz *storeService) FindJSON(ctx context.Context, id string, v any) error {
+func (biz *Store) FindJSON(ctx context.Context, id string, v any) error {
 	dat, err := biz.FindID(ctx, id)
 	if err != nil {
 		return err
@@ -57,7 +49,7 @@ func (biz *storeService) FindJSON(ctx context.Context, id string, v any) error {
 	return json.Unmarshal(dat.Value, v)
 }
 
-func (biz *storeService) Page(ctx context.Context, page param.Pager) (int64, []*model.Store) {
+func (biz *Store) Page(ctx context.Context, page param.Pager) (int64, []*model.Store) {
 	tbl := biz.qry.Store
 	count, err := tbl.WithContext(ctx).Count()
 	if err != nil || count == 0 {
@@ -69,7 +61,7 @@ func (biz *storeService) Page(ctx context.Context, page param.Pager) (int64, []*
 	return count, dats
 }
 
-func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) error {
+func (biz *Store) Upsert(ctx context.Context, req *param.StoreUpsert) error {
 	id, val := req.ID, req.Value
 	if err := biz.store.Validate(id, val); err != nil {
 		return err
@@ -107,7 +99,7 @@ func (biz *storeService) Upsert(ctx context.Context, req *param.StoreUpsert) err
 	return nil
 }
 
-func (biz *storeService) Delete(ctx context.Context, id string) error {
+func (biz *Store) Delete(ctx context.Context, id string) error {
 	tbl := biz.qry.Store
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).

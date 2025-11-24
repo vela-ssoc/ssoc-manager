@@ -17,32 +17,26 @@ import (
 	"gorm.io/gen"
 )
 
-type DeployService interface {
-	LAN(ctx context.Context) string
-	Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error)
-	OpenMinion(ctx context.Context, req *mrequest.DeployMinionDownload) (gridfs.File, error)
-}
-
-func Deploy(qry *query.Query, store storage.Storer, gfs gridfs.FS) DeployService {
-	return &deployService{
+func NewDeploy(qry *query.Query, store storage.Storer, gfs gridfs.FS) *Deploy {
+	return &Deploy{
 		qry:   qry,
 		store: store,
 		gfs:   gfs,
 	}
 }
 
-type deployService struct {
+type Deploy struct {
 	qry   *query.Query
 	store storage.Storer
 	gfs   gridfs.FS
 }
 
-func (biz *deployService) LAN(ctx context.Context) string {
+func (biz *Deploy) LAN(ctx context.Context) string {
 	addr, _ := biz.store.LocalAddr(ctx)
 	return addr
 }
 
-func (biz *deployService) OpenMinion(ctx context.Context, req *mrequest.DeployMinionDownload) (gridfs.File, error) {
+func (biz *Deploy) OpenMinion(ctx context.Context, req *mrequest.DeployMinionDownload) (gridfs.File, error) {
 	// 查询 broker 节点信息
 	brkTbl := biz.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).Where(brkTbl.ID.Eq(req.BrokerID)).First()
@@ -109,12 +103,12 @@ func (biz *deployService) OpenMinion(ctx context.Context, req *mrequest.DeployMi
 	return file, nil
 }
 
-func (biz *deployService) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
+func (biz *Deploy) Script(ctx context.Context, goos string, data *modview.Deploy) (io.Reader, error) {
 	buf := biz.store.DeployScript(ctx, goos, data)
 	return buf, nil
 }
 
-func (biz *deployService) matchBinary(ctx context.Context, req *mrequest.DeployMinionDownload) (*model.MinionBin, error) {
+func (biz *Deploy) matchBinary(ctx context.Context, req *mrequest.DeployMinionDownload) (*model.MinionBin, error) {
 	tbl := biz.qry.MinionBin
 	if binID := req.ID; binID != 0 { // 如果显式指定了 id，则按照 ID 匹配。
 		bin, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(binID)).First()

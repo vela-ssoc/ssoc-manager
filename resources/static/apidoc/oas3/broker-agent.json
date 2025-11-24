@@ -1,0 +1,211 @@
+{
+  "openapi": "3.0.0",
+  "x-stoplight": {
+    "id": "f4pvi2sx56all"
+  },
+  "info": {
+    "title": "【SSOC】Broker-Agent 内部通信接口文档",
+    "version": "2.0",
+    "contact": {
+      "name": "WangZY",
+      "url": "https://example.com",
+      "email": "nil@example.com"
+    },
+    "license": {
+      "name": "https://example.com"
+    },
+    "description": "该接口仅在 agent 连接成功后，在虚拟通道中内部调用。"
+  },
+  "servers": [
+    {
+      "url": "http://tunnel.internal/api/v1",
+      "description": "仅内部通道可用"
+    }
+  ],
+  "tags": [
+    {
+      "name": "三方文件"
+    },
+    {
+      "name": "日志"
+    }
+  ],
+  "paths": {
+    "/broker/third": {
+      "get": {
+        "summary": "下载三方文件",
+        "tags": [
+          "三方文件"
+        ],
+        "responses": {
+          "200": {
+            "description": "文件下载流",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "说明 agent 上的三方文件和中心端的哈希一致，无需浪费流量下载。"
+          }
+        },
+        "operationId": "get-broker-third",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "honey.lua"
+            },
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "description": "文件名"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "f4d8beb391b507e5d514d99dc6ddd7ff"
+            },
+            "in": "query",
+            "name": "hash",
+            "description": "文件哈希，一般是 md5。"
+          }
+        ],
+        "description": "`hash`: agent 可以选择是否传递该值。如果请求时带了 hash，则中心端会判断当前的三方文件与 agent 缓存的 hash 是否一致，如果一致则说明中心端的文件与 agent 缓存的保持一致，返回 [304 状态码](https://developer.mozilla.org/docs/Web/HTTP/Reference/Status/304)。如果不一致则返回最新文件的下载流。"
+      }
+    },
+    "/broker/thirds": {
+      "get": {
+        "summary": "获取三方文件列表",
+        "tags": [
+          "三方文件"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "x-stoplight": {
+                      "id": "wwb1wow6adh6i"
+                    },
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "x-stoplight": {
+                          "id": "yy5sttzpb0d54"
+                        },
+                        "description": "文件名",
+                        "example": "honey.lua"
+                      },
+                      "customized": {
+                        "type": "string",
+                        "x-stoplight": {
+                          "id": "hhj2mqksdh9hr"
+                        },
+                        "description": "目录分类",
+                        "example": "测试目录"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "customized"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-broker-thirds",
+        "description": "获取三方文件列表",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "测试目录"
+            },
+            "in": "query",
+            "name": "customized",
+            "description": "目录（分类）"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "*.lua"
+            },
+            "in": "query",
+            "name": "pattern",
+            "description": "文件名搜索，完全遵循 [path.Match](https://pkg.go.dev/path#Match) 要求。"
+          }
+        ]
+      }
+    },
+    "/console/write": {
+      "post": {
+        "summary": "agent 向 broker 写入控制台日志",
+        "operationId": "post-console-write",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "description": "agent 向 broker 写入控制台日志。",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "jh5gstc83bnam"
+                    },
+                    "description": "日志内容",
+                    "example": "hello world"
+                  },
+                  "level": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "vxufllns00y2r"
+                    },
+                    "description": "级别",
+                    "example": "INFO"
+                  },
+                  "from": {
+                    "type": "string",
+                    "x-stoplight": {
+                      "id": "4rdh2f3mawe34"
+                    },
+                    "description": "来源模块",
+                    "example": "os-scan"
+                  }
+                },
+                "required": [
+                  "content",
+                  "level",
+                  "from"
+                ]
+              }
+            }
+          },
+          "description": ""
+        },
+        "tags": [
+          "日志"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

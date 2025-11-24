@@ -10,27 +10,27 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionAccount(svc service.MinionAccountService) route.Router {
-	return &minionAccountREST{
+func NewMinionAccount(svc *service.MinionAccount) *MinionAccount {
+	return &MinionAccount{
 		svc: svc,
 	}
 }
 
-type minionAccountREST struct {
-	svc   service.MinionAccountService
+type MinionAccount struct {
+	svc   *service.MinionAccount
 	table dynsql.Table
 }
 
-func (rest *minionAccountREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *MinionAccount) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/accounts").Data(route.Ignore()).GET(rest.Page)
 }
 
-func (rest *minionAccountREST) Cond(c *ship.Context) error {
+func (rest *MinionAccount) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionAccountREST) Page(c *ship.Context) error {
+func (rest *MinionAccount) Page(c *ship.Context) error {
 	var req param.MinionAccountPage
 	if err := c.BindQuery(&req); err != nil {
 		return err

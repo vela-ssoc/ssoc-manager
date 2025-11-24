@@ -26,16 +26,21 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/validate"
+	"github.com/vela-ssoc/ssoc-common-mb/validation"
+	"github.com/vela-ssoc/ssoc-common/data/datatype"
+	linkhub2 "github.com/vela-ssoc/ssoc-common/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/app/brkapi"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	"github.com/vela-ssoc/ssoc-manager/app/middle"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
+	exposeapi "github.com/vela-ssoc/ssoc-manager/applet/expose/restapi"
+	exposesvc "github.com/vela-ssoc/ssoc-manager/applet/expose/service"
 	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
+	"github.com/vela-ssoc/ssoc-manager/channel/serverd"
 	"github.com/vela-ssoc/ssoc-manager/confload"
 	"github.com/vela-ssoc/ssoc-manager/integration/casauth"
 	"github.com/vela-ssoc/ssoc-manager/integration/cmdb2"
@@ -116,7 +121,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	prob := problem.NewHandle(name)
 	sess := session.DBSess(qry, cfg.Server.Session.Duration())
-	valid := validate.New()
+	valid := validation.New()
+	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+		return err
+	}
 
 	sh := ship.Default()
 	sh.Logger = shipx.NewLog(log)
@@ -145,7 +153,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	dongCli := dong.NewAlert(alertServerSvc)
 
 	// 初始化协程池
-	pool := gopool.NewV2(8192)
+	pool := gopool.New(4096)
 	crond := cronv3.New(log)
 	crond.Start()
 	defer crond.Stop()
@@ -172,9 +180,9 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	huber := linkhub.New(qry, brkmux, pool, cfg) // 将连接中心注入到 broker 接入网关中
 	pusher := push.NewPush(qry, huber)
-	brkHandle := blink.New(huber)        // 将 broker 网关注入到 blink service 中
-	blinkREST := mgtapi.Blink(brkHandle) // 构造 REST 层
-	blinkREST.Route(anon, bearer, basic) // 注册路由用于调用
+	brkHandle := blink.New(huber)           // 将 broker 网关注入到 blink service 中
+	blinkREST := mgtapi.NewBlink(brkHandle) // 构造 REST 层
+	blinkREST.Route(anon, bearer, basic)    // 注册路由用于调用
 	if err = huber.ResetDB(); err != nil {
 		return err
 	}
@@ -183,16 +191,16 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	httpClient := httpx.NewClient()
 	casClient := casauth.NewClient(confload.NewCAS(cfg.Oauth.CAS), httpClient, log)
 
-	emcService := service.Emc(qry, pusher)
-	emcREST := mgtapi.Emc(emcService)
+	emcService := service.NewEmc(qry, pusher)
+	emcREST := mgtapi.NewEmc(emcService)
 	emcREST.Route(anon, bearer, basic)
 	store := storage.NewStore(qry)
 
-	digestService := service.Digest()
+	digestService := service.NewDigest()
 	sequenceService := service.Sequence()
 
-	userService := service.User(qry, digestService, casClient, log)
-	userREST := mgtapi.User(userService)
+	userService := service.NewUser(qry, digestService, casClient, log)
+	userREST := mgtapi.NewUser(userService)
 	userREST.Route(anon, bearer, basic)
 
 	if dbCfg.Migrate {
@@ -202,12 +210,12 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		}
 	}
 
-	loginLockService := service.LoginLock(qry, time.Hour, 10) // 每小时错误 10 次就锁定账户
+	loginLockService := service.NewLoginLock(qry, time.Hour, 10) // 每小时错误 10 次就锁定账户
 
 	oauthCfg := confload.NewOauth(cfg.Oauth.URL, cfg.Oauth.ClientID, cfg.Oauth.ClientSecret, cfg.Oauth.RedirectURL)
 	oauthClient := oauth.NewClient(oauthCfg, httpClient, log)
-	authService := service.Auth(qry, loginLockService, userService, oauthClient)
-	authREST := mgtapi.Auth(authService)
+	authService := service.NewAuth(qry, loginLockService, userService, oauthClient)
+	authREST := mgtapi.NewAuth(authService)
 	authREST.Route(anon, bearer, basic)
 
 	minionFilterSvc, err := service.NewMinionFilter(qry)
@@ -217,12 +225,12 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client)
-	minionService := service.Minion(qry, cmdbClient, pusher, minionFilterSvc)
-	minionREST := mgtapi.Minion(qry, huber, minionService)
+	minionService := service.NewMinion(qry, cmdbClient, pusher, minionFilterSvc)
+	minionREST := mgtapi.NewMinion(qry, huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
 	intoService := service.Into(qry, huber)
-	intoREST := mgtapi.Into(intoService, headerKey, queryKey)
+	intoREST := mgtapi.NewInto(intoService, headerKey, queryKey)
 	intoREST.Route(anon, bearer, basic)
 
 	luaTemplateSvc := service.NewLuaTemplate()
@@ -245,7 +253,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	taskExecuteItemAPI.Route(anon, bearer, basic)
 
 	{
-		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(5*time.Minute), func() {
+		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(30*time.Second), func() {
 			cctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 			defer cancel()
 			taskExecuteSvc.TimeoutMonitor(cctx)
@@ -253,36 +261,37 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	}
 
 	taskExtensionSvc := service.NewTaskExtension(qry, huber, minionFilterSvc, crond)
+	taskExtensionSvc.Init(ctx) // 启动自动加入任务
 	taskExtensionAPI := mgtapi.NewTaskExtension(taskExtensionSvc)
 	taskExtensionAPI.Route(anon, bearer, basic)
 
-	tagService := service.Tag(qry, pusher)
-	tagREST := mgtapi.Tag(tagService)
+	tagService := service.NewTag(qry, pusher)
+	tagREST := mgtapi.NewTag(tagService)
 	tagREST.Route(anon, bearer, basic)
 
-	substanceTaskService := service.SubstanceTask(qry, sequenceService, pusher)
+	substanceTaskService := service.NewSubstanceTask(qry, sequenceService, pusher)
 
 	// -----[ 配置与发布 ]-----
-	substanceService := service.Substance(qry, pusher, digestService, substanceTaskService)
-	substanceREST := mgtapi.Substance(substanceService)
+	substanceService := service.NewSubstance(qry, pusher, digestService, substanceTaskService)
+	substanceREST := mgtapi.NewSubstance(substanceService)
 	substanceREST.Route(anon, bearer, basic)
 
-	effectService := service.Effect(qry, pusher, sequenceService, substanceTaskService)
-	effectREST := mgtapi.Effect(effectService)
+	effectService := service.NewEffect(qry, pusher, sequenceService, substanceTaskService)
+	effectREST := mgtapi.NewEffect(effectService)
 	effectREST.Route(anon, bearer, basic)
 
-	substanceTaskREST := mgtapi.SubstanceTask(qry, substanceTaskService)
+	substanceTaskREST := mgtapi.NewSubstanceTask(qry, substanceTaskService)
 	substanceTaskREST.Route(anon, bearer, basic)
 	// -----[ 配置与发布 ]-----
 
 	esForwardCfg := elastic.NewConfigure(qry, name)
 	esForward := elastic.NewSearch(esForwardCfg, client)
-	elasticService := service.Elastic(qry, pusher, esForward, esForwardCfg, client)
-	elasticREST := mgtapi.Elastic(elasticService, headerKey, queryKey)
+	elasticService := service.NewElastic(qry, pusher, esForward, esForwardCfg, client)
+	elasticREST := mgtapi.NewElastic(elasticService, headerKey, queryKey)
 	elasticREST.Route(anon, bearer, basic)
 
-	processService := service.Process(qry)
-	processREST := mgtapi.Process(processService)
+	processService := service.NewProcess(qry)
+	processREST := mgtapi.NewProcess(processService)
 	processREST.Route(anon, bearer, basic)
 
 	alertServerREST := mgtapi.NewAlertServer(alertServerSvc)
@@ -290,157 +299,177 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	siemServerREST := mgtapi.NewSIEMServer(siemServerSvc)
 	siemServerREST.Route(anon, bearer, basic)
 
-	accountService := service.Account(qry)
-	accountREST := mgtapi.Account(accountService)
+	accountService := service.NewAccount(qry)
+	accountREST := mgtapi.NewAccount(accountService)
 	accountREST.Route(anon, bearer, basic)
 
-	oplogService := service.Oplog(qry)
-	oplogREST := mgtapi.Oplog(oplogService)
+	oplogService := service.NewOplog(qry)
+	oplogREST := mgtapi.NewOplog(oplogService)
 	oplogREST.Route(anon, bearer, basic)
 
-	notifierService := service.Notifier(qry, pusher)
-	notifierREST := mgtapi.Notifier(notifierService)
+	notifierService := service.NewNotifier(qry, pusher)
+	notifierREST := mgtapi.NewNotifier(notifierService)
 	notifierREST.Route(anon, bearer, basic)
 
 	minionTaskService := service.NewMinionTask(qry, log)
-	minionTaskREST := mgtapi.MinionTask(minionTaskService)
+	minionTaskREST := mgtapi.NewMinionTask(minionTaskService)
 	minionTaskREST.Route(anon, bearer, basic)
 
 	es := elastic.NewSearch(elastic.NewConfigure(qry, "ES"), client)
-	minionLogonService := service.MinionLogon(qry, es)
-	minionLogonREST := mgtapi.MinionLogon(minionLogonService)
+	minionLogonService := service.NewMinionLogon(qry, es)
+	minionLogonREST := mgtapi.NewMinionLogon(minionLogonService)
 	minionLogonREST.Route(anon, bearer, basic)
 
-	riskService := service.Risk(qry, store)
-	riskREST := mgtapi.Risk(qry, riskService)
+	riskService := service.NewRisk(qry, store)
+	riskREST := mgtapi.NewRisk(riskService)
 	riskREST.Route(anon, bearer, basic)
 
-	passDNSService := service.PassDNS(qry)
-	passDNSREST := mgtapi.PassDNS(passDNSService)
+	passDNSService := service.NewPassDNS(qry)
+	passDNSREST := mgtapi.NewPassDNS(passDNSService)
 	passDNSREST.Route(anon, bearer, basic)
-	passIPService := service.PassIP(qry)
-	passIPREST := mgtapi.PassIP(passIPService)
+	passIPService := service.NewPassIP(qry)
+	passIPREST := mgtapi.NewPassIP(passIPService)
 	passIPREST.Route(anon, bearer, basic)
-	riskDNSService := service.RiskDNS(qry)
-	riskDNSREST := mgtapi.RiskDNS(riskDNSService)
+	riskDNSService := service.NewRiskDNS(qry)
+	riskDNSREST := mgtapi.NewRiskDNS(riskDNSService)
 	riskDNSREST.Route(anon, bearer, basic)
-	riskFileService := service.RiskFile(qry)
-	riskFileREST := mgtapi.RiskFile(riskFileService)
+	riskFileService := service.NewRiskFile(qry)
+	riskFileREST := mgtapi.NewRiskFile(riskFileService)
 	riskFileREST.Route(anon, bearer, basic)
 
-	storeService := service.Store(qry, pusher, store)
-	eventService := service.Event(qry, store)
-	eventREST := mgtapi.Event(eventService)
+	storeService := service.NewStore(qry, pusher, store)
+	eventService := service.NewEvent(qry, store)
+	eventREST := mgtapi.NewEvent(eventService)
 	eventREST.Route(anon, bearer, basic)
-	storeREST := mgtapi.Store(storeService)
+	storeREST := mgtapi.NewStore(storeService)
 	storeREST.Route(anon, bearer, basic)
 
-	sbomComponentService := service.SBOMComponent(qry)
-	sbomComponentREST := mgtapi.SBOMComponent(sbomComponentService)
+	sbomComponentService := service.NewSBOMComponent(qry)
+	sbomComponentREST := mgtapi.NewSBOMComponent(sbomComponentService)
 	sbomComponentREST.Route(anon, bearer, basic)
-	sbomProjectService := service.SBOMProject(qry)
-	sbomProjectREST := mgtapi.SBOMProject(sbomProjectService)
+	sbomProjectService := service.NewSBOMProject(qry)
+	sbomProjectREST := mgtapi.NewSBOMProject(sbomProjectService)
 	sbomProjectREST.Route(anon, bearer, basic)
-	sbomVulnService := service.SBOMVuln(qry)
-	sbomVulnREST := mgtapi.SBOMVuln(sbomVulnService)
+	sbomVulnService := service.NewSBOMVuln(qry)
+	sbomVulnREST := mgtapi.NewSBOMVuln(sbomVulnService)
 	sbomVulnREST.Route(anon, bearer, basic)
 
-	vipService := service.VIP(qry)
-	vipREST := mgtapi.VIP(vipService)
+	vipService := service.NewVIP(qry)
+	vipREST := mgtapi.NewVIP(vipService)
 	vipREST.Route(anon, bearer, basic)
 
-	cmdbService := service.Cmdb(qry)
-	cmdbREST := mgtapi.Cmdb(cmdbService)
+	cmdbService := service.NewCmdb(qry)
+	cmdbREST := mgtapi.NewCmdb(cmdbService)
 	cmdbREST.Route(anon, bearer, basic)
 
-	dashService := service.Dash(qry)
-	dashREST := mgtapi.Dash(dashService)
+	dashService := service.NewDash(qry)
+	dashREST := mgtapi.NewDash(dashService)
 	dashREST.Route(anon, bearer, basic)
 
-	thirdService := service.Third(qry, pusher, gfs)
-	thirdREST := mgtapi.Third(thirdService)
+	thirdService := service.NewThird(qry, pusher, gfs)
+	thirdREST := mgtapi.NewThird(thirdService)
 	thirdREST.Route(anon, bearer, basic)
 
-	thirdCustomizedService := service.ThirdCustomized(qry)
-	thirdCustomizedREST := mgtapi.ThirdCustomized(thirdCustomizedService)
+	thirdCustomizedService := service.NewThirdCustomized(qry)
+	thirdCustomizedREST := mgtapi.NewThirdCustomized(thirdCustomizedService)
 	thirdCustomizedREST.Route(anon, bearer, basic)
 
-	brokerService := service.Broker(qry)
+	brokerService := service.NewBroker(qry)
 	brokerREST := mgtapi.Broker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
 	brokerBinaryService := service.NewBrokerBinary(qry, gfs, store)
-	brokerBinaryREST := mgtapi.BrokerBinary(brokerBinaryService)
+	brokerBinaryREST := mgtapi.NewBrokerBinary(brokerBinaryService)
 	brokerBinaryREST.Route(anon, bearer, basic)
 
 	brokerSystemSvc := service.NewBrokerSystem(huber)
 	brokerSystemAPI := mgtapi.NewBrokerSystem(brokerSystemSvc)
 	brokerSystemAPI.Route(anon, bearer, basic)
 
-	certService := service.Cert(qry)
-	certREST := mgtapi.Cert(certService)
+	certService := service.NewCert(qry)
+	certREST := mgtapi.NewCert(certService)
 	certREST.Route(anon, bearer, basic)
 
 	minionBinaryService := service.NewMinionBinary(qry, pusher, gfs)
-	minionBinaryREST := mgtapi.MinionBinary(minionBinaryService)
+	minionBinaryREST := mgtapi.NewMinionBinary(minionBinaryService)
 	minionBinaryREST.Route(anon, bearer, basic)
 
-	minionListenService := service.MinionListen(qry)
-	minionListenREST := mgtapi.MinionListen(minionListenService)
+	minionListenService := service.NewMinionListen(qry)
+	minionListenREST := mgtapi.NewMinionListen(minionListenService)
 	minionListenREST.Route(anon, bearer, basic)
 
-	minionAccountService := service.MinionAccount(qry)
-	minionAccountREST := mgtapi.MinionAccount(minionAccountService)
+	minionAccountService := service.NewMinionAccount(qry)
+	minionAccountREST := mgtapi.NewMinionAccount(minionAccountService)
 	minionAccountREST.Route(anon, bearer, basic)
 
-	deployService := service.Deploy(qry, store, gfs)
-	deployREST := mgtapi.Deploy(deployService)
+	deployService := service.NewDeploy(qry, store, gfs)
+	deployREST := mgtapi.NewDeploy(deployService)
 	deployREST.Route(anon, bearer, basic)
 
-	domainService := service.Domain(qry)
-	domainREST := mgtapi.Domain(domainService)
+	domainService := service.NewDomain(qry)
+	domainREST := mgtapi.NewDomain(domainService)
 	domainREST.Route(anon, bearer, basic)
 
-	riskIPService := service.RiskIP(qry)
-	riskIPREST := mgtapi.RiskIP(riskIPService)
+	riskIPService := service.NewRiskIP(qry)
+	riskIPREST := mgtapi.NewRiskIP(riskIPService)
 	riskIPREST.Route(anon, bearer, basic)
 
-	minionCustomizedService := service.MinionCustomized(qry)
-	minionCustomizedREST := mgtapi.MinionCustomized(minionCustomizedService)
+	minionCustomizedService := service.NewMinionCustomized(qry)
+	minionCustomizedREST := mgtapi.NewMinionCustomized(minionCustomizedService)
 	minionCustomizedREST.Route(anon, bearer, basic)
 
-	// mgtapi.NewMinionFilter(minionFilterSvc).Route(anon, bearer, basic)
-
-	emailService := service.Email(qry, pusher)
-	emailREST := mgtapi.Email(emailService)
+	emailService := service.NewEmail(qry, pusher)
+	emailREST := mgtapi.NewEmail(emailService)
 	emailREST.Route(anon, bearer, basic)
 
-	startupService := service.Startup(qry, store, pusher)
-	startupREST := mgtapi.Startup(startupService)
+	startupService := service.NewStartup(qry, store, pusher)
+	startupREST := mgtapi.NewStartup(startupService)
 	startupREST.Route(anon, bearer, basic)
 
-	sharedService := service.Shared(qry)
-	sharedAPI := mgtapi.Shared(sharedService)
+	sharedService := service.NewShared(qry)
+	sharedAPI := mgtapi.NewShared(sharedService)
 	sharedAPI.Route(anon, bearer, basic)
 
 	hardConfig := sonatype.HardConfig()
 	sona := sonatype.NewClient(hardConfig, client)
 	synchro := vulnsync.New(db, sona)
-	mgtapi.Manual(synchro).Route(anon, bearer, basic)
+	mgtapi.NewManual(synchro).Route(anon, bearer, basic)
 
 	cmdb2Config := confload.NewCmdb2(cfg.Cmdb2.URL, cfg.Cmdb2.AccessKey, cfg.Cmdb2.SecretKey)
 	cmdb2Client := cmdb2.NewClient(cmdb2Config, httpClient)
-	cmdb2Service := service.Cmdb2(qry, cmdb2Client)
-	mgtapi.Cmdb2(cmdb2Service).Route(anon, bearer, basic)
+	cmdb2Service := service.NewCmdb2(qry, cmdb2Client)
+	mgtapi.NewCmdb2(cmdb2Service).Route(anon, bearer, basic)
 
-	davREST := mgtapi.DavFS(base)
+	agentSvc := exposesvc.NewAgent(qry, log)
+	exposeapi.NewAgentConsole(huber, agentSvc).Route(anon, bearer, basic)
+
+	{
+		cdb := cfg.Database
+		bdc := serverd.Database{
+			DSN:         datatype.Ciphertext(cdb.DSN),
+			MaxOpenConn: cdb.MaxOpenConn,
+			MaxIdleConn: cdb.MaxIdleConn,
+			MaxLifeTime: cdb.MaxLifeTime.Duration(),
+			MaxIdleTime: cdb.MaxIdleTime.Duration(),
+		}
+		brokerHandler := ship.Default()
+		serverdOpt := serverd.NewOption().
+			Handler(brokerHandler).
+			Logger(log)
+		tunnelHandler := serverd.New(qry, bdc, serverdOpt)
+		tunnelUpgrade := linkhub2.NewHTTP(tunnelHandler)
+		tunnelAPI := exposeapi.NewTunnel(tunnelUpgrade)
+		tunnelAPI.BindRoute(anon)
+	}
+
+	davREST := mgtapi.NewDavFS(base)
 	davREST.Route(anon, bearer, basic)
 
 	pprofDir := "resources/pprof"
 	_ = os.RemoveAll(pprofDir)
 	_ = os.MkdirAll(pprofDir, os.ModePerm)
-	pprofService := service.Pprof(qry, pprofDir, pusher)
-	pprofREST := mgtapi.Pprof(pprofService)
+	pprofService := service.NewPprof(qry, pprofDir, pusher)
+	pprofREST := mgtapi.NewPprof(pprofService)
 	pprofREST.Route(anon, bearer, basic)
 
 	app := &application{

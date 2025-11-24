@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func VIP(svc service.VIPService) route.Router {
+func NewVIP(svc *service.VIP) *VIP {
 	vipCol := dynsql.StringColumn("virtual_ip", "公网地址").Build()
 	vportCol := dynsql.IntColumn("virtual_port", "公网端口").Build()
 	deptCol := dynsql.StringColumn("biz_dept", "业务部门").Build()
@@ -19,28 +19,28 @@ func VIP(svc service.VIPService) route.Router {
 	table := dynsql.Builder().
 		Filters(vipCol, vportCol, deptCol, idcCol, batCol).
 		Build()
-	return &vipREST{
+	return &VIP{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type vipREST struct {
-	svc   service.VIPService
+type VIP struct {
+	svc   *service.VIP
 	table dynsql.Table
 }
 
-func (rest *vipREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *VIP) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/vip/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/vips").Data(route.Ignore()).GET(rest.Page)
 }
 
-func (rest *vipREST) Cond(c *ship.Context) error {
+func (rest *VIP) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *vipREST) Page(c *ship.Context) error {
+func (rest *VIP) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

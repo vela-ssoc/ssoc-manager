@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func RiskDNS(svc service.RiskDNSService) route.Router {
+func NewRiskDNS(svc *service.RiskDNS) *RiskDNS {
 	tbl := dynsql.Builder().
 		Filters(
 			dynsql.StringColumn("domain", "域名").Build(),
@@ -19,28 +19,28 @@ func RiskDNS(svc service.RiskDNSService) route.Router {
 		).
 		Build()
 
-	return &riskDNSREST{
+	return &RiskDNS{
 		svc: svc,
 		tbl: tbl,
 	}
 }
 
-type riskDNSREST struct {
-	svc service.RiskDNSService
+type RiskDNS struct {
+	svc *service.RiskDNS
 	tbl dynsql.Table
 }
 
-func (rest *riskDNSREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *RiskDNS) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/riskdns/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/riskdnss").Data(route.Ignore()).POST(rest.Page)
 }
 
-func (rest *riskDNSREST) Cond(c *ship.Context) error {
+func (rest *RiskDNS) Cond(c *ship.Context) error {
 	res := rest.tbl.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskDNSREST) Page(c *ship.Context) error {
+func (rest *RiskDNS) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err

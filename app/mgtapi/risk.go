@@ -16,7 +16,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Risk(qry *query.Query, svc service.RiskService) route.Router {
+func NewRisk(svc *service.Risk) *Risk {
 	riskTypeCol := dynsql.StringColumn("risk_type", "风险类型").Build()
 	subjectCol := dynsql.StringColumn("subject", "主题").Build()
 	inetCol := dynsql.StringColumn("inet", "终端 IP").Build()
@@ -38,19 +38,19 @@ func Risk(qry *query.Query, svc service.RiskService) route.Router {
 		).
 		Groups(subjectCol, riskTypeCol, inetCol, levelCol, statusCol, fromCodeCol).
 		Build()
-	return &riskREST{
+	return &Risk{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type riskREST struct {
+type Risk struct {
 	qry   *query.Query
-	svc   service.RiskService
+	svc   *service.Risk
 	table dynsql.Table
 }
 
-func (rest *riskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Risk) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rest.Attack)
 	anon.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
@@ -68,12 +68,12 @@ func (rest *riskREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("批量处理风险事件")).PATCH(rest.Process)
 }
 
-func (rest *riskREST) Cond(c *ship.Context) error {
+func (rest *Risk) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) Page(c *ship.Context) error {
+func (rest *Risk) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -91,7 +91,7 @@ func (rest *riskREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) Attack(c *ship.Context) error {
+func (rest *Risk) Attack(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -109,7 +109,7 @@ func (rest *riskREST) Attack(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) Group(c *ship.Context) error {
+func (rest *Risk) Group(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -130,7 +130,7 @@ func (rest *riskREST) Group(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) Recent(c *ship.Context) error {
+func (rest *Risk) Recent(c *ship.Context) error {
 	day, _ := strconv.Atoi(c.Query("day"))
 	if day > 30 || day < 1 { // 最多支持30天内查询，参数错误或超过有效范围默认为7天
 		day = 7
@@ -142,11 +142,11 @@ func (rest *riskREST) Recent(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) CSV(c *ship.Context) error {
+func (rest *Risk) CSV(c *ship.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
-func (rest *riskREST) Pie(c *ship.Context) error {
+func (rest *Risk) Pie(c *ship.Context) error {
 	group := c.Query("group")
 	rtype := c.Query("risk_type")
 	topN, _ := strconv.Atoi(c.Query("topn"))
@@ -180,7 +180,7 @@ func (rest *riskREST) Pie(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskREST) Delete(c *ship.Context) error {
+func (rest *Risk) Delete(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -198,7 +198,7 @@ func (rest *riskREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, scope)
 }
 
-func (rest *riskREST) Ignore(c *ship.Context) error {
+func (rest *Risk) Ignore(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -216,7 +216,7 @@ func (rest *riskREST) Ignore(c *ship.Context) error {
 	return rest.svc.Ignore(ctx, scope)
 }
 
-func (rest *riskREST) Process(c *ship.Context) error {
+func (rest *Risk) Process(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -234,7 +234,7 @@ func (rest *riskREST) Process(c *ship.Context) error {
 	return rest.svc.Process(ctx, scope)
 }
 
-func (rest *riskREST) HTML(c *ship.Context) error {
+func (rest *Risk) HTML(c *ship.Context) error {
 	var req mrequest.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -247,7 +247,7 @@ func (rest *riskREST) HTML(c *ship.Context) error {
 	return c.Stream(http.StatusOK, ship.MIMETextHTMLCharsetUTF8, buf)
 }
 
-func (rest *riskREST) Payloads(c *ship.Context) error {
+func (rest *Risk) Payloads(c *ship.Context) error {
 	var req mrequest.RiskPayloadRequest
 	if err := c.BindQuery(&req); err != nil {
 		return err

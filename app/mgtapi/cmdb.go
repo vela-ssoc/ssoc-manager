@@ -9,19 +9,19 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Cmdb(svc service.CmdbService) route.Router {
-	return &cmdbREST{svc: svc}
+func NewCmdb(svc *service.Cmdb) *Cmdb {
+	return &Cmdb{svc: svc}
 }
 
-type cmdbREST struct {
-	svc service.CmdbService
+type Cmdb struct {
+	svc *service.Cmdb
 }
 
-func (rest *cmdbREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Cmdb) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/cmdb").Data(route.Ignore()).GET(rest.Detail)
 }
 
-func (rest *cmdbREST) Detail(c *ship.Context) error {
+func (rest *Cmdb) Detail(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err

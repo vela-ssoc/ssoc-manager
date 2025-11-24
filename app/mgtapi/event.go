@@ -14,7 +14,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Event(svc service.EventService) route.Router {
+func NewEvent(svc *service.Event) *Event {
 	levels := []string{
 		model.ELvlCritical.String(),
 		model.ELvlMajor.String(),
@@ -42,18 +42,18 @@ func Event(svc service.EventService) route.Router {
 	table := dynsql.Builder().
 		Filters(filters...).
 		Build()
-	return &eventREST{
+	return &Event{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type eventREST struct {
-	svc   service.EventService
+type Event struct {
+	svc   *service.Event
 	table dynsql.Table
 }
 
-func (rest *eventREST) Route(nona, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Event) Route(nona, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/event/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/events").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/event/confirm").
@@ -63,12 +63,12 @@ func (rest *eventREST) Route(nona, bearer, _ *ship.RouteGroupBuilder) {
 	nona.Route("/event").Data(route.Ignore()).GET(rest.HTML)
 }
 
-func (rest *eventREST) Cond(c *ship.Context) error {
+func (rest *Event) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *eventREST) Page(c *ship.Context) error {
+func (rest *Event) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -86,7 +86,7 @@ func (rest *eventREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *eventREST) Confirm(c *ship.Context) error {
+func (rest *Event) Confirm(c *ship.Context) error {
 	var req param.OptionalIDs
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -97,7 +97,7 @@ func (rest *eventREST) Confirm(c *ship.Context) error {
 	return rest.svc.Confirm(ctx, req.ID)
 }
 
-func (rest *eventREST) Delete(c *ship.Context) error {
+func (rest *Event) Delete(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -114,7 +114,7 @@ func (rest *eventREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, scope)
 }
 
-func (rest *eventREST) HTML(c *ship.Context) error {
+func (rest *Event) HTML(c *ship.Context) error {
 	var req mrequest.ViewHTML
 	if err := c.BindQuery(&req); err != nil {
 		return err

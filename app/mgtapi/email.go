@@ -11,17 +11,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Email(svc service.EmailService) route.Router {
-	return &emailREST{
+func NewEmail(svc *service.Email) *Email {
+	return &Email{
 		svc: svc,
 	}
 }
 
-type emailREST struct {
-	svc service.EmailService
+type Email struct {
+	svc *service.Email
 }
 
-func (rest *emailREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Email) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/emails").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/email").
 		Data(route.Named("新增邮箱配置")).POST(rest.Create).
@@ -29,7 +29,7 @@ func (rest *emailREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除邮箱配置")).DELETE(rest.Delete)
 }
 
-func (rest *emailREST) Page(c *ship.Context) error {
+func (rest *Email) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -43,7 +43,7 @@ func (rest *emailREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *emailREST) Create(c *ship.Context) error {
+func (rest *Email) Create(c *ship.Context) error {
 	var req mrequest.EmailCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -55,7 +55,7 @@ func (rest *emailREST) Create(c *ship.Context) error {
 	return err
 }
 
-func (rest *emailREST) Update(c *ship.Context) error {
+func (rest *Email) Update(c *ship.Context) error {
 	var req mrequest.EmailUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -67,7 +67,7 @@ func (rest *emailREST) Update(c *ship.Context) error {
 	return err
 }
 
-func (rest *emailREST) Delete(c *ship.Context) error {
+func (rest *Email) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err

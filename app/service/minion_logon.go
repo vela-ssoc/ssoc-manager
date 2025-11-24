@@ -11,28 +11,19 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type MinionLogonService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon)
-	Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionLogonAttack)
-	Recent(ctx context.Context, days int) param.MinionRecent
-	History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon)
-	Ignore(ctx context.Context, id int64) error
-	// Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error)
-}
-
-func MinionLogon(qry *query.Query, es elastic.Searcher) MinionLogonService {
-	return &minionLogonService{
+func NewMinionLogon(qry *query.Query, es elastic.Searcher) *MinionLogon {
+	return &MinionLogon{
 		qry: qry,
 		es:  es,
 	}
 }
 
-type minionLogonService struct {
+type MinionLogon struct {
 	qry *query.Query
 	es  elastic.Searcher
 }
 
-func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon) {
+func (biz *MinionLogon) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.MinionLogon) {
 	tbl := biz.qry.MinionLogon
 	db := tbl.WithContext(ctx).
 		Where(tbl.Ignore.Is(false)).
@@ -50,7 +41,7 @@ func (biz *minionLogonService) Page(ctx context.Context, page param.Pager, scope
 	return count, dats
 }
 
-func (biz *minionLogonService) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionLogonAttack) {
+func (biz *MinionLogon) Attack(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*param.MinionLogonAttack) {
 	tbl := biz.qry.MinionLogon
 	db := tbl.WithContext(ctx).
 		Where(tbl.Ignore.Is(false)).
@@ -72,7 +63,7 @@ func (biz *minionLogonService) Attack(ctx context.Context, page param.Pager, sco
 	return count, dats
 }
 
-func (biz *minionLogonService) Recent(ctx context.Context, days int) param.MinionRecent {
+func (biz *MinionLogon) Recent(ctx context.Context, days int) param.MinionRecent {
 	rawSQL := "SELECT a.date, a.msg, COUNT(*) AS count " +
 		"FROM (SELECT DATE_FORMAT(logon_at, '%m-%d') AS date, msg " +
 		"      FROM minion_logon " +
@@ -91,7 +82,7 @@ func (biz *minionLogonService) Recent(ctx context.Context, days int) param.Minio
 	return res
 }
 
-func (biz *minionLogonService) History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon) {
+func (biz *MinionLogon) History(ctx context.Context, page param.Pager, mid int64, name string) (int64, []*model.MinionLogon) {
 	tbl := biz.qry.MinionLogon
 	dao := tbl.WithContext(ctx)
 	if mid != 0 {
@@ -112,7 +103,7 @@ func (biz *minionLogonService) History(ctx context.Context, page param.Pager, mi
 	return count, dats
 }
 
-func (biz *minionLogonService) Ignore(ctx context.Context, id int64) error {
+func (biz *MinionLogon) Ignore(ctx context.Context, id int64) error {
 	tbl := biz.qry.MinionLogon
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id), tbl.Ignore.Is(false)).
@@ -121,6 +112,6 @@ func (biz *minionLogonService) Ignore(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *minionLogonService) Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error) {
+func (biz *MinionLogon) Count(ctx context.Context, start, end time.Time) (*param.MinionLogonCount, error) {
 	return nil, nil
 }

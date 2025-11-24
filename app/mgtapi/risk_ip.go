@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func RiskIP(svc service.RiskIPService) route.Router {
+func NewRiskIP(svc *service.RiskIP) *RiskIP {
 	filters := []dynsql.Column{
 		dynsql.StringColumn("ip", "IP地址").Build(),
 		dynsql.StringColumn("kind", "风险类型").Build(),
@@ -18,18 +18,18 @@ func RiskIP(svc service.RiskIPService) route.Router {
 		dynsql.TimeColumn("before_at", "有效期").Build(),
 	}
 	table := dynsql.Builder().Filters(filters...).Build()
-	return &riskIPREST{
+	return &RiskIP{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type riskIPREST struct {
-	svc   service.RiskIPService
+type RiskIP struct {
+	svc   *service.RiskIP
 	table dynsql.Table
 }
 
-func (rest *riskIPREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *RiskIP) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/riskip/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/riskips").Data(route.Ignore()).POST(rest.Page)
 	bearer.Route("/riskip").
@@ -39,12 +39,12 @@ func (rest *riskIPREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除风险 IP")).DELETE(rest.Delete)
 }
 
-func (rest *riskIPREST) Cond(c *ship.Context) error {
+func (rest *RiskIP) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskIPREST) Page(c *ship.Context) error {
+func (rest *RiskIP) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -62,7 +62,7 @@ func (rest *riskIPREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *riskIPREST) Create(c *ship.Context) error {
+func (rest *RiskIP) Create(c *ship.Context) error {
 	var req param.RiskIPCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (rest *riskIPREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *riskIPREST) Update(c *ship.Context) error {
+func (rest *RiskIP) Update(c *ship.Context) error {
 	var req param.RiskIPUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (rest *riskIPREST) Update(c *ship.Context) error {
 	return rest.svc.Update(ctx, &req)
 }
 
-func (rest *riskIPREST) Import(c *ship.Context) error {
+func (rest *RiskIP) Import(c *ship.Context) error {
 	var req param.RiskIPImport
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (rest *riskIPREST) Import(c *ship.Context) error {
 	return rest.svc.Import(ctx, &req)
 }
 
-func (rest *riskIPREST) Delete(c *ship.Context) error {
+func (rest *RiskIP) Delete(c *ship.Context) error {
 	var req param.OptionalIDs
 	if err := c.Bind(&req); err != nil || len(req.ID) == 0 {
 		return err

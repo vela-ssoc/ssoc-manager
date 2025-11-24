@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -11,35 +11,27 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/prof"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 )
 
-type PprofService interface {
-	Load(ctx context.Context, node string, second int) (string, error)
-	View(ctx context.Context, name string) (http.Handler, error)
-}
-
-func Pprof(qry *query.Query, dir string, pusher push.Pusher) PprofService {
-	nano := time.Now().UnixNano()
-	random := rand.New(rand.NewSource(nano))
-	return &pprofService{
+func NewPprof(qry *query.Query, dir string, pusher push.Pusher) *Pprof {
+	return &Pprof{
 		qry:    qry,
 		dir:    dir,
-		random: random,
 		pusher: pusher,
 	}
 }
 
-type pprofService struct {
+type Pprof struct {
 	qry    *query.Query
 	dir    string
-	random *rand.Rand
 	pusher push.Pusher
 }
 
-func (svc *pprofService) Load(ctx context.Context, node string, second int) (string, error) {
+func (svc *Pprof) Load(ctx context.Context, node string, second int) (string, error) {
 	id, _ := strconv.ParseInt(node, 10, 64)
 
 	tbl := svc.qry.Minion
@@ -60,19 +52,51 @@ func (svc *pprofService) Load(ctx context.Context, node string, second int) (str
 
 	nano := time.Now().UnixNano()
 	buf := make([]byte, 16)
-	svc.random.Read(buf)
+	_, _ = rand.Read(buf)
 	name := fmt.Sprintf("%d-%d-%x", nano, mid, buf)
 	dest := filepath.Join(svc.dir, name)
 
-	if err = svc.pusher.SavePprof(ctx, bid, mid, second, dest); err != nil {
+	if err = svc.pusher.SavePprof(ctx, bid, mid, second, dest, "profile"); err != nil {
 		return "", err
 	}
 
 	return name, nil
 }
 
-func (svc *pprofService) View(_ context.Context, name string) (http.Handler, error) {
+func (svc *Pprof) View(_ context.Context, name string) (http.Handler, error) {
 	name = filepath.Join("/", name)
 	name = filepath.Join(svc.dir, name)
 	return prof.New(name)
+}
+
+func (svc *Pprof) Dump(ctx context.Context, req *param.PprofDump) (string, error) {
+	id := req.ID
+	tbl := svc.qry.Minion
+	dao := tbl.WithContext(ctx)
+	mon, err := dao.Where(tbl.ID.Eq(id)).First()
+	if err != nil {
+		return "", err
+	}
+
+	status := mon.Status
+	if status == model.MSOffline || status == model.MSDelete {
+		return "", errcode.ErrNodeStatus
+	}
+	bid, mid := mon.BrokerID, mon.ID
+
+	nano := time.Now().UnixNano()
+	buf := make([]byte, 8)
+	_, _ = rand.Read(buf)
+	name := fmt.Sprintf("%d-%d-%x", nano, mid, buf)
+	dest := filepath.Join(svc.dir, name)
+
+	second := req.Second
+	if second <= 0 {
+		second = 30
+	}
+	if err = svc.pusher.SavePprof(ctx, bid, mid, second, dest, req.Type); err != nil {
+		return "", err
+	}
+
+	return name, nil
 }

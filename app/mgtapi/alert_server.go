@@ -9,17 +9,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func NewAlertServer(svc *service.AlertServer) route.Router {
-	return &alertServerREST{
+func NewAlertServer(svc *service.AlertServer) *AlertServer {
+	return &AlertServer{
 		svc: svc,
 	}
 }
 
-type alertServerREST struct {
+type AlertServer struct {
 	svc *service.AlertServer
 }
 
-func (rest *alertServerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *AlertServer) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/alert-server").
 		Data(route.Ignore()).
 		GET(rest.find).
@@ -27,7 +27,7 @@ func (rest *alertServerREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		DELETE(rest.delete)
 }
 
-func (rest *alertServerREST) upsert(c *ship.Context) error {
+func (rest *AlertServer) upsert(c *ship.Context) error {
 	req := new(mrequest.AlertServerUpsert)
 	if err := c.Bind(req); err != nil {
 		return err
@@ -37,12 +37,12 @@ func (rest *alertServerREST) upsert(c *ship.Context) error {
 	return rest.svc.Upsert(ctx, req)
 }
 
-func (rest *alertServerREST) delete(c *ship.Context) error {
+func (rest *AlertServer) delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 	return rest.svc.Delete(ctx)
 }
 
-func (rest *alertServerREST) find(c *ship.Context) error {
+func (rest *AlertServer) find(c *ship.Context) error {
 	ctx := c.Request().Context()
 	data, err := rest.svc.Find(ctx)
 	if err != nil {

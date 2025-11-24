@@ -9,22 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-type ThirdCustomizedService interface {
-	List(ctx context.Context) []*model.ThirdCustomized
-	Create(ctx context.Context, req *mrequest.ThirdCustomizedCreate) error
-	Update(ctx context.Context, req *mrequest.ThirdCustomizedUpdate) error
-	Delete(ctx context.Context, id int64) error
+func NewThirdCustomized(qry *query.Query) *ThirdCustomized {
+	return &ThirdCustomized{qry: qry}
 }
 
-func ThirdCustomized(qry *query.Query) ThirdCustomizedService {
-	return &thirdCustomizedService{qry: qry}
-}
-
-type thirdCustomizedService struct {
+type ThirdCustomized struct {
 	qry *query.Query
 }
 
-func (svc *thirdCustomizedService) List(ctx context.Context) []*model.ThirdCustomized {
+func (svc *ThirdCustomized) List(ctx context.Context) []*model.ThirdCustomized {
 	tbl := svc.qry.ThirdCustomized
 	ret, err := tbl.WithContext(ctx).Order(tbl.ID).Find()
 	if err != nil || ret == nil {
@@ -33,7 +26,7 @@ func (svc *thirdCustomizedService) List(ctx context.Context) []*model.ThirdCusto
 	return ret
 }
 
-func (svc *thirdCustomizedService) Create(ctx context.Context, req *mrequest.ThirdCustomizedCreate) error {
+func (svc *ThirdCustomized) Create(ctx context.Context, req *mrequest.ThirdCustomizedCreate) error {
 	// 查询定制总数
 	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
@@ -51,7 +44,7 @@ func (svc *thirdCustomizedService) Create(ctx context.Context, req *mrequest.Thi
 	return tbl.WithContext(ctx).Create(dat)
 }
 
-func (svc *thirdCustomizedService) Update(ctx context.Context, req *mrequest.ThirdCustomizedUpdate) error {
+func (svc *ThirdCustomized) Update(ctx context.Context, req *mrequest.ThirdCustomizedUpdate) error {
 	// 查询定制总数
 	tbl := svc.qry.ThirdCustomized
 	if count, _ := tbl.WithContext(ctx).Count(); count >= 100 {
@@ -67,7 +60,7 @@ func (svc *thirdCustomizedService) Update(ctx context.Context, req *mrequest.Thi
 	return err
 }
 
-func (svc *thirdCustomizedService) Delete(ctx context.Context, id int64) error {
+func (svc *ThirdCustomized) Delete(ctx context.Context, id int64) error {
 	tbl := svc.qry.ThirdCustomized
 	dat, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).First()
 	if err != nil {

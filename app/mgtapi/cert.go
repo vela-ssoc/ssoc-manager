@@ -11,17 +11,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Cert(svc service.CertService) route.Router {
-	return &certREST{
+func NewCert(svc *service.Cert) *Cert {
+	return &Cert{
 		svc: svc,
 	}
 }
 
-type certREST struct {
-	svc service.CertService
+type Cert struct {
+	svc *service.Cert
 }
 
-func (rest *certREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Cert) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/certs").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/cert/indices").Data(route.Ignore()).GET(rest.Indices)
 	bearer.Route("/cert").
@@ -30,7 +30,7 @@ func (rest *certREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除证书")).DELETE(rest.Delete)
 }
 
-func (rest *certREST) Page(c *ship.Context) error {
+func (rest *Cert) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -44,7 +44,7 @@ func (rest *certREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *certREST) Indices(c *ship.Context) error {
+func (rest *Cert) Indices(c *ship.Context) error {
 	var req param.Index
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -57,7 +57,7 @@ func (rest *certREST) Indices(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *certREST) Create(c *ship.Context) error {
+func (rest *Cert) Create(c *ship.Context) error {
 	var req mrequest.CertCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -68,7 +68,7 @@ func (rest *certREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *certREST) Update(c *ship.Context) error {
+func (rest *Cert) Update(c *ship.Context) error {
 	var req mrequest.CertUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -79,7 +79,7 @@ func (rest *certREST) Update(c *ship.Context) error {
 	return rest.svc.Update(ctx, &req)
 }
 
-func (rest *certREST) Delete(c *ship.Context) error {
+func (rest *Cert) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err

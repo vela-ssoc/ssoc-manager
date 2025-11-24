@@ -9,19 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type SBOMProjectService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject)
-}
-
-func SBOMProject(qry *query.Query) SBOMProjectService {
-	return &sbomProjectService{
+func NewSBOMProject(qry *query.Query) *SBOMProject {
+	return &SBOMProject{
 		qry: qry,
 	}
 }
 
-type sbomProjectService struct{ qry *query.Query }
+type SBOMProject struct{ qry *query.Query }
 
-func (biz *sbomProjectService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
+func (biz *SBOMProject) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
 	tbl := biz.qry.SBOMProject
 	db := tbl.WithContext(ctx).
 		Order(tbl.TotalScore.Desc()).

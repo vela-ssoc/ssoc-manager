@@ -9,23 +9,23 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Tag(svc service.TagService) route.Router {
-	return &tagREST{
+func NewTag(svc *service.Tag) *Tag {
+	return &Tag{
 		svc: svc,
 	}
 }
 
-type tagREST struct {
-	svc service.TagService
+type Tag struct {
+	svc *service.Tag
 }
 
-func (rest *tagREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Tag) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/tag/indices").Data(route.Ignore()).GET(rest.Indices)
 	bearer.Route("/tag/sidebar").Data(route.Ignore()).GET(rest.Sidebar)
 	bearer.Route("/minion/tag").Data(route.Named("修改节点标签")).PATCH(rest.Update)
 }
 
-func (rest *tagREST) Indices(c *ship.Context) error {
+func (rest *Tag) Indices(c *ship.Context) error {
 	var req param.Index
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -38,7 +38,7 @@ func (rest *tagREST) Indices(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *tagREST) Update(c *ship.Context) error {
+func (rest *Tag) Update(c *ship.Context) error {
 	var req param.TagUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -50,7 +50,7 @@ func (rest *tagREST) Update(c *ship.Context) error {
 	return err
 }
 
-func (rest *tagREST) Sidebar(c *ship.Context) error {
+func (rest *Tag) Sidebar(c *ship.Context) error {
 	req := new(param.TagSidebar)
 	if err := c.BindQuery(req); err != nil {
 		return err

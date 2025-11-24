@@ -18,31 +18,8 @@ import (
 	"gorm.io/gen/field"
 )
 
-type UserService interface {
-	// Page 用户分页查询
-	Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries)
-
-	Indices(ctx context.Context, indexer param.Indexer) mrequest.UserSummaries
-
-	Delete(ctx context.Context, id int64) error
-
-	Create(ctx context.Context, req *mrequest.UserCreate, cid int64) error
-
-	Sudo(ctx context.Context, req *mrequest.UserSudo) (bool, error)
-
-	Passwd(ctx context.Context, id int64, original string, password string) error
-
-	AccessKey(ctx context.Context, id int64) error
-
-	Authenticate(ctx context.Context, uname, passwd string) (*model.User, error)
-
-	Totp(ctx context.Context, uid int64) error
-
-	Generate(ctx context.Context) error
-}
-
-func User(qry *query.Query, digest DigestService, sso casauth.Client, log *slog.Logger) UserService {
-	return &userService{
+func NewUser(qry *query.Query, digest DigestService, sso casauth.Client, log *slog.Logger) *User {
+	return &User{
 		qry:    qry,
 		digest: digest,
 		sso:    sso,
@@ -50,14 +27,14 @@ func User(qry *query.Query, digest DigestService, sso casauth.Client, log *slog.
 	}
 }
 
-type userService struct {
+type User struct {
 	qry    *query.Query
 	digest DigestService
 	sso    casauth.Client
 	log    *slog.Logger
 }
 
-func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
+func (biz *User) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
 	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable, tbl.AccessKey)
@@ -76,7 +53,7 @@ func (biz *userService) Page(ctx context.Context, page param.Pager) (int64, mreq
 	return count, ret
 }
 
-func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) mrequest.UserSummaries {
+func (biz *User) Indices(ctx context.Context, indexer param.Indexer) mrequest.UserSummaries {
 	tbl := biz.qry.User
 	db := tbl.WithContext(ctx).
 		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable)
@@ -90,7 +67,7 @@ func (biz *userService) Indices(ctx context.Context, indexer param.Indexer) mreq
 	return ret
 }
 
-func (biz *userService) Authenticate(ctx context.Context, uname, passwd string) (*model.User, error) {
+func (biz *User) Authenticate(ctx context.Context, uname, passwd string) (*model.User, error) {
 	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).
 		Where(tbl.Username.Eq(uname)).
@@ -115,7 +92,7 @@ func (biz *userService) Authenticate(ctx context.Context, uname, passwd string) 
 	return user, nil
 }
 
-func (biz *userService) Delete(ctx context.Context, id int64) error {
+func (biz *User) Delete(ctx context.Context, id int64) error {
 	tbl := biz.qry.User
 	ret, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
@@ -129,7 +106,7 @@ func (biz *userService) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (biz *userService) Create(ctx context.Context, req *mrequest.UserCreate, cid int64) error {
+func (biz *User) Create(ctx context.Context, req *mrequest.UserCreate, cid int64) error {
 	uname := req.Username
 	tbl := biz.qry.User
 	if count, _ := tbl.WithContext(ctx).
@@ -158,7 +135,7 @@ func (biz *userService) Create(ctx context.Context, req *mrequest.UserCreate, ci
 	return tbl.WithContext(ctx).Create(dat)
 }
 
-func (biz *userService) Sudo(ctx context.Context, req *mrequest.UserSudo) (bool, error) {
+func (biz *User) Sudo(ctx context.Context, req *mrequest.UserSudo) (bool, error) {
 	// 查询用户信息
 	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).Where(tbl.ID.Eq(req.ID)).First()
@@ -187,7 +164,7 @@ func (biz *userService) Sudo(ctx context.Context, req *mrequest.UserSudo) (bool,
 	return logout, err
 }
 
-func (biz *userService) Passwd(ctx context.Context, id int64, original string, password string) error {
+func (biz *User) Passwd(ctx context.Context, id int64, original string, password string) error {
 	tbl := biz.qry.User
 	user, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(id)).
@@ -214,7 +191,7 @@ func (biz *userService) Passwd(ctx context.Context, id int64, original string, p
 	return err
 }
 
-func (biz *userService) AccessKey(ctx context.Context, id int64) error {
+func (biz *User) AccessKey(ctx context.Context, id int64) error {
 	tbl := biz.qry.User
 	if count, _ := tbl.WithContext(ctx).Where(tbl.ID.Eq(id)).Count(); count == 0 {
 		return errcode.ErrNotExist
@@ -236,7 +213,7 @@ func (biz *userService) AccessKey(ctx context.Context, id int64) error {
 	return err
 }
 
-func (biz *userService) Totp(ctx context.Context, uid int64) error {
+func (biz *User) Totp(ctx context.Context, uid int64) error {
 	tbl := biz.qry.User
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Eq(uid)).
@@ -244,7 +221,7 @@ func (biz *userService) Totp(ctx context.Context, uid int64) error {
 	return err
 }
 
-func (biz *userService) Generate(ctx context.Context) error {
+func (biz *User) Generate(ctx context.Context) error {
 	tbl := biz.qry.User
 	dao := tbl.WithContext(ctx)
 	cnt, err := dao.Count()

@@ -11,22 +11,22 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func SBOMVuln(svc service.SBOMVulnService) route.Router {
+func NewSBOMVuln(svc *service.SBOMVuln) *SBOMVuln {
 	purlCol := dynsql.StringColumn("purl", "PURL").Build()
 	vidCol := dynsql.StringColumn("vuln_id", "漏洞编号").Build()
 	table := dynsql.Builder().Filters(purlCol, vidCol).Build()
-	return &sbomVulnREST{
+	return &SBOMVuln{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type sbomVulnREST struct {
-	svc   service.SBOMVulnService
+type SBOMVuln struct {
+	svc   *service.SBOMVuln
 	table dynsql.Table
 }
 
-func (rest *sbomVulnREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *SBOMVuln) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/sbom/vulns").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/sbom/vuln/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/sbom/vuln/projects").Data(route.Ignore()).GET(rest.Project)
@@ -34,12 +34,12 @@ func (rest *sbomVulnREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/sbom/purl").Data(route.Named("上报 PURL")).POST(rest.Purl)
 }
 
-func (rest *sbomVulnREST) Cond(c *ship.Context) error {
+func (rest *SBOMVuln) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomVulnREST) Page(c *ship.Context) error {
+func (rest *SBOMVuln) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -57,7 +57,7 @@ func (rest *sbomVulnREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomVulnREST) Project(c *ship.Context) error {
+func (rest *SBOMVuln) Project(c *ship.Context) error {
 	var req param.SBOMVulnProject
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -71,7 +71,7 @@ func (rest *sbomVulnREST) Project(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *sbomVulnREST) Vulnerabilities(c *ship.Context) error {
+func (rest *SBOMVuln) Vulnerabilities(c *ship.Context) error {
 	strSize := c.Query("size")
 	strOffsetID := c.Query("offset_id")
 	size, _ := strconv.Atoi(strSize)
@@ -86,7 +86,7 @@ func (rest *sbomVulnREST) Vulnerabilities(c *ship.Context) error {
 	return c.JSON(http.StatusOK, ret)
 }
 
-func (rest *sbomVulnREST) Purl(c *ship.Context) error {
+func (rest *SBOMVuln) Purl(c *ship.Context) error {
 	req := new(param.ReportPurl)
 	if err := c.Bind(req); err != nil {
 		return err

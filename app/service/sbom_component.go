@@ -10,23 +10,17 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 )
 
-type SBOMComponentService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMComponent)
-	Project(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject)
-	Count(ctx context.Context, page param.Pager) (int64, request.NameCounts)
-}
-
-func SBOMComponent(qry *query.Query) SBOMComponentService {
-	return &sbomComponentService{
+func NewSBOMComponent(qry *query.Query) *SBOMComponent {
+	return &SBOMComponent{
 		qry: qry,
 	}
 }
 
-type sbomComponentService struct {
+type SBOMComponent struct {
 	qry *query.Query
 }
 
-func (biz *sbomComponentService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMComponent) {
+func (biz *SBOMComponent) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMComponent) {
 	tbl := biz.qry.SBOMComponent
 	db := tbl.WithContext(ctx).
 		Order(tbl.TotalScore.Desc()).
@@ -44,7 +38,7 @@ func (biz *sbomComponentService) Page(ctx context.Context, page param.Pager, sco
 	return count, dats
 }
 
-func (biz *sbomComponentService) Project(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
+func (biz *SBOMComponent) Project(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMProject) {
 	tbl := biz.qry.SBOMComponent
 	db := tbl.WithContext(ctx).UnderlyingDB()
 	subSQL := db.Model(&model.SBOMComponent{}).
@@ -62,7 +56,7 @@ func (biz *sbomComponentService) Project(ctx context.Context, page param.Pager, 
 	return count, dats
 }
 
-func (biz *sbomComponentService) Count(ctx context.Context, page param.Pager) (int64, request.NameCounts) {
+func (biz *SBOMComponent) Count(ctx context.Context, page param.Pager) (int64, request.NameCounts) {
 	ret := make(request.NameCounts, 0, 10)
 	tbl := biz.qry.SBOMComponent
 	count, _ := tbl.WithContext(ctx).Distinct(tbl.Name).Count()

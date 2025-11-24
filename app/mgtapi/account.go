@@ -10,7 +10,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Account(svc service.AccountService) route.Router {
+func NewAccount(svc *service.Account) *Account {
 	inetCol := dynsql.StringColumn("inet", "终端IP").Build()
 	pidCol := dynsql.IntColumn("pid", "PID").Build()
 	nameCol := dynsql.StringColumn("name", "进程名称").Build()
@@ -24,28 +24,28 @@ func Account(svc service.AccountService) route.Router {
 	table := dynsql.Builder().
 		Filters(inetCol, pidCol, nameCol, unameCol, execCol, stateCol, cmdlineCol, minionIDCol, updateAtCol).
 		Build()
-	return &accountREST{
+	return &Account{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type accountREST struct {
-	svc   service.AccountService
+type Account struct {
+	svc   *service.Account
 	table dynsql.Table
 }
 
-func (rest *accountREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Account) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/account/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/accounts").Data(route.Ignore()).GET(rest.Page)
 }
 
-func (rest *accountREST) Cond(c *ship.Context) error {
+func (rest *Account) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *accountREST) Page(c *ship.Context) error {
+func (rest *Account) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err

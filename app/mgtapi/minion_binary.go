@@ -13,7 +13,7 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func MinionBinary(svc *service.MinionBinary) route.Router {
+func NewMinionBinary(svc *service.MinionBinary) *MinionBinary {
 	table := dynsql.Builder().
 		Filters(
 			dynsql.IntColumn("id", "ID").Build(),
@@ -28,19 +28,19 @@ func MinionBinary(svc *service.MinionBinary) route.Router {
 		).
 		Build()
 
-	return &minionBinaryREST{
+	return &MinionBinary{
 		svc:   svc,
 		table: table,
 	}
 }
 
-type minionBinaryREST struct {
+type MinionBinary struct {
 	svc       *service.MinionBinary
 	table     dynsql.Table
 	uploading atomic.Bool
 }
 
-func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *MinionBinary) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/monbin/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/monbin/classify").Data(route.Ignore()).GET(rest.Classify)
 	bearer.Route("/monbins").Data(route.Ignore()).GET(rest.Page)
@@ -56,12 +56,12 @@ func (rest *minionBinaryREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("推送升级")).PATCH(rest.Release)
 }
 
-func (rest *minionBinaryREST) Cond(c *ship.Context) error {
+func (rest *MinionBinary) Cond(c *ship.Context) error {
 	res := rest.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionBinaryREST) Classify(c *ship.Context) error {
+func (rest *MinionBinary) Classify(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res, err := rest.svc.Classify(ctx)
 	if err != nil {
@@ -71,7 +71,7 @@ func (rest *minionBinaryREST) Classify(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionBinaryREST) Page(c *ship.Context) error {
+func (rest *MinionBinary) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -89,7 +89,7 @@ func (rest *minionBinaryREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *minionBinaryREST) Deprecate(c *ship.Context) error {
+func (rest *MinionBinary) Deprecate(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -100,7 +100,7 @@ func (rest *minionBinaryREST) Deprecate(c *ship.Context) error {
 	return rest.svc.Deprecate(ctx, req.ID)
 }
 
-func (rest *minionBinaryREST) Delete(c *ship.Context) error {
+func (rest *MinionBinary) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -111,7 +111,7 @@ func (rest *minionBinaryREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, req.ID)
 }
 
-func (rest *minionBinaryREST) Create(c *ship.Context) error {
+func (rest *MinionBinary) Create(c *ship.Context) error {
 	var req param.NodeBinaryCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -127,7 +127,7 @@ func (rest *minionBinaryREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *minionBinaryREST) Release(c *ship.Context) error {
+func (rest *MinionBinary) Release(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -139,7 +139,7 @@ func (rest *minionBinaryREST) Release(c *ship.Context) error {
 }
 
 // Update 更新发行版信息
-func (rest *minionBinaryREST) Update(c *ship.Context) error {
+func (rest *MinionBinary) Update(c *ship.Context) error {
 	var req param.MinionBinaryUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -151,7 +151,7 @@ func (rest *minionBinaryREST) Update(c *ship.Context) error {
 }
 
 // Download 更新发行版信息
-func (rest *minionBinaryREST) Download(c *ship.Context) error {
+func (rest *MinionBinary) Download(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -172,7 +172,7 @@ func (rest *minionBinaryREST) Download(c *ship.Context) error {
 	return c.Stream(http.StatusOK, file.ContentType(), file)
 }
 
-func (rest *minionBinaryREST) supports(c *ship.Context) error {
+func (rest *MinionBinary) supports(c *ship.Context) error {
 	dat := rest.svc.Supports()
 	return c.JSON(http.StatusOK, dat)
 }

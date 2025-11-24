@@ -11,12 +11,12 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-type oplogREST struct {
-	svc   service.OplogService
+type Oplog struct {
+	svc   *service.Oplog
 	table dynsql.Table
 }
 
-func Oplog(svc service.OplogService) route.Router {
+func NewOplog(svc *service.Oplog) *Oplog {
 	methods := []string{
 		http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
 		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace,
@@ -31,24 +31,24 @@ func Oplog(svc service.OplogService) route.Router {
 		Filters(idCol, methodCol, nicknameCol).
 		Build()
 
-	return &oplogREST{
+	return &Oplog{
 		svc:   svc,
 		table: table,
 	}
 }
 
-func (op *oplogREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (op *Oplog) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/oplog/cond").Data(route.Ignore()).GET(op.Cond)
 	bearer.Route("/oplogs").Data(route.Ignore()).GET(op.Page)
 	bearer.Route("/oplog").Data(route.Named("删除操作日志")).DELETE(op.Delete)
 }
 
-func (op *oplogREST) Cond(c *ship.Context) error {
+func (op *Oplog) Cond(c *ship.Context) error {
 	res := op.table.Schema()
 	return c.JSON(http.StatusOK, res)
 }
 
-func (op *oplogREST) Page(c *ship.Context) error {
+func (op *Oplog) Page(c *ship.Context) error {
 	var req param.PageSQL
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -66,7 +66,7 @@ func (op *oplogREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (op *oplogREST) Delete(c *ship.Context) error {
+func (op *Oplog) Delete(c *ship.Context) error {
 	var req dynsql.Input
 	if err := c.Bind(&req); err != nil {
 		return err

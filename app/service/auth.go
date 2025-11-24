@@ -14,16 +14,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-// AuthService 认证模块业务层
-type AuthService interface {
-	Valid(ctx context.Context, uname, passwd string) (string, bool, error)
-	Totp(ctx context.Context, uid string) (*totp.TOTP, error)
-	Submit(ctx context.Context, uid, code string) (*model.User, error)
-	Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error)
-}
-
-func Auth(qry *query.Query, lock LoginLockService, user UserService, oauth oauth.Client) AuthService {
-	return &authService{
+func NewAuth(qry *query.Query, lock *LoginLock, user *User, oauth oauth.Client) *Auth {
+	return &Auth{
 		qry:   qry,
 		lock:  lock,
 		user:  user,
@@ -31,14 +23,14 @@ func Auth(qry *query.Query, lock LoginLockService, user UserService, oauth oauth
 	}
 }
 
-type authService struct {
+type Auth struct {
 	qry   *query.Query
-	lock  LoginLockService
-	user  UserService
+	lock  *LoginLock
+	user  *User
 	oauth oauth.Client
 }
 
-func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string, bool, error) {
+func (svc *Auth) Valid(ctx context.Context, uname, passwd string) (string, bool, error) {
 	if svc.lock.Limited(ctx, uname) {
 		return "", false, errcode.ErrTooManyLoginFailed
 	}
@@ -70,7 +62,7 @@ func (svc *authService) Valid(ctx context.Context, uname, passwd string) (string
 	return uid, user.TotpBind, nil
 }
 
-func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error) {
+func (svc *Auth) Totp(ctx context.Context, uid string) (*totp.TOTP, error) {
 	now := time.Now()
 	tempTbl := svc.qry.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
@@ -101,7 +93,7 @@ func (svc *authService) Totp(ctx context.Context, uid string) (*totp.TOTP, error
 	return otp, nil
 }
 
-func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.User, error) {
+func (svc *Auth) Submit(ctx context.Context, uid, code string) (*model.User, error) {
 	now := time.Now()
 	tempTbl := svc.qry.AuthTemp
 	temp, err := tempTbl.WithContext(ctx).Where(tempTbl.UID.Eq(uid)).First()
@@ -128,7 +120,7 @@ func (svc *authService) Submit(ctx context.Context, uid, code string) (*model.Us
 	return user, nil
 }
 
-func (svc *authService) Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error) {
+func (svc *Auth) Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error) {
 	userinfo, err := svc.oauth.Exchange(ctx, req.Code)
 	if err != nil {
 		return nil, err

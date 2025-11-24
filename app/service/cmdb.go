@@ -7,21 +7,17 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 )
 
-type CmdbService interface {
-	Detail(ctx context.Context, id int64) *model.Cmdb2
-}
-
-func Cmdb(qry *query.Query) CmdbService {
-	return &cmdbService{
+func NewCmdb(qry *query.Query) *Cmdb {
+	return &Cmdb{
 		qry: qry,
 	}
 }
 
-type cmdbService struct {
+type Cmdb struct {
 	qry *query.Query
 }
 
-func (biz *cmdbService) Detail(ctx context.Context, id int64) *model.Cmdb2 {
+func (biz *Cmdb) Detail(ctx context.Context, id int64) *model.Cmdb2 {
 	tbl := biz.qry.Minion
 	mon, err := tbl.WithContext(ctx).
 		Select(tbl.Inet).

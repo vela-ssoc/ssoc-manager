@@ -6,25 +6,24 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
-	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/xgfone/ship/v5"
 )
 
-func Manual(vuln *vulnsync.Synchro) route.Router {
-	return &manualREST{
+func NewManual(vuln *vulnsync.Synchro) *Manual {
+	return &Manual{
 		vuln: vuln,
 	}
 }
 
-type manualREST struct {
+type Manual struct {
 	vuln *vulnsync.Synchro
 }
 
-func (rst *manualREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (rst *Manual) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/manual/vuln/sync").Data("手动同步漏洞库").PATCH(rst.Sync)
 }
 
-func (rst *manualREST) Sync(c *ship.Context) error {
+func (rst *Manual) Sync(c *ship.Context) error {
 	fn := func(sync bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Hour)
 		defer cancel()

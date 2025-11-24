@@ -12,15 +12,15 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Effect(svc service.EffectService) route.Router {
-	return &effectREST{svc: svc}
+func NewEffect(svc *service.Effect) *Effect {
+	return &Effect{svc: svc}
 }
 
-type effectREST struct {
-	svc service.EffectService
+type Effect struct {
+	svc *service.Effect
 }
 
-func (eff *effectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+func (eff *Effect) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/effects").Data(route.Ignore()).GET(eff.Page)
 	bearer.Route("/effect/progress").
 		Data(route.Ignore()).GET(eff.Progress)
@@ -30,7 +30,7 @@ func (eff *effectREST) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除配置发布")).DELETE(eff.Delete)
 }
 
-func (eff *effectREST) Page(c *ship.Context) error {
+func (eff *Effect) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -44,7 +44,7 @@ func (eff *effectREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (eff *effectREST) Create(c *ship.Context) error {
+func (eff *Effect) Create(c *ship.Context) error {
 	var req mrequest.EffectCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -63,7 +63,7 @@ func (eff *effectREST) Create(c *ship.Context) error {
 	return c.JSON(http.StatusCreated, res)
 }
 
-func (eff *effectREST) Update(c *ship.Context) error {
+func (eff *Effect) Update(c *ship.Context) error {
 	var req mrequest.EffectUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -82,7 +82,7 @@ func (eff *effectREST) Update(c *ship.Context) error {
 	return c.JSON(http.StatusCreated, res)
 }
 
-func (eff *effectREST) Delete(c *ship.Context) error {
+func (eff *Effect) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -98,7 +98,7 @@ func (eff *effectREST) Delete(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (eff *effectREST) Progress(c *ship.Context) error {
+func (eff *Effect) Progress(c *ship.Context) error {
 	var req param.OptionalID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -110,7 +110,7 @@ func (eff *effectREST) Progress(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (eff *effectREST) Progresses(c *ship.Context) error {
+func (eff *Effect) Progresses(c *ship.Context) error {
 	var req mrequest.EffectProgressesRequest
 	if err := c.BindQuery(&req); err != nil {
 		return err

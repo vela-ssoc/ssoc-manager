@@ -10,20 +10,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type SBOMVulnService interface {
-	Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln)
-	Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject)
-	Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln
-	Purl(ctx context.Context, req *param.ReportPurl) error
+func NewSBOMVuln(qry *query.Query) *SBOMVuln {
+	return &SBOMVuln{qry: qry}
 }
 
-func SBOMVuln(qry *query.Query) SBOMVulnService {
-	return &sbomVulnService{qry: qry}
-}
+type SBOMVuln struct{ qry *query.Query }
 
-type sbomVulnService struct{ qry *query.Query }
-
-func (biz *sbomVulnService) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln) {
+func (biz *SBOMVuln) Page(ctx context.Context, page param.Pager, scope dynsql.Scope) (int64, []*model.SBOMVuln) {
 	tbl := biz.qry.SBOMVuln
 	db := tbl.WithContext(ctx).
 		Order(tbl.Score.Desc()).
@@ -41,7 +34,7 @@ func (biz *sbomVulnService) Page(ctx context.Context, page param.Pager, scope dy
 	return count, dats
 }
 
-func (biz *sbomVulnService) Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject) {
+func (biz *SBOMVuln) Project(ctx context.Context, page param.Pager, purl string) (int64, []*model.SBOMProject) {
 	comTbl := biz.qry.SBOMComponent
 	tbl := biz.qry.SBOMProject
 	subSQL := comTbl.WithContext(ctx).
@@ -62,7 +55,7 @@ func (biz *sbomVulnService) Project(ctx context.Context, page param.Pager, purl 
 	return count, dats
 }
 
-func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln {
+func (biz *SBOMVuln) Vulnerabilities(ctx context.Context, offsetID int64, size int) []*model.SBOMVuln {
 	tbl := biz.qry.SBOMVuln
 	ret, _ := tbl.WithContext(ctx).
 		Where(tbl.ID.Gt(offsetID)).
@@ -76,7 +69,7 @@ func (biz *sbomVulnService) Vulnerabilities(ctx context.Context, offsetID int64,
 	return ret
 }
 
-func (biz *sbomVulnService) Purl(ctx context.Context, req *param.ReportPurl) error {
+func (biz *SBOMVuln) Purl(ctx context.Context, req *param.ReportPurl) error {
 	ps := req.Purl
 	dats := make([]*model.Purl, 0, len(ps))
 	for _, p := range ps {
