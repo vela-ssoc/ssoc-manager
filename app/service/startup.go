@@ -42,11 +42,35 @@ func (stp *Startup) Update(ctx context.Context, req *param.StartupUpdate) error 
 
 	data := &model.Startup{
 		ID:     minionID,
-		Logger: req.Logger,
+		Logger: &req.Logger,
 	}
 	tbl := stp.qry.Startup
 	dao := tbl.WithContext(ctx)
 	err = dao.Where(tbl.ID.Eq(minionID)).Save(data)
+	if err == nil {
+		stp.pusher.Startup(ctx, mon.BrokerID, minionID)
+	}
+
+	return err
+}
+
+func (stp *Startup) Reset(ctx context.Context, minionID int64) error {
+	// 查询节点状态
+	monTbl := stp.qry.Minion
+	mon, err := monTbl.WithContext(ctx).
+		Select(monTbl.Status, monTbl.BrokerID).
+		Where(monTbl.ID.Eq(minionID)).
+		First()
+	if err != nil {
+		return err
+	}
+	if mon.Status == model.MSDelete {
+		return errcode.ErrNodeStatus
+	}
+
+	tbl := stp.qry.Startup
+	dao := tbl.WithContext(ctx)
+	_, err = dao.Where(tbl.ID.Eq(minionID)).Delete()
 	if err == nil {
 		stp.pusher.Startup(ctx, mon.BrokerID, minionID)
 	}
@@ -80,7 +104,7 @@ func (stp *Startup) Get(ctx context.Context, minionID int64) (*model.Startup, er
 
 	data := &model.Startup{
 		ID:        minionID,
-		Logger:    fb.Logger,
+		Logger:    &fb.Logger,
 		CreatedAt: fb.CreatedAt,
 		UpdatedAt: fb.UpdatedAt,
 	}

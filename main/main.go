@@ -9,7 +9,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"github.com/vela-ssoc/ssoc-manager/banner"
+	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-manager/launch"
 )
 
@@ -21,7 +21,7 @@ func main() {
 		"resources/config/application.jsonc", "配置文件路径")
 	_ = set.Parse(args[1:])
 
-	if banner.ANSI(os.Stdout); *v {
+	if _, _ = banner.ANSI(os.Stdout); *v {
 		return
 	}
 

@@ -17,16 +17,19 @@ type MinionTask struct {
 }
 
 type MinionTaskItem struct {
-	ID           int64                 `json:"id,string"`     // ID
-	Name         string                `json:"name"`          // 名字
-	Icon         []byte                `json:"icon"`          // 图标
-	Dialect      bool                  `json:"dialect"`       // 是否私有模块。
-	Excluded     bool                  `json:"excluded"`      // 是否被排除（一对一）。
-	ExcludedInet bool                  `json:"excluded_inet"` // 是否被排除（旧版设计方案）。
-	Hash         string                `json:"hash"`          // 哈希（md5）
-	Report       *MinionTaskItemReport `json:"report"`        // agent 上报信息
-	CreatedAt    time.Time             `json:"created_at"`    // 创建时间
-	UpdatedAt    time.Time             `json:"updated_at"`    // 修改时间
+	ID           int64                 `json:"id,string"`      // ID
+	Name         string                `json:"name"`           // 名字
+	Icon         []byte                `json:"icon"`           // 图标
+	Dialect      bool                  `json:"dialect"`        // 是否私有模块。
+	Excluded     bool                  `json:"excluded"`       // 是否被排除（一对一）。
+	ExcludedInet bool                  `json:"excluded_inet"`  // 是否被排除（旧版设计方案）。
+	Hash         string                `json:"hash"`           // 哈希（md5）
+	Desc         string                `json:"desc"`           // 描述
+	Report       *MinionTaskItemReport `json:"report"`         // agent 上报信息
+	Chunk        []byte                `json:"chunk,omitzero"` // 代码
+	Version      int64                 `json:"version"`        // 代码版本
+	CreatedAt    time.Time             `json:"created_at"`     // 创建时间
+	UpdatedAt    time.Time             `json:"updated_at"`     // 修改时间
 }
 
 type MinionTaskItemReport struct {

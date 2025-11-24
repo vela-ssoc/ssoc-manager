@@ -361,6 +361,7 @@ func (mt *MinionTask) Tasks(ctx context.Context, minionID int64) (*mresponse.Min
 			Dialect:      sub.MinionID == minionID,
 			Excluded:     excludes[id],
 			ExcludedInet: excludeInets[id],
+			Desc:         sub.Desc,
 			Hash:         sub.Hash,
 			Report:       report,
 			CreatedAt:    sub.CreatedAt,
@@ -388,6 +389,57 @@ func (mt *MinionTask) Tasks(ctx context.Context, minionID int64) (*mresponse.Min
 	}
 
 	return ret, nil
+}
+
+func (mt *MinionTask) Task(ctx context.Context, minionID, substanceID int64) (*mresponse.MinionTaskItem, error) {
+	subTbl := mt.qry.Substance
+	subDao := subTbl.WithContext(ctx)
+	sub, err := subDao.Where(subTbl.ID.Eq(substanceID)).First()
+	if err != nil {
+		return nil, err
+	}
+	if sub.MinionID != 0 && sub.MinionID != minionID {
+		return nil, nil
+	}
+
+	item := &mresponse.MinionTaskItem{
+		ID:        sub.ID,
+		Name:      sub.Name,
+		Icon:      sub.Icon,
+		Dialect:   sub.MinionID == minionID,
+		Hash:      sub.Hash,
+		Desc:      sub.Desc,
+		Chunk:     sub.Chunk,
+		Version:   sub.Version,
+		CreatedAt: sub.CreatedAt,
+		UpdatedAt: sub.UpdatedAt,
+	}
+
+	taskTbl := mt.qry.MinionTask
+	task, _ := taskTbl.WithContext(ctx).
+		Where(taskTbl.MinionID.Eq(minionID), taskTbl.SubstanceID.Eq(substanceID)).First()
+	if task != nil {
+		item.Report = &mresponse.MinionTaskItemReport{
+			From:      task.From,
+			Uptime:    task.Uptime,
+			Link:      task.Link,
+			Status:    task.Status,
+			Hash:      task.Hash,
+			Cause:     task.Cause,
+			Runners:   task.Runners,
+			CreatedAt: task.CreatedAt,
+		}
+	}
+	// 检查该策略是否被排除（新版）
+	excTbl := mt.qry.MinionSubstanceExclude
+	if cnt, _ := excTbl.WithContext(ctx).
+		Where(excTbl.MinionID.Eq(minionID), excTbl.SubstanceID.Eq(substanceID)).
+		Count(); cnt != 0 {
+		item.Excluded = true
+	}
+	// TODO 检查该策略是否被排除（旧版）
+
+	return item, nil
 }
 
 func (mt *MinionTask) substances(ctx context.Context, minionID int64, inet string) (model.Substances, map[int64]bool, error) {

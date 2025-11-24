@@ -207,7 +207,7 @@ func (sst *Substance) Update(ctx context.Context, su *param.SubstanceUpdate, use
 	}
 
 	if _, err = tbl.WithContext(ctx).
-		Where(tbl.Version.Eq(version)).
+		Where(tbl.Version.Eq(version), tbl.ID.Eq(id)).
 		Updates(sub); err != nil || !change {
 		return 0, err
 	}

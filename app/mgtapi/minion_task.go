@@ -52,6 +52,7 @@ func (rest *MinionTask) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 
 	anon.Route("/task/rcount").Data(route.Ignore()).GET(rest.RCount)
 	anon.Route("/minion/tasks").Data(route.Ignore()).GET(rest.tasks)
+	anon.Route("/minion/task").Data(route.Ignore()).GET(rest.task)
 }
 
 func (rest *MinionTask) Cond(c *ship.Context) error {
@@ -152,6 +153,18 @@ func (rest *MinionTask) tasks(c *ship.Context) error {
 	if err != nil {
 		return err
 	}
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *MinionTask) task(c *ship.Context) error {
+	req := new(param.MinionTaskDetailRequest)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	ret, _ := rest.svc.Task(ctx, req.ID, req.SubstanceID)
 
 	return c.JSON(http.StatusOK, ret)
 }

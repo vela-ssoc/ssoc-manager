@@ -30,7 +30,7 @@ type Pusher interface {
 	Startup(ctx context.Context, bid, mid int64)
 	Upgrade(ctx context.Context, bid int64, mid []int64, semver, customized string)
 	Command(ctx context.Context, bid int64, mids []int64, cmd string)
-	SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error
+	SavePprof(ctx context.Context, bid, mid int64, second int, dest, typ string) error
 }
 
 func NewPush(qry *query.Query, hub linkhub.Huber) Pusher {
@@ -135,12 +135,12 @@ func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {
 	pi.hub.Broadcast(nil, accord.FPThirdDiff, req)
 }
 
-func (pi *pushImpl) SavePprof(ctx context.Context, bid, mid int64, second int, dest string) error {
+func (pi *pushImpl) SavePprof(ctx context.Context, bid, mid int64, second int, dest, typ string) error {
 	if second <= 0 {
 		second = 30
 	}
 
-	strURL := fmt.Sprintf("/api/v1/arr/pprof/profile?seconds=%d", second)
+	strURL := fmt.Sprintf("/api/v1/arr/pprof/%s?seconds=%d", typ, second)
 	header := http.Header{linkhub.HeaderXNodeID: []string{strconv.FormatInt(mid, 10)}}
 
 	res, err := pi.hub.Do(ctx, bid, http.MethodGet, strURL, nil, header)

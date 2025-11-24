@@ -21,50 +21,51 @@ type Pprof struct {
 	svc *service.Pprof
 }
 
-func (rest *Pprof) Route(_, _, basic *ship.RouteGroupBuilder) {
-	basic.Route("/flame/load").Data(route.Named("pprof-load")).GET(rest.Load)
-	basic.Route("/flame/view").Data(route.Named("pprof-view")).GET(rest.View)
-	basic.Route("/flame/view/*path").Data(route.Named("pprof-view")).GET(rest.View)
-	basic.Route("/pprof/index").Data(route.Named("pprof-index")).GET(rest.Index)
-	basic.Route("/pprof/cmdline").Data(route.Named("pprof-cmdline")).GET(rest.Cmdline)
-	basic.Route("/pprof/profile").Data(route.Named("pprof-profile")).GET(rest.Profile)
-	basic.Route("/pprof/symbol").Data(route.Named("pprof-symbol")).GET(rest.Symbol)
-	basic.Route("/pprof/trace").Data(route.Named("pprof-trace")).GET(rest.Trace)
-	basic.Route("/pprof/*path").Data(route.Named("pprof-path")).GET(rest.Path)
+func (prf *Pprof) Route(_, _, basic *ship.RouteGroupBuilder) {
+	basic.Route("/flame/load").Data(route.Named("pprof-load")).GET(prf.Load)
+	basic.Route("/flame/view").Data(route.Named("pprof-view")).GET(prf.View)
+	basic.Route("/flame/dump").Data(route.Named("pprof-dump")).GET(prf.dump)
+	basic.Route("/flame/view/*path").Data(route.Named("pprof-view")).GET(prf.View)
+	basic.Route("/pprof/index").Data(route.Named("pprof-index")).GET(prf.Index)
+	basic.Route("/pprof/cmdline").Data(route.Named("pprof-cmdline")).GET(prf.Cmdline)
+	basic.Route("/pprof/profile").Data(route.Named("pprof-profile")).GET(prf.Profile)
+	basic.Route("/pprof/symbol").Data(route.Named("pprof-symbol")).GET(prf.Symbol)
+	basic.Route("/pprof/trace").Data(route.Named("pprof-trace")).GET(prf.Trace)
+	basic.Route("/pprof/*path").Data(route.Named("pprof-path")).GET(prf.Path)
 }
 
-func (rest *Pprof) Index(c *ship.Context) error {
+func (prf *Pprof) Index(c *ship.Context) error {
 	pprof.Index(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Cmdline(c *ship.Context) error {
+func (prf *Pprof) Cmdline(c *ship.Context) error {
 	pprof.Cmdline(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Profile(c *ship.Context) error {
+func (prf *Pprof) Profile(c *ship.Context) error {
 	pprof.Profile(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Symbol(c *ship.Context) error {
+func (prf *Pprof) Symbol(c *ship.Context) error {
 	pprof.Symbol(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Trace(c *ship.Context) error {
+func (prf *Pprof) Trace(c *ship.Context) error {
 	pprof.Trace(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Path(c *ship.Context) error {
+func (prf *Pprof) Path(c *ship.Context) error {
 	path := c.Param("path")
 	pprof.Handler(path).ServeHTTP(c.Response(), c.Request())
 	return nil
 }
 
-func (rest *Pprof) Load(c *ship.Context) error {
+func (prf *Pprof) Load(c *ship.Context) error {
 	var req param.PprofLoad
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -75,7 +76,7 @@ func (rest *Pprof) Load(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	name, err := rest.svc.Load(ctx, req.Node, second)
+	name, err := prf.svc.Load(ctx, req.Node, second)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func (rest *Pprof) Load(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *Pprof) View(c *ship.Context) error {
+func (prf *Pprof) View(c *ship.Context) error {
 	var req param.StrID
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -98,7 +99,7 @@ func (rest *Pprof) View(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	h, err := rest.svc.View(ctx, req.ID)
+	h, err := prf.svc.View(ctx, req.ID)
 	if err != nil {
 		return ship.ErrBadRequest.New(err)
 	}
@@ -108,4 +109,19 @@ func (rest *Pprof) View(c *ship.Context) error {
 	h.ServeHTTP(w, r)
 
 	return nil
+}
+
+func (prf *Pprof) dump(c *ship.Context) error {
+	req := new(param.PprofDump)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	name, err := prf.svc.Dump(ctx, req)
+	if err != nil {
+		return err
+	}
+	res := &param.StrID{ID: name}
+
+	return c.JSON(http.StatusOK, res)
 }
