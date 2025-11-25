@@ -25,5 +25,6 @@ type MinionItem struct {
 	Uptime     time.Time          `json:"uptime"      gorm:"column:uptime"`
 	Unstable   bool               `json:"unstable"    gorm:"column:unstable"`
 	Customized string             `json:"customized"  gorm:"column:customized"`
+	OSRelease  string             `json:"os_release"  gorm:"column:os_release"`
 	Tags       []string           `json:"tags"        gorm:"-"`
 }

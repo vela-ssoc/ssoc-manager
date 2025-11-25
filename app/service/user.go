@@ -36,8 +36,7 @@ type User struct {
 
 func (biz *User) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
 	tbl := biz.qry.User
-	db := tbl.WithContext(ctx).
-		Select(tbl.ID, tbl.Username, tbl.Nickname, tbl.Dong, tbl.Enable, tbl.AccessKey)
+	db := tbl.WithContext(ctx)
 	if kw := page.Keyword(); kw != "" {
 		db.Where(tbl.Username.Like(kw)).
 			Or(tbl.Nickname.Like(kw))

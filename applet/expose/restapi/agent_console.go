@@ -41,3 +41,25 @@ func (ac *AgentConsole) read(c *ship.Context) error {
 
 	return nil
 }
+
+func (ac *AgentConsole) remove(c *ship.Context) error {
+	req := new(request.Int64ID)
+	if err := c.BindQuery(req); err != nil {
+		return err
+	}
+
+	r := c.Request()
+	ctx := r.Context()
+	mon, err := ac.svc.Get(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	brokID := mon.BrokerID
+	if brokID == 0 {
+		return nil
+	}
+
+	ac.hub.Oneway(ctx, brokID, "/api/v1/console/remove", nil)
+
+	return nil
+}

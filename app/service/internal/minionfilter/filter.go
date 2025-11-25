@@ -140,7 +140,7 @@ func (flt *Filter) Wheres(args *request.KeywordConditions, excludes []string) ([
 	optionalLikes := []field.String{
 		minionTag.Tag, minion.Inet, minion.Goos, minion.Arch, minion.Edition,
 		minion.BrokerName, minion.Customized, minion.OrgPath, minion.Identity,
-		minion.Category, minion.Comment, minion.IBu, minion.IDC,
+		minion.Category, minion.Comment, minion.IBu, minion.IDC, minion.OSRelease,
 	}
 	var likeFields []field.String
 	for _, like := range optionalLikes {
