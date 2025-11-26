@@ -21,6 +21,7 @@ type AgentConsole struct {
 
 func (ac *AgentConsole) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/agent/console/read").GET(ac.read)
+	bearer.Route("/agent/console/remove").GET(ac.remove)
 }
 
 func (ac *AgentConsole) read(c *ship.Context) error {
@@ -50,7 +51,8 @@ func (ac *AgentConsole) remove(c *ship.Context) error {
 
 	r := c.Request()
 	ctx := r.Context()
-	mon, err := ac.svc.Get(ctx, req.ID)
+	agentID := req.ID
+	mon, err := ac.svc.Get(ctx, agentID)
 	if err != nil {
 		return err
 	}
@@ -59,7 +61,8 @@ func (ac *AgentConsole) remove(c *ship.Context) error {
 		return nil
 	}
 
-	ac.hub.Oneway(ctx, brokID, "/api/v1/console/remove", nil)
+	body := map[string]any{"id": agentID}
+	ac.hub.Oneway(ctx, brokID, "/api/v1/console/remove", body)
 
 	return nil
 }
