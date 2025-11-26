@@ -32,7 +32,7 @@ jobs:
 
       - name: 编译 windows-amd64
         env:
-          GOOS: linux
+          GOOS: windows
           GOARCH: amd64
         run: sh build.sh
 
