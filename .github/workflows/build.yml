@@ -5,37 +5,40 @@ name: 编译下载
 
 on:
   workflow_dispatch:
-#  push:
-#    branches: [ "main" ]
-#  pull_request:
-#    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
+      - name: 拉取代码
+        uses: actions/checkout@v6
 
-      - name: 安装环境
-        uses: actions/setup-go@v5
+      - name: 安装 Go SDK
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.24
+          go-version-file: go.mod
           check-latest: true
 
-      - name: 编译 Linux
+      - name: 编译 linux-amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
         run: sh build.sh
 
-      - name: 编译 Windows
-        run: |
-          go clean -cache
-          go env -w GOOS=windows
-          sh build.sh
-          go env -u GOOS
+      - name: 编译 windows-amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: sh build.sh
 
-      - name: 下载文件
-        uses: actions/upload-artifact@v4
+      - name: 上传产物
+        uses: actions/upload-artifact@v5
         with:
+          retention-days: 30
           name: ssoc-manager
-          path: ssoc-manager-*
+          path: ssoc-manager_*
