@@ -2667,6 +2667,62 @@ paths:
           name: 'n'
           description: 向上读取行数（类似于 tail 命令）
       description: 本接口为 SSE 协议
+  /substance/extension:
+    post:
+      summary: ''
+      operationId: post-substance-extension
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: "Name        string          `json:\"name\"                validate:\"substance_name\"` // 配置名字\n\tMinionID    int64           `json:\"minion_id,string\"`                              // 节点 ID\n\tExtensionID int64           `json:\"extension_id,string\" validate:\"required\"`       // 插件 ID\n\tData        json.RawMessage `json:\"data\"`                                          // 渲染参数"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: ag7ij0ejbouti
+                  description: 服务名
+                  example: scan-ftp-server
+                desc:
+                  type: string
+                  x-stoplight:
+                    id: of3ddq431rmv0
+                  description: 简要说明
+                  example: 扫描局域网内的 FTP 服务器
+                minion_id:
+                  type: string
+                  x-stoplight:
+                    id: sxk1udb5alf99
+                  description: 关联的节点（私有配置需要）
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: 9369p59h8ou8o
+                  description: 应用商城 service 插件 ID
+                data:
+                  type: object
+                  x-stoplight:
+                    id: 4gfb70lm7df8l
+                  description: 模板渲染参数
+              required:
+                - name
+                - extension_id
+        description: ''
+    put:
+      summary: ''
+      operationId: put-substance-extension
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: "Name        string          `json:\"name\"                validate:\"substance_name\"` // 配置名字\n\tMinionID    int64           `json:\"minion_id,string\"`                              // 节点 ID\n\tExtensionID int64           `json:\"extension_id,string\" validate:\"required\"`       // 插件 ID\n\tData        json.RawMessage `json:\"data\"`                                          // 渲染参数"
 components:
   securitySchemes:
     Authorization:

@@ -187,12 +187,21 @@
                     },
                     "description": "来源模块",
                     "example": "os-scan"
+                  },
+                  "line": {
+                    "type": "integer",
+                    "x-stoplight": {
+                      "id": "kyxkk7gd5szrw"
+                    },
+                    "description": "代码行号",
+                    "example": 1
                   }
                 },
                 "required": [
                   "content",
                   "level",
-                  "from"
+                  "from",
+                  "line"
                 ]
               }
             }
