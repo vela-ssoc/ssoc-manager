@@ -2499,7 +2499,7 @@ paths:
           name: id
           description: 节点ID
       tags:
-        - "\U0001F195 新增接口"
+        - Agent
     post:
       summary: 修改 agent startup 配置
       operationId: post-startup
@@ -2564,9 +2564,9 @@ paths:
                         description: 跳过代码层级
                 required:
                   - id
-      tags:
-        - "\U0001F195 新增接口"
       description: 修改 agent startup 配置
+      tags:
+        - Agent
   /startup/fallback:
     post:
       summary: 修改 startup 默认参数
@@ -2574,8 +2574,6 @@ paths:
       responses:
         '200':
           description: OK
-      tags:
-        - "\U0001F195 新增接口"
       description: 修改 startup 默认参数
       requestBody:
         content:
@@ -2626,14 +2624,14 @@ paths:
                       type: integer
                       x-stoplight:
                         id: mwoxbyfvckfko
+      tags:
+        - Agent
     get:
       summary: 获取 startup 默认参数
       operationId: get-startup-fallback
       responses:
         '200':
           description: OK
-      tags:
-        - "\U0001F195 新增接口"
       description: 获取 startup 默认参数
       requestBody:
         content:
@@ -2645,11 +2643,11 @@ paths:
                   type: string
                   x-stoplight:
                     id: 57kwfcves7j8m
+      tags:
+        - Agent
   /agent/console/read:
     get:
       summary: 读取 agent 控制台输出
-      tags:
-        - "\U0001F195 新增接口"
       responses:
         '200':
           description: OK
@@ -2667,6 +2665,8 @@ paths:
           name: 'n'
           description: 向上读取行数（类似于 tail 命令）
       description: 本接口为 SSE 协议
+      tags:
+        - Agent
   /substance/extension:
     post:
       summary: 新增服务配置（应用商城）
