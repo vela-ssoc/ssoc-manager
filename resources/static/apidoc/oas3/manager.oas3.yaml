@@ -2669,14 +2669,14 @@ paths:
       description: 本接口为 SSE 协议
   /substance/extension:
     post:
-      summary: ''
+      summary: 新增服务配置（应用商城）
       operationId: post-substance-extension
       responses:
         '200':
           description: OK
       tags:
         - "\U0001F195 新增接口"
-      description: "Name        string          `json:\"name\"                validate:\"substance_name\"` // 配置名字\n\tMinionID    int64           `json:\"minion_id,string\"`                              // 节点 ID\n\tExtensionID int64           `json:\"extension_id,string\" validate:\"required\"`       // 插件 ID\n\tData        json.RawMessage `json:\"data\"`                                          // 渲染参数"
+      description: 新增服务配置（应用商城）
       requestBody:
         content:
           application/json:
@@ -2696,15 +2696,9 @@ paths:
                   description: 简要说明
                   example: 扫描局域网内的 FTP 服务器
                 minion_id:
-                  type: string
-                  x-stoplight:
-                    id: sxk1udb5alf99
-                  description: 关联的节点（私有配置需要）
+                  $ref: '#/components/schemas/Int64ID'
                 extension_id:
-                  type: string
-                  x-stoplight:
-                    id: 9369p59h8ou8o
-                  description: 应用商城 service 插件 ID
+                  $ref: '#/components/schemas/Int64ID'
                 data:
                   type: object
                   x-stoplight:
@@ -2715,14 +2709,37 @@ paths:
                 - extension_id
         description: ''
     put:
-      summary: ''
+      summary: 修改服务配置（应用商城）
       operationId: put-substance-extension
       responses:
         '200':
           description: OK
       tags:
         - "\U0001F195 新增接口"
-      description: "Name        string          `json:\"name\"                validate:\"substance_name\"` // 配置名字\n\tMinionID    int64           `json:\"minion_id,string\"`                              // 节点 ID\n\tExtensionID int64           `json:\"extension_id,string\" validate:\"required\"`       // 插件 ID\n\tData        json.RawMessage `json:\"data\"`                                          // 渲染参数"
+      description: 修改服务配置（应用商城）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  $ref: '#/components/schemas/Int64ID'
+                desc:
+                  type: string
+                  x-stoplight:
+                    id: pjhb14164rot5
+                extension_id:
+                  type: string
+                  x-stoplight:
+                    id: vs13emvxt0qxa
+                data:
+                  type: object
+                  x-stoplight:
+                    id: raez2mwoe5zo8
+                  description: 模板渲染参数
+              required:
+                - id
 components:
   securitySchemes:
     Authorization:
@@ -2781,6 +2798,13 @@ components:
       type: string
       description: cron 表达式（分钟级）。
       example: 0 */6 * * *
+    Int64ID:
+      title: Int64ID
+      x-stoplight:
+        id: 7urjaysbsy0kx
+      type: integer
+      description: ID
+      example: '489874870405611520'
   responses:
     ProblemDetails:
       description: 统一错误信息
