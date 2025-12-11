@@ -13,7 +13,6 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
-	"github.com/vela-ssoc/ssoc-common-mb/options"
 	"github.com/vela-ssoc/ssoc-common/linkhub"
 	"github.com/xtaci/smux"
 	"gorm.io/gen/field"
@@ -23,27 +22,26 @@ type Handler interface {
 	Handle(sess *smux.Session)
 }
 
-func New(qry *query.Query, bdc Database, opts ...options.Lister[option]) Handler {
-	opts = append(opts, fallbackOption())
-	opt := options.Eval(opts...)
+func New(qry *query.Query, opt Options) (Handler, error) {
+	if err := opt.precheck(); err != nil {
+		return nil, err
+	}
 
 	return &brokerServer{
 		qry: qry,
-		dbc: bdc,
 		opt: opt,
-	}
+	}, nil
 }
 
 type brokerServer struct {
 	qry *query.Query
-	dbc Database
-	opt option
+	opt Options
 }
 
 func (as *brokerServer) Handle(sess *smux.Session) {
 	defer sess.Close()
 
-	timeout := as.opt.timeout
+	timeout := as.opt.timeout()
 	peer, err := as.precheck(sess, timeout)
 	if err != nil {
 		as.log().Warn("节点上线认证失败", "error", err)
@@ -94,7 +92,7 @@ func (as *brokerServer) precheck(sess *smux.Session, timeout time.Duration) (lin
 	_, peer, code, err1 := as.join(sess, req, timeout)
 	resp := &authResponse{Code: code}
 	if err1 == nil {
-		resp.Database = as.dbc
+		resp.BootConfig = &as.dbc
 		if err2 := linkhub.WriteAuth(sig, resp); err2 != nil {
 			return nil, err2
 		}
@@ -185,18 +183,10 @@ func (as *brokerServer) disconnect(peer linkhub.Peer, timeout time.Duration) {
 	dao := tbl.WithContext(ctx)
 	if _, err := dao.Where(tbl.ID.Eq(id), tbl.Status.Is(true)).
 		UpdateSimple(tbl.Status.Value(false)); err != nil {
-		as.log().Warn("修改 broker 节点下线状态失败", "error", err)
+		as.opt.logger().Warn("修改 broker 节点下线状态失败", "error", err)
 	}
-	as.opt.huber.DelByID(id)
-	as.opt.notifier.BrokerDisconnected(id)
-}
-
-func (as *brokerServer) log() *slog.Logger {
-	if l := as.opt.logger; l != nil {
-		return l
-	}
-
-	return slog.Default()
+	as.opt.Huber.DelByID(id)
+	as.opt.brokerEvent().OnDisconnected(peer)
 }
 
 type smuxListener struct {

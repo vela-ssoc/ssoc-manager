@@ -71,25 +71,26 @@ func (mt *MinionTask) Detail(ctx context.Context, mid, sid int64) (*param.Minion
 
 	dialect := sub.MinionID == mid
 	dat := &param.MinionTaskDetail{
-		ID:         sid,
-		Name:       sub.Name,
-		Icon:       sub.Icon,
-		From:       task.From,
-		Status:     task.Status,
-		Link:       task.Link,
-		Desc:       sub.Desc,
-		Dialect:    dialect,
-		LegalHash:  sub.Hash,
-		ActualHash: task.Hash,
-		Failed:     task.Failed,
-		Cause:      task.Cause,
-		Chunk:      sub.Chunk,
-		Version:    sub.Version,
-		CreatedAt:  sub.CreatedAt,
-		UpdatedAt:  sub.UpdatedAt,
-		TaskAt:     task.CreatedAt,
-		Uptime:     task.Uptime,
-		Runners:    task.Runners,
+		ID:           sid,
+		Name:         sub.Name,
+		Icon:         sub.Icon,
+		From:         task.From,
+		Status:       task.Status,
+		Link:         task.Link,
+		Desc:         sub.Desc,
+		Dialect:      dialect,
+		LegalHash:    sub.Hash,
+		ActualHash:   task.Hash,
+		Failed:       task.Failed,
+		Cause:        task.Cause,
+		Chunk:        sub.Chunk,
+		ContentQuote: sub.ContentQuote,
+		Version:      sub.Version,
+		CreatedAt:    sub.CreatedAt,
+		UpdatedAt:    sub.UpdatedAt,
+		TaskAt:       task.CreatedAt,
+		Uptime:       task.Uptime,
+		Runners:      task.Runners,
 	}
 
 	return dat, nil
@@ -364,6 +365,7 @@ func (mt *MinionTask) Tasks(ctx context.Context, minionID int64) (*mresponse.Min
 			Desc:         sub.Desc,
 			Hash:         sub.Hash,
 			Report:       report,
+			ContentQuote: sub.ContentQuote,
 			CreatedAt:    sub.CreatedAt,
 			UpdatedAt:    sub.UpdatedAt,
 		}
@@ -403,16 +405,17 @@ func (mt *MinionTask) Task(ctx context.Context, minionID, substanceID int64) (*m
 	}
 
 	item := &mresponse.MinionTaskItem{
-		ID:        sub.ID,
-		Name:      sub.Name,
-		Icon:      sub.Icon,
-		Dialect:   sub.MinionID == minionID,
-		Hash:      sub.Hash,
-		Desc:      sub.Desc,
-		Chunk:     sub.Chunk,
-		Version:   sub.Version,
-		CreatedAt: sub.CreatedAt,
-		UpdatedAt: sub.UpdatedAt,
+		ID:           sub.ID,
+		Name:         sub.Name,
+		Icon:         sub.Icon,
+		Dialect:      sub.MinionID == minionID,
+		Hash:         sub.Hash,
+		Desc:         sub.Desc,
+		Chunk:        sub.Chunk,
+		Version:      sub.Version,
+		ContentQuote: sub.ContentQuote,
+		CreatedAt:    sub.CreatedAt,
+		UpdatedAt:    sub.UpdatedAt,
 	}
 
 	taskTbl := mt.qry.MinionTask

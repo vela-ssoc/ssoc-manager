@@ -77,7 +77,7 @@ var errorCodes = map[string]string{
 	"09": "用户名或密码为空",
 }
 
-// reply sso 认证服务的响应报文
+// responseBody sso 认证服务的响应报文
 type responseBody struct {
 	RspCde string `json:"rspCde"` // 业务响应码
 	RspMsg string `json:"rspMsg"` // 响应消息
@@ -94,8 +94,8 @@ func (rb responseBody) checkError() error {
 		msg = errorCodes[code]
 	}
 	if msg == "" {
-		msg = "认证错误（CAS-code: " + code + "）"
+		msg = rb.RspCde
 	}
 
-	return errors.New(msg)
+	return errors.New("sso 认证错误：" + msg)
 }

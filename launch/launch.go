@@ -27,20 +27,17 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
-	"github.com/vela-ssoc/ssoc-common/data/datatype"
-	linkhub2 "github.com/vela-ssoc/ssoc-common/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/app/brkapi"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	"github.com/vela-ssoc/ssoc-manager/app/middle"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
-	exposeapi "github.com/vela-ssoc/ssoc-manager/applet/expose/restapi"
-	exposesvc "github.com/vela-ssoc/ssoc-manager/applet/expose/service"
+	exposeapi "github.com/vela-ssoc/ssoc-manager/application/expose/restapi"
+	exposesvc "github.com/vela-ssoc/ssoc-manager/application/expose/service"
 	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
-	"github.com/vela-ssoc/ssoc-manager/channel/serverd"
 	"github.com/vela-ssoc/ssoc-manager/confload"
 	"github.com/vela-ssoc/ssoc-manager/integration/casauth"
 	"github.com/vela-ssoc/ssoc-manager/integration/cmdb2"
@@ -442,25 +439,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	agentSvc := exposesvc.NewAgent(qry, log)
 	exposeapi.NewAgentConsole(huber, agentSvc).Route(anon, bearer, basic)
-
-	{
-		cdb := cfg.Database
-		bdc := serverd.Database{
-			DSN:         datatype.Ciphertext(cdb.DSN),
-			MaxOpenConn: cdb.MaxOpenConn,
-			MaxIdleConn: cdb.MaxIdleConn,
-			MaxLifeTime: cdb.MaxLifeTime.Duration(),
-			MaxIdleTime: cdb.MaxIdleTime.Duration(),
-		}
-		brokerHandler := ship.Default()
-		serverdOpt := serverd.NewOption().
-			Handler(brokerHandler).
-			Logger(log)
-		tunnelHandler := serverd.New(qry, bdc, serverdOpt)
-		tunnelUpgrade := linkhub2.NewHTTP(tunnelHandler)
-		tunnelAPI := exposeapi.NewTunnel(tunnelUpgrade)
-		tunnelAPI.BindRoute(anon)
-	}
+	substanceExtensionSvc := exposesvc.NewSubstanceExtension(qry, pusher, log)
+	exposeapi.NewSubstanceExtension(substanceExtensionSvc).Route(anon, bearer, basic)
 
 	davREST := mgtapi.NewDavFS(base)
 	davREST.Route(anon, bearer, basic)

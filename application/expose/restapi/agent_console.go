@@ -1,8 +1,8 @@
 package restapi
 
 import (
-	"github.com/vela-ssoc/ssoc-manager/applet/expose/request"
-	"github.com/vela-ssoc/ssoc-manager/applet/expose/service"
+	"github.com/vela-ssoc/ssoc-manager/application/expose/request"
+	"github.com/vela-ssoc/ssoc-manager/application/expose/service"
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/xgfone/ship/v5"
 )
@@ -44,7 +44,7 @@ func (ac *AgentConsole) read(c *ship.Context) error {
 }
 
 func (ac *AgentConsole) remove(c *ship.Context) error {
-	req := new(request.Int64ID)
+	req := new(request.AgentConsoleRemove)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
@@ -61,8 +61,7 @@ func (ac *AgentConsole) remove(c *ship.Context) error {
 		return nil
 	}
 
-	body := map[string]any{"id": agentID}
-	ac.hub.Oneway(ctx, brokID, "/api/v1/console/remove", body)
+	ac.hub.Oneway(ctx, brokID, "/api/v1/console/remove", req)
 
 	return nil
 }

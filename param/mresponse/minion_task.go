@@ -27,6 +27,7 @@ type MinionTaskItem struct {
 	Desc         string                `json:"desc"`           // 描述
 	Report       *MinionTaskItemReport `json:"report"`         // agent 上报信息
 	Chunk        []byte                `json:"chunk,omitzero"` // 代码
+	ContentQuote *model.ExtensionQuote `json:"content_quote"`  // 引用的模板
 	Version      int64                 `json:"version"`        // 代码版本
 	CreatedAt    time.Time             `json:"created_at"`     // 创建时间
 	UpdatedAt    time.Time             `json:"updated_at"`     // 修改时间

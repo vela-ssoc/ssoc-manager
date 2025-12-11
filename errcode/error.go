@@ -59,5 +59,5 @@ const (
 	FmtErrNameExist    = formatError("名字 %s 已经存在")
 	FmtErrInetExist    = formatError("inet %s 已经存在")
 	FmtErrTaskBusy     = formatError("任务繁忙：%d")
-	FmtErrGenerateCode = formatError("生成代码有误：%s")
+	FmtErrGenerateCode = formatError("代码生成时发生错误：%s")
 )
