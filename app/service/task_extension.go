@@ -15,7 +15,8 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/cronv3"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
-	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
+	"github.com/vela-ssoc/ssoc-common-mb/param/request"
+	"github.com/vela-ssoc/ssoc-common-mb/param/response"
 	"github.com/vela-ssoc/ssoc-manager/app/service/internal/minionfilter"
 	"github.com/vela-ssoc/ssoc-manager/app/service/internal/taskexec"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
@@ -155,22 +156,31 @@ func (tim *TaskExtension) Delete(ctx context.Context, id int64) error {
 	return err
 }
 
-func (tim *TaskExtension) Page(ctx context.Context, page param.Pager) (int64, []*model.TaskExtension) {
+func (tim *TaskExtension) Page(ctx context.Context, req *request.PageKeywords) (*response.Pages[*model.TaskExtension], error) {
 	tbl := tim.qry.TaskExtension
 	dao := tbl.WithContext(ctx)
-	if kw := page.Keyword(); kw != "" {
+
+	if kw := req.Keyword; kw != "" {
 		kw = "%" + kw + "%"
 		dao = dao.Where(tbl.Name.Like(kw)).Or(tbl.Intro.Like(kw))
 	}
 
-	count, _ := dao.Count()
-	if count == 0 {
-		return 0, nil
+	page := response.NewPages[*model.TaskExtension](req.PageSize())
+	cnt, err := dao.Count()
+	if err != nil {
+		return nil, err
+	} else if cnt == 0 {
+		return page.Empty(), nil
 	}
 
-	dats, _ := dao.Scopes(page.Scope(count)).Find()
+	records, err := dao.Order(tbl.ID.Desc()).
+		Scopes(page.FP(cnt)).
+		Find()
+	if err != nil {
+		return nil, err
+	}
 
-	return count, dats
+	return page.SetRecords(records), nil
 }
 
 func (tim *TaskExtension) CreateCode(ctx context.Context, req *mrequest.TaskExtensionCreateCode, cu *session.Ident) (*model.TaskExtension, error) {

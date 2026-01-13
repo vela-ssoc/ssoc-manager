@@ -83,8 +83,10 @@ type MinionDetail struct {
 
 type MinionBatchRequest struct {
 	dynsql.Input
-	Cmd     string `json:"cmd"     query:"cmd"     validate:"oneof=resync restart upgrade offline"`
-	Keyword string `json:"keyword" query:"keyword"`
+	Cmd        string `json:"cmd"        query:"cmd"        validate:"oneof=resync restart upgrade offline"`
+	Semver     string `json:"semver"     query:"semver"`     // 临时补丁
+	Customized string `json:"customized" query:"customized"` // 临时补丁
+	Keyword    string `json:"keyword"    query:"keyword"`
 }
 
 func (r MinionBatchRequest) Like() string {

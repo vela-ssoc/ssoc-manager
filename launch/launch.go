@@ -119,7 +119,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	prob := problem.NewHandle(name)
 	sess := session.DBSess(qry, cfg.Server.Session.Duration())
 	valid := validation.New()
-	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+	if err = valid.RegisterCustomValidations(validation.All()); err != nil {
 		return err
 	}
 
@@ -441,6 +441,9 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	exposeapi.NewAgentConsole(huber, agentSvc).Route(anon, bearer, basic)
 	substanceExtensionSvc := exposesvc.NewSubstanceExtension(qry, pusher, log)
 	exposeapi.NewSubstanceExtension(substanceExtensionSvc).Route(anon, bearer, basic)
+
+	zombieConnectSvc := exposesvc.NewZombieConnect(qry, log)
+	exposeapi.NewZombieConnect(zombieConnectSvc).BindRoute(bearer)
 
 	davREST := mgtapi.NewDavFS(base)
 	davREST.Route(anon, bearer, basic)

@@ -229,8 +229,8 @@ func (rest *Minion) Unload(c *ship.Context) error {
 }
 
 func (rest *Minion) Batch(c *ship.Context) error {
-	var req param.MinionBatchRequest
-	if err := c.Bind(&req); err != nil {
+	req := new(param.MinionBatchRequest)
+	if err := c.Bind(req); err != nil {
 		return err
 	}
 	keyword := req.Like()
@@ -249,7 +249,7 @@ func (rest *Minion) Batch(c *ship.Context) error {
 
 	likes := rest.keywordSQL(req.Input, req.Like())
 
-	return rest.svc.Batch(ctx, scope, likes, req.Cmd)
+	return rest.svc.Batch(ctx, scope, likes, req)
 }
 
 func (rest *Minion) Delete(c *ship.Context) error {

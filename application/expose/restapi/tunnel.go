@@ -10,7 +10,7 @@ import (
 	"github.com/xtaci/smux"
 )
 
-func NewTunnel(next linkhub.Handler) *Tunnel {
+func NewTunnel(next linkhub.MUXServer) *Tunnel {
 	return &Tunnel{
 		next: next,
 		wsup: &websocket.Upgrader{
@@ -21,7 +21,7 @@ func NewTunnel(next linkhub.Handler) *Tunnel {
 }
 
 type Tunnel struct {
-	next linkhub.Handler
+	next linkhub.MUXServer
 	wsup *websocket.Upgrader
 }
 
@@ -47,7 +47,7 @@ func (tnl *Tunnel) open(c *ship.Context) error {
 		c.Warnf("升级为 smux 协议出错", "error", err)
 		return nil
 	}
-	tnl.next.Handle(sess)
+	tnl.next.ServeMUX(sess)
 
 	return nil
 }

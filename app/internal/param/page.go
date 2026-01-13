@@ -57,12 +57,10 @@ func (ps *pageScope) Keyword() string {
 }
 
 func (ps *pageScope) Scope(count int64) func(gen.Dao) gen.Dao {
-	if count > 0 {
-		size := int64(ps.size)
-		page := int((count + size - 1) / size)
-		if page < ps.current {
-			ps.current = page
-		}
+	size := int64(ps.size)
+	page := int((count + size - 1) / size)
+	if page < ps.current {
+		ps.current = page
 	}
 	return func(dao gen.Dao) gen.Dao {
 		return dao.Offset((ps.current - 1) * ps.size).Limit(ps.size)
@@ -70,12 +68,10 @@ func (ps *pageScope) Scope(count int64) func(gen.Dao) gen.Dao {
 }
 
 func (ps *pageScope) DBScope(count int64) func(*gorm.DB) *gorm.DB {
-	if count > 0 {
-		size := int64(ps.size)
-		page := int((count + size - 1) / size)
-		if page < ps.current {
-			ps.current = page
-		}
+	size := int64(ps.size)
+	page := int((count + size - 1) / size)
+	if page < ps.current {
+		ps.current = page
 	}
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Offset((ps.current - 1) * ps.size).Limit(ps.size)

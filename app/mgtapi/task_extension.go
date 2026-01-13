@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
-	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
@@ -34,16 +33,17 @@ func (tim *TaskExtension) Route(_, bearer, _ *ship.RouteGroupBuilder) {
 }
 
 func (tim *TaskExtension) page(c *ship.Context) error {
-	req := new(param.Page)
+	req := new(request.PageKeywords)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
-	pager := req.Pager()
-	cnt, rcd := tim.svc.Page(ctx, pager)
-	dat := pager.Result(cnt, rcd)
+	ret, err := tim.svc.Page(ctx, req)
+	if err != nil {
+		return err
+	}
 
-	return c.JSON(http.StatusOK, dat)
+	return c.JSON(http.StatusOK, ret)
 }
 
 func (tim *TaskExtension) createCode(c *ship.Context) error {

@@ -7,20 +7,16 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
-	"syscall"
 
 	"github.com/vela-ssoc/ssoc-common/banner"
 	"github.com/vela-ssoc/ssoc-manager/launch"
 )
 
 func main() {
-	args := os.Args
-	set := flag.NewFlagSet(args[0], flag.ExitOnError)
-	v := set.Bool("v", false, "打印版本并退出")
-	c := set.String("c",
-		"resources/config/application.jsonc", "配置文件路径")
-	_ = set.Parse(args[1:])
-
+	set := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	v := set.Bool("v", false, "打印版本")
+	c := set.String("c", "resources/config/application.jsonc", "配置文件")
+	_ = set.Parse(os.Args[1:])
 	if _, _ = banner.ANSI(os.Stdout); *v {
 		return
 	}
@@ -34,14 +30,11 @@ func main() {
 		}
 	}
 
-	cares := []os.Signal{syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL, syscall.SIGINT}
-	ctx, cancel := signal.NotifyContext(context.Background(), cares...)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	slog.Info("按 [Ctrl+C] 停止运行")
-	if err := launch.Run(ctx, *c); err != nil {
-		slog.Error("程序运行错误", slog.Any("error", err))
-	} else {
-		slog.Warn("程序运行结束")
-	}
+	slog.Info("按 Ctrl+C 停止运行")
+	err := launch.Run(ctx, *c)
+	cause := context.Cause(ctx)
+	slog.Warn("程序停止运行", "error", err, "cause", cause)
 }

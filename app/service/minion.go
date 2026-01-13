@@ -352,10 +352,17 @@ func (biz *Minion) Upgrade(ctx context.Context, mid, binID int64) error {
 	return nil
 }
 
-func (biz *Minion) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, cmd string) error {
+func (biz *Minion) Batch(ctx context.Context, scope dynsql.Scope, likes []gen.Condition, req *param.MinionBatchRequest) error {
 	cbFunc := func(ctx context.Context, bid int64, mids []int64) error {
-		// resync restart upgrade offline
-		biz.pusher.Command(ctx, bid, mids, cmd)
+		cmd := req.Cmd // resync restart upgrade offline
+		semver := req.Semver
+		customized := req.Customized
+		if cmd == "upgrade" && semver != "" {
+			biz.pusher.Upgrade(ctx, bid, mids, semver, customized)
+		} else {
+			biz.pusher.Command(ctx, bid, mids, cmd)
+		}
+
 		return nil
 	}
 
