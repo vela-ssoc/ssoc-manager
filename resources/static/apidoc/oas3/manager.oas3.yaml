@@ -25,151 +25,6 @@ tags:
   - name: 配置参数
   - name: 插件
 paths:
-  /login/han:
-    post:
-      summary: 获取汉字点选验证码
-      operationId: post-login-han
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  han_id:
-                    type: string
-                    description: 图片验证码唯一 ID
-                  large:
-                    type: string
-                    description: 大图 base64
-                  small:
-                    type: string
-                    description: 小图 base64
-              examples:
-                Example 1:
-                  value:
-                    han_id: cbd22fa9b421c0f3c0def9524ebbb284
-                    large: 'data:image/jpeg;base64,/9j/2wCEAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBoeVbzQwsxUiKaAKuwkAkPufbjaGJYAFjWMowxEpYPEUVVw+Kozo1Iy0Uqc1aUW1rtflts7PzOilUjHEUZOXxX5l3v37+jPUP2rfB2nQ+ItD+Mvg5XuPBPxks01gFkTyNF8UPbRT3mnXAiHlmS6i2qhYeZJfR3TEl95r5cguZY0xDIRHMhjUFju8vezKj85IwRweMk8Ak5+6/hOuj/ABSNSElKKZ4WIrudCVOaVSElyyjJXjJO++qavumrSi7OLwH/2Q=='
-                    small: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAAoBAMAAADu7x7UAAAAJ1BMVEUAAAAAZgAAXbmqACqHVABuNwHOWIhYZ6aOhEITgrBCMdd9sMY8ugvakvGtMcIed0HL/s+/nU/aOljvG9pE708KAvGDXf1N0mLp34SI+C5VO5qWnwEAAP//onRgJv6mIg8AAAAASUVORK5CYII='
-        '400':
-          $ref: '#/components/responses/ProblemDetails'
-      description: 获取汉字点选验证码
-      tags:
-        - 登录模块
-      security: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  description: 用户名
-                password:
-                  type: string
-                  format: password
-                  description: 密码
-              required:
-                - username
-                - password
-    put:
-      summary: 校验汉字点选验证码
-      operationId: put-login-han
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  dong:
-                    type: boolean
-                    description: 是否需要咚咚验证码
-              examples:
-                Example 1:
-                  value:
-                    dong: true
-        '400':
-          $ref: '#/components/responses/ProblemDetails'
-      tags:
-        - 登录模块
-      description: '每个汉字点选图片验证码只可以使用 `1` 次，无论点选结果是否验证成功，都不可以二次提交验证。如果验证错误，前端界面请自行请求 [获取汉字点选验证码](post-login-han) 获取新的图片验证码。'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              x-examples:
-                Example 1:
-                  username: '123321'
-                  password: p@33w0Rd
-                  han_id: cbd22fa9b421c0f3c0def9524ebbb284
-                  points:
-                    - x: 12
-                      'y': 345
-                    - x: 234
-                      'y': 127
-                    - x: 654
-                      'y': 222
-              properties:
-                username:
-                  type: string
-                  example: '123321'
-                  minLength: 1
-                  maxLength: 20
-                  description: 用户名
-                password:
-                  type: string
-                  description: 密码
-                  format: password
-                  example: p@33w0Rd
-                  minLength: 6
-                  maxLength: 32
-                han_id:
-                  type: string
-                  description: 图片验证码的唯一 ID
-                  example: cbd22fa9b421c0f3c0def9524ebbb284
-                points:
-                  type: array
-                  description: 点选坐标信息
-                  items:
-                    type: object
-                    properties:
-                      x:
-                        type: integer
-                        minimum: 0
-                        example: 321
-                        description: X 轴
-                      'y':
-                        type: integer
-                        minimum: 0
-                        example: 214
-                        description: Y 轴
-                    required:
-                      - x
-                      - 'y'
-              required:
-                - username
-                - password
-                - han_id
-                - points
-            examples:
-              Example 1:
-                value:
-                  username: '123321'
-                  password: p@33w0Rd
-                  han_id: cbd22fa9b421c0f3c0def9524ebbb284
-                  points:
-                    - x: 12
-                      'y': 345
-                    - x: 234
-                      'y': 127
-                    - x: 654
-                      'y': 222
-      security: []
   /login/dong:
     post:
       summary: 获取咚咚验证码
@@ -2753,6 +2608,129 @@ paths:
       parameters:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/size'
+  /occupy/events:
+    get:
+      summary: 查询 event 事件排行
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  x-stoplight:
+                    id: xn10hjfc4f3zp
+                  type: object
+                  properties:
+                    minion_id:
+                      type: string
+                      x-stoplight:
+                        id: 8gr3cr3vevyh3
+                      description: 节点 ID
+                      example: '514394327374573816'
+                    inet:
+                      type: string
+                      x-stoplight:
+                        id: acxecoxn1kpmg
+                      description: 节点 IP
+                      example: 172.33.22.12
+                    from_code:
+                      type: string
+                      x-stoplight:
+                        id: qcvdtkrsj3o7v
+                      description: 来源模块
+                      example: runtime
+                    count:
+                      type: integer
+                      x-stoplight:
+                        id: lhyrcktabd4cc
+                      description: 条目数
+                      example: 21
+                  required:
+                    - minion_id
+                    - inet
+                    - from_code
+                    - count
+      operationId: get-occupy-events
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - schema:
+            type: array
+          in: query
+          name: from_code
+          description: 来源模块
+        - schema:
+            type: string
+          in: query
+          name: occur_at
+          description: 此时间之后
+        - schema:
+            type: integer
+          in: query
+          name: minion_id
+          description: 节点 ID
+      description: 查询 event 事件排行
+  /occupy/risks:
+    get:
+      summary: 查询风险事件排行
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  x-stoplight:
+                    id: p8apz8l9hpzrb
+                  type: object
+                  properties:
+                    minion_id:
+                      type: string
+                      x-stoplight:
+                        id: f6oyyc6bfvsa7
+                      example: '514394327374573816'
+                    from_code:
+                      type: string
+                      x-stoplight:
+                        id: f8v8rzh4s8zsd
+                      example: honypot
+                    inet:
+                      type: string
+                      x-stoplight:
+                        id: cfqkp3fz0z4ms
+                      example: 124.2.123.2
+                    count:
+                      type: integer
+                      x-stoplight:
+                        id: ux9xqs8uqwkem
+                      example: 231
+      operationId: get-occupy-risks
+      description: 查询风险事件排行
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - schema:
+            type: string
+          in: query
+          name: minion_id
+          description: 节点 ID
+        - schema:
+            type: array
+          in: query
+          name: from_code
+          description: 来源模块
+        - schema:
+            type: string
+          in: query
+          name: occur_at
+          description: 发生时间
 components:
   securitySchemes:
     Authorization:
@@ -2817,7 +2795,7 @@ components:
         id: 7urjaysbsy0kx
       type: integer
       description: ID
-      example: '489874870405611520'
+      example: 489874870405611520
   responses:
     ProblemDetails:
       description: 统一错误信息
