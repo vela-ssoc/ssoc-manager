@@ -2740,6 +2740,19 @@ paths:
                   description: 模板渲染参数
               required:
                 - id
+  /zombie/connects:
+    get:
+      summary: 假在线
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+      operationId: get-zombie-connects
+      description: 假在线
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
 components:
   securitySchemes:
     Authorization:
