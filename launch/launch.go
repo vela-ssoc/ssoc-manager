@@ -439,6 +439,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	agentSvc := exposesvc.NewAgent(qry, log)
 	exposeapi.NewAgentConsole(huber, agentSvc).Route(anon, bearer, basic)
+	occupySvc := exposesvc.NewOccupy(qry, log)
+	exposeapi.NewOccupy(occupySvc).BindRoute(bearer)
 	substanceExtensionSvc := exposesvc.NewSubstanceExtension(qry, pusher, log)
 	exposeapi.NewSubstanceExtension(substanceExtensionSvc).Route(anon, bearer, basic)
 
