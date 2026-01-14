@@ -2673,7 +2673,10 @@ paths:
           in: query
           name: minion_id
           description: 节点 ID
-      description: 查询 event 事件排行
+      description: |-
+        查询 event 事件排行
+
+        from_code = `minion.online` 时，代表查询频繁上下线的节点。
   /occupy/risks:
     get:
       summary: 查询风险事件排行
@@ -2795,7 +2798,7 @@ components:
         id: 7urjaysbsy0kx
       type: integer
       description: ID
-      example: 489874870405611520
+      example: 489874870405611500
   responses:
     ProblemDetails:
       description: 统一错误信息
