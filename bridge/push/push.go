@@ -2,7 +2,6 @@ package push
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -136,11 +135,10 @@ func (pi *pushImpl) thirdDiff(ctx context.Context, name, event string) {
 }
 
 func (pi *pushImpl) SavePprof(ctx context.Context, bid, mid int64, second int, dest, typ string) error {
-	if second <= 0 {
-		second = 30
+	strURL := "/api/v1/arr/pprof/" + typ
+	if second > 0 {
+		strURL += "?seconds=" + strconv.Itoa(second)
 	}
-
-	strURL := fmt.Sprintf("/api/v1/arr/pprof/%s?seconds=%d", typ, second)
 	header := http.Header{linkhub.HeaderXNodeID: []string{strconv.FormatInt(mid, 10)}}
 
 	res, err := pi.hub.Do(ctx, bid, http.MethodGet, strURL, nil, header)

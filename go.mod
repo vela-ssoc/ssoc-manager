@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260112063640-36d05c2e8f0c
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260114084849-5864d4d5d995
 	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260112065419-ddae86a98e3a
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2

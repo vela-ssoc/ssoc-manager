@@ -91,9 +91,6 @@ func (svc *Pprof) Dump(ctx context.Context, req *param.PprofDump) (string, error
 	dest := filepath.Join(svc.dir, name)
 
 	second := req.Second
-	if second <= 0 {
-		second = 30
-	}
 	if err = svc.pusher.SavePprof(ctx, bid, mid, second, dest, req.Type); err != nil {
 		return "", err
 	}
