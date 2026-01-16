@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/HuaweiCloudDeveloper/gaussdb-go v1.0.0-rc1
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/google/pprof v0.0.0-20260111202518-71be6bfdd440
+	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
