@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>接口文档</title>
+    <!-- https://cdn.tailwindcss.com/ -->
+    <script src="js/tailwindcss-v3.4.17.js"></script>
+</head>
+<body class="bg-black text-white py-6">
+<div class="max-w-7xl mx-auto px-4">
+    <h1 class="text-3xl font-bold mb-2 text-center">接口文档</h1>
+    <div class="text-center text-gray-400 text-sm mb-6">
+        <ul>
+            <li>
+                接口文档遵循 <a href="https://swagger.io/specification/" target="_blank">OpenAPI OAS3</a> 标准。
+            </li>
+            <li>
+                建议选择 <strong>Stoplight UI</strong> 查看，以获得较好的体验。
+            </li>
+        </ul>
+    </div>
+
+    <div id="projectGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <!-- 卡片将由 JS 插入 -->
+    </div>
+</div>
+
+<script>
+    const projects = [
+        {name: 'WEB 接口', oas3: 'spec/web.yaml', image: 'img/waf.jpg'},
+        {name: 'M->B 服务', oas3: 'spec/manager-to-broker.yaml', image: 'img/openapi.png'},
+        {name: 'B->M 服务', oas3: 'spec/broker-to-manager.yaml', image: 'img/openapi.png'},
+        {name: 'B->A 服务', oas3: 'spec/broker-to-agent.yaml', image: 'img/openapi.png'},
+        {name: 'A->B 服务', oas3: 'spec/agent-to-broker.yaml', image: 'img/openapi.png'},
+        {name: '安装初始化', oas3: 'spec/initialize.json', image: 'img/initialize.png'},
+    ]
+    const pages = [
+        {name: 'Stoplight UI', link: 'stoplight.html'},
+        {name: 'Swagger UI', link: 'swagger.html'},
+        {name: 'Scalar UI', link: 'scalar.html'},
+        {name: 'Redocly UI', link: 'redocly.html'},
+    ]
+
+    const grid = document.getElementById('projectGrid');
+    projects.forEach(proj => {
+        const card = document.createElement('div');
+        card.className = 'relative bg-neutral-900 rounded-md shadow-md overflow-hidden hover:scale-[1.02] transition-transform';
+
+        card.innerHTML = `
+        <div class="relative w-full h-60">
+          <img src="${proj.image}" alt="${proj.name}" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-sm px-3 py-2">${proj.name}</div>
+        </div>
+
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3">
+          ${pages.map(pg => {
+            const queries = new URLSearchParams({oas3: proj.oas3});
+            return `<a href="${pg.link}?${queries.toString()}" target="_blank" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-md border border-white/20">${pg.name}</a>`
+        }).join('')}
+        </div>`
+
+        grid.appendChild(card);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scalar UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        #scalar {
+            height: 100vh;
+        }
+    </style>
+    <!-- 引入 Scalar 的 Web Component -->
+    <script src="js/scalar-api-reference-v1.35.3@standalone.min.js"></script>
+    <link href="css/scalar-api-reference-v1.35.3@style.min.css" rel="stylesheet">
+    <script src="js/utils.js"></script>
+</head>
+<body>
+<!-- 挂载点 -->
+<div id="scalar"></div>
+
+<script>
+    function init() {
+        const name = Utils.oas3();
+        if (!name) {
+            const warning = document.createElement('a')
+            warning.href = './'
+            warning.innerText = '未找到接口文档，点击跳转至接口文档主页'
+            document.body.appendChild(warning)
+
+            return
+        }
+
+        Scalar.createApiReference('#scalar', {
+            url: name,          // OpenAPI 文件路径
+            theme: 'default',   // default | dark | light
+        })
+    }
+
+    init()
+</script>
+</body>
+</html>

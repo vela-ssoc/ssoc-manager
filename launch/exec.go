@@ -27,7 +27,9 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/application/expose/restapi"
 	expservice "github.com/vela-ssoc/ssoc-manager/application/expose/service"
 	"github.com/vela-ssoc/ssoc-manager/config"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/brkclient"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxaccept"
+	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -128,6 +130,11 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	expPyroscopeSvc := expservice.NewPyroscope(qry, log)
 	expVictoriaMetricsSvc := expservice.NewVictoriaMetrics(qry, log)
 
+	sysdial := new(net.Dialer)
+	mixdial := muxserver.NewMixedDialer(nil, hub, sysdial)
+	basecli := muxtool.NewClient(mixdial, log)
+	brkcli := brkclient.NewClient(basecli)
+
 	acceptOpt := muxaccept.Options{
 		Huber:      hub,
 		Handler:    brokSH,
@@ -147,6 +154,11 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	}
 	httpsAPIs := []shipx.RouteBinder{ // https 主业务
 		restapi.NewTunnel(accept),
+		restapi.NewBroker(brkcli),
+	}
+
+	for k, v := range srvCfg.Static { // 注册静态资源
+		httpsSH.Route(k).Static(v)
 	}
 	{
 		routes := append(httpsAPIs, httpAPIs...)

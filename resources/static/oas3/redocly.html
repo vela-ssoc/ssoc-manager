@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- https://redocly.com/docs/redoc#add-an-html-element-to-the-page -->
+    <title>Redocly UI</title>
+    <script src="js/utils.js"></script>
+    <script src="js/redoc.standalone.js"></script>
+</head>
+<body>
+
+<script>
+    function init() {
+        const name = Utils.oas3();
+        if (!name) {
+            const warning = document.createElement('a')
+            warning.href = './'
+            warning.innerText = '未找到接口文档，点击跳转至接口文档主页'
+            document.body.appendChild(warning)
+
+            return
+        }
+
+        const doc = document.createElement('div')
+        document.body.appendChild(doc)
+        Redoc.init(name, {}, doc)
+    }
+
+    init()
+</script>
+
+</body>
+</html>

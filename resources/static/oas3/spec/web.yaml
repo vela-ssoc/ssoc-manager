@@ -1,0 +1,9 @@
+openapi: 3.1.0
+info:
+  title: SSOCv2 接口文档
+  description: Title
+  version: 26.1.30
+servers:
+  - url: /api/v1
+    description: 当前
+paths: null

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="description" content="SwaggerUI"/>
+    <title>Swagger UI</title>
+    <!-- https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/installation.md#unpkg -->
+    <link rel="stylesheet" href="css/v5.29.0@swagger-ui.css"/>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="js/v5.29.0@swagger-ui-bundle.js"></script>
+<script src="js/v5.29.0@swagger-ui-standalone-preset.js"></script>
+<script src="js/utils.js"></script>
+<script>
+    function init() {
+        const name = Utils.oas3();
+        if (!name) {
+            const warning = document.createElement('a')
+            warning.href = './'
+            warning.innerText = '未找到接口文档，点击跳转至接口文档主页'
+            document.body.appendChild(warning)
+
+            return
+        }
+
+        window.ui = SwaggerUIBundle({
+            url: name,
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            layout: "BaseLayout",
+        })
+    }
+
+    init()
+</script>
+</body>
+</html>
