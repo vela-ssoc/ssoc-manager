@@ -1,44 +1,59 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: 编译下载
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: 编译构建
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - v2
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos:
+          - linux
+          - windows
+          - darwin
+        goarch:
+          - amd64
+          - arm64
+        exclude:
+          - goos: windows
+            goarch: arm64   # 排除不用的组合
+
     steps:
-      - name: 拉取代码
+      - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: 安装 Go SDK
+      - name: 安装 Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
 
-      - name: 编译 linux-amd64
+      - name: 编译程序
         env:
-          GOOS: linux
-          GOARCH: amd64
-        run: sh build.sh
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          echo "正在编译 $GOOS - $GOARCH"
+          sh build.sh
 
-      - name: 编译 windows-amd64
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: sh build.sh
+      - name: 生成打包时间
+        run: echo "BUILD_DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
 
       - name: 上传产物
         uses: actions/upload-artifact@v5
         with:
-          retention-days: 30
-          name: ssoc-manager
-          path: ssoc-manager_*
+          name: ssoc-manager_${{ matrix.goos }}-${{ matrix.goarch }}_${{ env.BUILD_DATE }}
+          path: |
+            ssoc-manager_*

@@ -14,16 +14,15 @@ import (
 
 func main() {
 	set := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	v := set.Bool("v", false, "打印版本")
-	c := set.String("c", "resources/config/application.jsonc", "配置文件")
+	ver := set.Bool("v", false, "打印版本")
+	cfg := set.String("c", "resources/config/application.jsonc", "配置文件")
 	_ = set.Parse(os.Args[1:])
-	if _, _ = banner.ANSI(os.Stdout); *v {
+	if _, _ = banner.ANSI(os.Stdout); *ver {
 		return
 	}
 
-	// https://github.com/golang/go/issues/67182
-	for _, fp := range []string{"resources/.crash.txt", ".crash.txt"} {
-		if f, _ := os.Create(fp); f != nil {
+	for _, str := range []string{"resources/.crash.txt", ".crash.txt"} {
+		if f, _ := os.Create(str); f != nil {
 			_ = debug.SetCrashOutput(f, debug.CrashOptions{})
 			_ = f.Close()
 			break
@@ -33,8 +32,8 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	slog.Info("按 Ctrl+C 停止运行")
-	err := launch.Run(ctx, *c)
+	err := launch.Run(ctx, *cfg)
 	cause := context.Cause(ctx)
-	slog.Warn("程序停止运行", "error", err, "cause", cause)
+
+	slog.Warn("服务停止运行", "error", err, "cause", cause)
 }
