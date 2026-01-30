@@ -1,18 +1,19 @@
 package restapi
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/vela-ssoc/ssoc-common/linkhub"
+	"github.com/vela-ssoc/ssoc-common/muxserver"
+	"github.com/vela-ssoc/ssoc-proto/muxconn"
 	"github.com/xgfone/ship/v5"
-	"github.com/xtaci/smux"
 )
 
-func NewTunnel(next linkhub.Handler) *Tunnel {
+func NewTunnel(acpt muxserver.MUXAccepter) *Tunnel {
 	return &Tunnel{
-		next: next,
+		acpt: acpt,
 		wsup: &websocket.Upgrader{
 			HandshakeTimeout: 10 * time.Second,
 			CheckOrigin:      func(r *http.Request) bool { return true },
@@ -21,7 +22,7 @@ func NewTunnel(next linkhub.Handler) *Tunnel {
 }
 
 type Tunnel struct {
-	next linkhub.Handler
+	acpt muxserver.MUXAccepter
 	wsup *websocket.Upgrader
 }
 
@@ -32,22 +33,44 @@ func (tnl *Tunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
 }
 
 // open broker 的接入点。
+//
+//goland:noinspection GoUnhandledErrorResult
 func (tnl *Tunnel) open(c *ship.Context) error {
+	proto := c.Query("protocol")
+	if proto == "" {
+		proto = c.Query("proto")
+	}
+	if proto != "yamux" {
+		proto = "sumx"
+	}
+
+	attrs := []any{"protocol", proto, "remote_addr", c.RemoteAddr()}
 	w, r := c.Response(), c.Request()
 	ws, err := tnl.wsup.Upgrade(w, r, nil)
 	if err != nil {
-		c.Warnf("升级为 websocket 协议出错", "error", err)
+		attrs = append(attrs, "error", err)
+		c.Warnf("升级为 websocket 协议出错", attrs...)
 		return nil
 	}
-	defer ws.Close()
+
+	var mux muxconn.Muxer
+	ctx := context.Background()
 	conn := ws.NetConn()
-	sess, err := smux.Server(conn, nil)
+	if proto == "yamux" {
+		mux, err = muxconn.NewYaMUX(ctx, conn, nil, true)
+	} else {
+		mux, err = muxconn.NewSMUX(ctx, conn, nil, true)
+	}
 	if err != nil {
-		_ = conn.Close()
-		c.Warnf("升级为 smux 协议出错", "error", err)
+		_ = ws.Close()
+		attrs = append(attrs, "error", err)
+		c.Warnf("升级为 muxer 协议出错", attrs...)
 		return nil
 	}
-	tnl.next.Handle(sess)
+
+	c.Infof("通道接收到了新的连接", attrs...)
+	tnl.acpt.AcceptMUX(mux)
+	mux.Close()
 
 	return nil
 }

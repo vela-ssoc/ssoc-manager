@@ -119,7 +119,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	prob := problem.NewHandle(name)
 	sess := session.DBSess(qry, cfg.Server.Session.Duration())
 	valid := validation.New()
-	if err = valid.RegisterCustomValidations(validation.Extensions()); err != nil {
+	if err = valid.RegisterCustomValidations(validation.All()); err != nil {
 		return err
 	}
 
