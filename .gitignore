@@ -17,9 +17,7 @@
 .idea/
 
 # 配置文件（敏感信息）
-resources/config/*
-!resources/config/manager.example.yaml
-!resources/config/application-example.jsonc
+resources/config/application-*.jsonc
 
 resources/cdn/*
 resources/test/*
