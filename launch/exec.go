@@ -191,7 +191,8 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	crtPool := tlscert.NewMatch(noneTLS, log)
+	crtFile := tlscert.NewFile("resources/tls/server.pem", "resources/tls/server.key")
+	crtPool := tlscert.NewMatch(crtFile, log)
 	httpSrv := &http.Server{Handler: httpSH}
 	httpsSrv := &http.Server{Handler: httpsSH, TLSConfig: &tls.Config{GetCertificate: crtPool.GetCertificate}}
 
@@ -240,8 +241,4 @@ func serveHTTP(errs chan<- error, srv *http.Server, ln net.Listener) {
 
 func serveHTTPS(errs chan<- error, srv *http.Server, ln net.Listener) {
 	errs <- srv.ServeTLS(ln, "", "")
-}
-
-func noneTLS(context.Context) ([]*tls.Certificate, error) {
-	return nil, nil
 }
