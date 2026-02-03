@@ -154,7 +154,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	}
 	httpsAPIs := []shipx.RouteBinder{ // https 主业务
 		restapi.NewTunnel(accept),
-		restapi.NewBroker(brkcli),
+		restapi.NewBrokerTunnel(brkcli),
 	}
 
 	for k, v := range srvCfg.Static { // 注册静态资源
