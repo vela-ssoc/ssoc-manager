@@ -1,0 +1,1 @@
+:where(.foria-label-wrapper){display:inline-block;position:relative;width:100%}:where(.foria-label-wrapper) .foria-label-wrapper-txt{position:absolute;left:12px;transform:translateY(-50%);padding:0 3px;line-height:1.2em;z-index:10;border-radius:3px;pointer-events:none;font-size:11px;top:-2px;background-color:#fff;color:#878b8b}
