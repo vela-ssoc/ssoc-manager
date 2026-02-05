@@ -1,6 +1,6 @@
 {
   "server": {
-    "addr": "0.0.0.0.0:8081",
+    "addr": "0.0.0.0.0:8020",
     "static": {
       "/": "resources/static/root/",
       "/oas3": "resources/static/oas3/"
