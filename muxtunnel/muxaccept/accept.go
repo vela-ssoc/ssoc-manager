@@ -233,12 +233,12 @@ func (ms *brokerAccept) disconnected(peer muxserver.Peer) {
 	connectAt := info.ConnectedAt
 	raddr, laddr := mux.Addr(), mux.RemoteAddr()
 	his := &model.BrokerConnectHistory{
-		Broker: id,
-		Name:   info.Name,
-		Semver: info.Semver,
-		Inet:   info.Inet,
-		Goos:   info.Goos,
-		Goarch: info.Goarch,
+		BrokerID: id,
+		Name:     info.Name,
+		Semver:   info.Semver,
+		Inet:     info.Inet,
+		Goos:     info.Goos,
+		Goarch:   info.Goarch,
 		TunnelStat: model.TunnelStatHistory{
 			ConnectedAt:    connectAt,
 			DisconnectedAt: disconnectAt,
