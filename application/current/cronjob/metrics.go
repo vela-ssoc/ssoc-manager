@@ -2,35 +2,27 @@ package cronjob
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
-	"runtime"
 	"time"
 
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 )
 
-type MetricsConfigFunc func(ctx context.Context) (pushURL string, opts *metrics.PushOptions, err error)
-
-func NewMetrics(cfg MetricsConfigFunc) cronv3.Tasker {
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-	hostname, _ := os.Hostname()
-
-	label := fmt.Sprintf(`instance="ssoc-manager",instance_type="manager",instance_name="%s",goos="%s",goarch="%s"`, hostname, goos, goarch)
-
+func NewMetrics(label string, cfg vmetric.ConfigLoader, writers []vmetric.MetricWriter) cronv3.Tasker {
 	return &metricsJob{
-		cfg:   cfg,
-		label: label,
+		label:   label,
+		cfg:     cfg,
+		writers: writers,
 	}
 }
 
 type metricsJob struct {
-	cfg   MetricsConfigFunc
-	label string
+	label   string
+	cfg     vmetric.ConfigLoader
+	writers []vmetric.MetricWriter
 }
 
 func (*metricsJob) Info() cronv3.TaskInfo {
@@ -42,16 +34,22 @@ func (*metricsJob) Info() cronv3.TaskInfo {
 }
 
 func (m *metricsJob) Call(ctx context.Context) error {
-	pushURL, opts, err := m.cfg(ctx)
+	pushURL, opts, err := m.cfg.LoadConfig(ctx)
 	if err != nil {
 		return err
 	}
 	opts.ExtraLabels = m.label
 
-	return metrics.PushMetricsExt(ctx, pushURL, m.defaultWrite, opts)
+	return metrics.PushMetricsExt(ctx, pushURL, m.writeWithContext(ctx), opts)
 }
 
-func (m *metricsJob) defaultWrite(w io.Writer) {
-	metrics.WritePrometheus(w, true)
-	metrics.WriteFDMetrics(w)
+func (m *metricsJob) writeWithContext(ctx context.Context) func(io.Writer) {
+	return func(w io.Writer) {
+		metrics.WritePrometheus(w, true)
+		metrics.WriteFDMetrics(w)
+
+		for _, mw := range m.writers {
+			mw.WriteMetric(ctx, w)
+		}
+	}
 }

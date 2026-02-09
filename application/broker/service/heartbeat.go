@@ -5,29 +5,31 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Heartbeat struct {
-	qry *query.Query
+	db  repository.Database
 	log *slog.Logger
 }
 
-func NewHeartbeat(qry *query.Query, log *slog.Logger) *Heartbeat {
+func NewHeartbeat(db repository.Database, log *slog.Logger) *Heartbeat {
 	return &Heartbeat{
-		qry: qry,
+		db:  db,
 		log: log,
 	}
 }
 
 // Ping 处理 broker 节点发来的心跳包。
-func (hb *Heartbeat) Ping(ctx context.Context, id int64) error {
+func (hb *Heartbeat) Ping(ctx context.Context, id bson.ObjectID) error {
 	now := time.Now()
-	tbl := hb.qry.Broker
-	dao := tbl.WithContext(ctx)
+	update := bson.M{"$set": bson.M{
+		"tunnel_stat.keepalive_at": now,
+	}}
 
-	_, err := dao.Where(tbl.ID.Eq(id)).
-		UpdateSimple(tbl.HeartbeatAt.Value(now))
+	coll := hb.db.Broker()
+	_, err := coll.UpdateByID(ctx, id, update)
 
 	return err
 }

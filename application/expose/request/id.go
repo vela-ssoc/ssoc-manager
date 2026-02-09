@@ -1,5 +1,12 @@
 package request
 
-type Int64ID struct {
-	ID int64 `json:"id,string" form:"id" query:"id" validate:"required,gt=0"`
+import "go.mongodb.org/mongo-driver/v2/bson"
+
+type ObjectID struct {
+	ID string `json:"id" query:"id" validate:"required,hex"`
+}
+
+func (i ObjectID) Get() bson.ObjectID {
+	id, _ := bson.ObjectIDFromHex(i.ID)
+	return id
 }

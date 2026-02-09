@@ -11,15 +11,15 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
-	"github.com/vela-ssoc/ssoc-common/datalayer/model"
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/logger"
+	"github.com/vela-ssoc/ssoc-common/mongodb"
 	"github.com/vela-ssoc/ssoc-common/muxserver"
 	"github.com/vela-ssoc/ssoc-common/preadtls"
 	"github.com/vela-ssoc/ssoc-common/shipx"
-	"github.com/vela-ssoc/ssoc-common/sqldb"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"github.com/vela-ssoc/ssoc-common/tlscert"
 	"github.com/vela-ssoc/ssoc-common/validation"
+	"github.com/vela-ssoc/ssoc-common/vmetric"
 	brkrestapi "github.com/vela-ssoc/ssoc-manager/application/broker/restapi"
 	brkservice "github.com/vela-ssoc/ssoc-manager/application/broker/service"
 	"github.com/vela-ssoc/ssoc-manager/application/current/cronjob"
@@ -31,8 +31,6 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxaccept"
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/xgfone/ship/v5"
-	"gorm.io/gorm"
-	gormlogger "gorm.io/gorm/logger"
 )
 
 func Exec(ctx context.Context, cfg string) error {
@@ -85,24 +83,17 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	log.Info("日志初始化完毕")
 
 	log.Info("开始连接接数据库")
-
-	gormLogCfg := gormlogger.Config{LogLevel: gormlogger.Info}
-	gormLog := logger.NewGorm(logh, gormLogCfg)
-	gormCfg := &gorm.Config{Logger: gormLog}
-	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
+	mdb, err := mongodb.Connect(dbCfg.URI)
 	if err != nil {
 		log.Error("数据库连接错误", "error", err)
 		return err
 	}
-	dialectName := db.Dialector.Name()
-	log.Info("数据库连接成功", "dialect", dialectName)
-
-	if err = db.Migrator().AutoMigrate(model.All()...); err != nil {
-		log.Error("合并数据库差异出错", "error", err)
+	log.Info("数据库连接成功，开始初始化索引")
+	db := repository.NewDB(mdb, log)
+	if err = db.CreateIndex(ctx); err != nil {
+		log.Error("数据库索引初始化错误", "error", err)
 		return err
 	}
-	qry := query.Use(db)
-	log.Info("数据库差异合并结束")
 
 	crontab := cronv3.New(log)
 	crontab.Start()
@@ -126,9 +117,9 @@ func Start(ctx context.Context, cfg *config.Config) error {
 
 	hub := muxserver.NewBrokerHub()
 	brkHubHookSvc := brkservice.NewHubHook(log)
-	curBrokerSvc := curservice.NewBroker(dbCfg, qry, log)
-	expPyroscopeSvc := expservice.NewPyroscope(qry, log)
-	expVictoriaMetricsSvc := expservice.NewVictoriaMetrics(qry, log)
+	curBrokerSvc := curservice.NewBroker(db, dbCfg, log)
+	expPyroscopeSvc := expservice.NewPyroscopeConfig(db, log)
+	expVictoriaMetricsSvc := expservice.NewVictoriaMetricsConfig(db, log)
 
 	sysdial := new(net.Dialer)
 	mixdial := muxserver.NewMixedDialer(nil, hub, sysdial)
@@ -143,9 +134,9 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		BootLoader: curBrokerSvc,
 		Notifier:   brkHubHookSvc,
 	}
-	accept := muxaccept.NewAccept(qry, acceptOpt)
+	accept := muxaccept.NewAccept(db, acceptOpt)
 
-	brkHeartbeatSvc := brkservice.NewHeartbeat(qry, log)
+	brkHeartbeatSvc := brkservice.NewHeartbeat(db, log)
 	brokAPIs := []shipx.RouteBinder{ // tunnel API，用于 manager-broker 内部业务通信。
 		brkrestapi.NewHeartbeat(brkHeartbeatSvc),
 	}
@@ -183,8 +174,10 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		}
 	}
 
+	managerLabel := vmetric.ManagerLabel()
+	metricWriters := []vmetric.MetricWriter{vmetric.NewPsutil()}
 	cronTasks := []cronv3.Tasker{
-		cronjob.NewMetrics(expVictoriaMetricsSvc.Load),
+		cronjob.NewMetrics(managerLabel, expVictoriaMetricsSvc, metricWriters),
 	}
 	if err = crontab.AddTasks(cronTasks); err != nil {
 		log.Error("定时任务注册出错", "error", err)

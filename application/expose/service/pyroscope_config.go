@@ -7,29 +7,29 @@ import (
 	"sync"
 
 	"github.com/grafana/pyroscope-go"
-	"github.com/vela-ssoc/ssoc-common/datalayer/model"
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/vela-ssoc/ssoc-common/memcache"
+	"github.com/vela-ssoc/ssoc-common/store/model"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
 )
 
-type Pyroscope struct {
-	qry *query.Query
+type PyroscopeConfig struct {
+	db  repository.Database
 	log *slog.Logger
-	mem memcache.Cache[*model.Pyroscope, error]
+	mem memcache.Cache[*model.PyroscopeConfig, error]
 	mtx sync.Mutex // 防止并发启动
 	prf *pyroscope.Profiler
 }
 
-func NewPyroscope(qry *query.Query, log *slog.Logger) *Pyroscope {
-	py := &Pyroscope{qry: qry, log: log}
+func NewPyroscopeConfig(db repository.Database, log *slog.Logger) *PyroscopeConfig {
+	py := &PyroscopeConfig{db: db, log: log}
 	py.mem = memcache.NewCache(py.enabled)
 
 	return py
 }
 
-func (py *Pyroscope) Start(ctx context.Context) error {
+func (py *PyroscopeConfig) Start(ctx context.Context) error {
 	py.mtx.Lock()
 	defer py.mtx.Unlock()
 
@@ -64,7 +64,7 @@ func (py *Pyroscope) Start(ctx context.Context) error {
 		BasicAuthPassword: dat.Password,
 		Logger:            log,
 		ProfileTypes:      profileTypes,
-		HTTPHeaders:       dat.Header,
+		HTTPHeaders:       dat.Headers,
 	}
 	prf, err := pyroscope.Start(cfg)
 	if err != nil {
@@ -75,7 +75,7 @@ func (py *Pyroscope) Start(ctx context.Context) error {
 	return nil
 }
 
-func (py *Pyroscope) Stop() error {
+func (py *PyroscopeConfig) Stop() error {
 	py.mtx.Lock()
 	prf := py.prf
 	py.prf = nil
@@ -88,18 +88,16 @@ func (py *Pyroscope) Stop() error {
 	return nil
 }
 
-func (py *Pyroscope) Enabled(ctx context.Context) (*model.Pyroscope, error) {
+func (py *PyroscopeConfig) Enabled(ctx context.Context) (*model.PyroscopeConfig, error) {
 	return py.mem.Load(ctx)
 }
 
-func (py *Pyroscope) enabled(ctx context.Context) (*model.Pyroscope, error) {
-	tbl := py.qry.Pyroscope
-	dao := tbl.WithContext(ctx)
-
-	dat, err := dao.Where(tbl.Enabled.Is(true)).First()
+func (py *PyroscopeConfig) enabled(ctx context.Context) (*model.PyroscopeConfig, error) {
+	coll := py.db.PyroscopeConfig()
+	cfg, err := coll.Enabled(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("查询启用的 pyroscope 配置出错: %w", err)
 	}
 
-	return dat, nil
+	return cfg, nil
 }

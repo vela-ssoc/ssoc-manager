@@ -32,13 +32,13 @@ func (bt *BrokerTunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
 }
 
 func (bt *BrokerTunnel) stat(c *ship.Context) error {
-	req := new(request.Int64ID)
+	req := new(request.ObjectID)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	ret, err := bt.cli.TunnelStat(ctx, req.ID)
+	ret, err := bt.cli.TunnelStat(ctx, req.Get())
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (bt *BrokerTunnel) limit(c *ship.Context) error {
 		Limit:   limit,
 	}
 
-	return bt.cli.TunnelLimit(ctx, req.ID, dat)
+	return bt.cli.TunnelLimit(ctx, req.Get(), dat)
 }
 
 func (bt *BrokerTunnel) speedtest(c *ship.Context) error {
@@ -71,7 +71,9 @@ func (bt *BrokerTunnel) speedtest(c *ship.Context) error {
 	num := strconv.FormatInt(int64(req.Size), 10)
 	quires := make(url.Values, 2)
 	quires.Set("size", num)
-	reqURL := muxproto.ManagerToBrokerURL(req.ID, "/api/v1/speedtest")
+
+	brokID := req.Get().Hex()
+	reqURL := muxproto.ManagerToBrokerURL(brokID, "/api/v1/speedtest")
 	reqURL.RawQuery = quires.Encode()
 
 	r := c.Request()

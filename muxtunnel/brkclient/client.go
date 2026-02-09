@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common/tundata/mbresp"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Client struct {
@@ -22,8 +23,8 @@ func (c Client) Base() muxtool.Client {
 	return c.base
 }
 
-func (c Client) TunnelStat(ctx context.Context, brokerID int64) (*mbresp.TunnelStat, error) {
-	reqURL := muxproto.ManagerToBrokerURL(brokerID, "/api/v1/tunnel/stat")
+func (c Client) TunnelStat(ctx context.Context, brokerID bson.ObjectID) (*mbresp.TunnelStat, error) {
+	reqURL := muxproto.ManagerToBrokerURL(brokerID.Hex(), "/api/v1/tunnel/stat")
 	strURL := reqURL.String()
 
 	ret := new(mbresp.TunnelStat)
@@ -34,8 +35,8 @@ func (c Client) TunnelStat(ctx context.Context, brokerID int64) (*mbresp.TunnelS
 	return ret, nil
 }
 
-func (c Client) TunnelLimit(ctx context.Context, brokerID int64, req *mbreq.TunnelLimit) error {
-	reqURL := muxproto.ManagerToBrokerURL(brokerID, "/api/v1/tunnel/limit")
+func (c Client) TunnelLimit(ctx context.Context, brokerID bson.ObjectID, req *mbreq.TunnelLimit) error {
+	reqURL := muxproto.ManagerToBrokerURL(brokerID.Hex(), "/api/v1/tunnel/limit")
 	strURL := reqURL.String()
 
 	return c.base.SendJSON(ctx, http.MethodPost, strURL, req, nil)

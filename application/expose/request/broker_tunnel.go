@@ -9,13 +9,13 @@ import (
 )
 
 type BrokerTunnelLimit struct {
-	Int64ID
+	ObjectID
 	Unlimit bool      `json:"unlimit" query:"unlimit"`
 	Limit   ByteCount `json:"limit"   query:"limit"   validate:"gte=0"`
 }
 
 type BrokerTunnelSpeedtest struct {
-	Int64ID
+	ObjectID
 	Size ByteCount `json:"size" query:"size" validate:"gte=0"`
 }
 

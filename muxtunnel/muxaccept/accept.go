@@ -9,14 +9,13 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/vela-ssoc/ssoc-common/datalayer/model"
-	"github.com/vela-ssoc/ssoc-common/datalayer/query"
 	"github.com/vela-ssoc/ssoc-common/muxserver"
+	"github.com/vela-ssoc/ssoc-common/store/model"
+	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"github.com/vela-ssoc/ssoc-proto/muxconn"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
-	"gorm.io/gen"
-	"gorm.io/gen/field"
-	"gorm.io/gorm"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Options struct {
@@ -25,19 +24,19 @@ type Options struct {
 	Validator  func(any) error
 	Logger     *slog.Logger
 	PerTimeout time.Duration
-	BootLoader muxserver.BootLoader[BrokConfig] // 必须填写，节点认证通过后加载启动配置。
+	BootLoader muxserver.BootLoader[muxproto.BrokerBootConfig] // 必须填写，节点认证通过后加载启动配置。
 	Notifier   muxserver.ConnectNotifier
 }
 
-func NewAccept(qry *query.Query, opts Options) muxserver.MUXAccepter {
+func NewAccept(db repository.Database, opts Options) muxserver.MUXAccepter {
 	return &brokerAccept{
-		qry:  qry,
+		db:   db,
 		opts: opts,
 	}
 }
 
 type brokerAccept struct {
-	qry  *query.Query
+	db   repository.Database
 	opts Options
 }
 
@@ -47,7 +46,7 @@ func (ms *brokerAccept) AcceptMUX(mux muxconn.Muxer) {
 
 	connectAt := time.Now()
 	attrs := []any{"connect_at", connectAt, "remote_addr", mux.RemoteAddr()}
-	peer, err := ms.authentication(mux)
+	peer, err := ms.authentication(mux, connectAt)
 	if err != nil {
 		attrs = append(attrs, "error", err)
 		ms.log().Warn("节点上线失败", attrs...)
@@ -78,11 +77,11 @@ func (ms *brokerAccept) AcceptMUX(mux muxconn.Muxer) {
 	attrs = append(attrs, "error", err)
 	ms.log().Debug("节点下线", attrs...)
 
-	ms.disconnected(peer, connectAt)
+	ms.disconnected(peer)
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error) {
+func (ms *brokerAccept) authentication(mux muxconn.Muxer, connectAt time.Time) (muxserver.Peer, error) {
 	timeout := ms.perTimeout()
 	oncec := muxserver.NewOnceCloser(mux)
 	timer := time.AfterFunc(timeout, oncec.Close) // 防止客户端建立连接后，但是不发起认证。
@@ -99,29 +98,30 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error
 		return nil, net.ErrClosed
 	}
 
-	req := new(AuthRequest)
+	req := new(muxproto.BrokerAuthRequest)
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	if err = muxproto.ReadAuth(conn, req); err != nil {
 		ms.log().Warn("认证消息读取出错", "error", err)
 		return nil, err
 	}
 	if err = ms.validAuthRequest(req); err != nil {
-		ae := &AuthError{Code: http.StatusBadRequest, Text: err.Error()}
+		ae := &muxproto.AuthError{Code: http.StatusBadRequest, Text: err.Error()}
 		ms.log().Warn("认证消息参数校验出错", "error", ae)
 		ms.responseError(conn, ae)
 		return nil, ae
 	}
 
 	inf := muxserver.PeerInfo{
-		Semver:   req.Semver,
-		Inet:     req.Inet,
-		Goos:     req.Goos,
-		Goarch:   req.Goarch,
-		Hostname: req.Hostname,
+		Semver:      req.Semver,
+		Inet:        req.Inet,
+		Goos:        req.Goos,
+		Goarch:      req.Goarch,
+		Hostname:    req.Hostname,
+		ConnectedAt: connectAt,
 	}
-	brok, err := ms.findBrokerBySecret(req.Secret)
+	brok, err := ms.lookupBroker(req.Secret)
 	if err != nil {
-		ae := &AuthError{Code: http.StatusNotFound, Text: err.Error()}
+		ae := &muxproto.AuthError{Code: http.StatusNotFound, Text: err.Error()}
 		ms.log().Error("通过密钥查询节点错误", "info", inf, "error", ae)
 		ms.responseError(conn, ae)
 		return nil, ae
@@ -131,7 +131,7 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error
 	inf.Name = brok.Name
 	attrs := []any{"info", inf}
 	if brok.Status {
-		ae := &AuthError{Code: http.StatusConflict, Text: "节点已经在线（数据库校验）"}
+		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（数据库校验）"}
 		attrs = append(attrs, "error", ae)
 		ms.log().Warn("预检节点在线状态", attrs...)
 		ms.responseError(conn, ae)
@@ -140,7 +140,7 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error
 	}
 	peer := ms.putHub(id, mux, inf)
 	if peer == nil {
-		ae := &AuthError{Code: http.StatusConflict, Text: "节点已经在线（连接池检查）"}
+		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（连接池检查）"}
 		attrs = append(attrs, "error", ae)
 		ms.log().Warn("预检节点在线状态", attrs...)
 		ms.responseError(conn, ae)
@@ -150,7 +150,7 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error
 	if err != nil {
 		ms.delHub(id) // 从连接池中删除
 
-		ae := &AuthError{Code: http.StatusBadRequest, Text: err.Error()}
+		ae := &muxproto.AuthError{Code: http.StatusBadRequest, Text: err.Error()}
 		attrs = append(attrs, "error", ae)
 		ms.log().Warn("加载启动配置出错", attrs...)
 		ms.responseError(conn, ae)
@@ -160,17 +160,17 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer) (muxserver.Peer, error
 	if err = ms.responseConfig(conn, cfg); err != nil {
 		ms.delHub(id) // 从连接池中删除
 
-		ae := &AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
+		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
 		attrs = append(attrs, "error", ae)
 		ms.log().Warn("回写验证通过报文出错", attrs...)
 		ms.responseError(conn, ae)
 		return nil, ae
 	}
 
-	if err = ms.updateBrokerOnline(id, req); err != nil {
+	if err = ms.updateBrokerOnline(id, mux, req); err != nil {
 		ms.delHub(id) // 从连接池中删除
 
-		ae := &AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
+		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
 		attrs = append(attrs, "error", ae)
 		ms.log().Error("修改数据库上线状态出错", attrs...)
 		ms.responseError(conn, ae)
@@ -196,31 +196,65 @@ func (ms *brokerAccept) serveHTTP(peer muxserver.Peer) error {
 	return srv.Serve(mux)
 }
 
-func (ms *brokerAccept) disconnected(peer muxserver.Peer, connectAt time.Time) {
+func (ms *brokerAccept) disconnected(peer muxserver.Peer) {
 	disconnectAt := time.Now()
 	id, info := peer.ID(), peer.Info()
+	mux := peer.MUX()
 
-	attrs := []any{"id", id, "info", info, "connect_at", connectAt, "disconnect_at", disconnectAt}
+	attrs := []any{"id", id, "info", info, "connect_at", info.ConnectedAt, "disconnect_at", disconnectAt}
 	// 修改数据库在线状态
 	{
+		tx, rx := mux.Traffic() // 站在 manager 视角记录 broker，RX TX 互换。
+		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: true}}
+		update := bson.M{"$set": bson.M{
+			"status":                      false,
+			"tunnel_stat.disconnected_at": disconnectAt,
+			"tunnel_stat.receive_bytes":   rx,
+			"tunnel_stat.transmit_bytes":  tx,
+		}}
 		ctx, cancel := ms.perContext()
 		defer cancel()
 
-		tbl := ms.qry.Broker
-		dao := tbl.WithContext(ctx)
-
-		wheres := []gen.Condition{tbl.ID.Eq(id), tbl.Status.Is(true)}
-		ret, err := dao.Where(wheres...).UpdateSimple(tbl.Status.Value(false))
+		coll := ms.db.Broker()
+		ret, err := coll.UpdateOne(ctx, filter, update)
 		if err != nil {
 			attrs = append(attrs, "error", err)
 			ms.log().Error("节点下线修改数据库出错", attrs...)
-		} else if ret.RowsAffected == 0 {
+		} else if ret.ModifiedCount <= 0 {
 			ms.log().Error("节点下线修改数据库未匹配到数据", attrs...)
 		} else {
 			ms.log().Info("节点下线修改数据库完毕", attrs...)
 		}
 	}
 	ms.delHub(id) // 从 hub 中删除连接
+
+	tx, rx := mux.Traffic()
+	name, module := mux.Library()
+	connectAt := info.ConnectedAt
+	raddr, laddr := mux.Addr(), mux.RemoteAddr()
+	his := &model.BrokerConnectHistory{
+		Broker: id,
+		Name:   info.Name,
+		Semver: info.Semver,
+		Inet:   info.Inet,
+		Goos:   info.Goos,
+		Goarch: info.Goarch,
+		TunnelStat: model.TunnelStatHistory{
+			ConnectedAt:    connectAt,
+			DisconnectedAt: disconnectAt,
+			Library:        model.TunnelLibrary{Name: name, Module: module},
+			LocalAddr:      laddr.String(),
+			RemoteAddr:     raddr.String(),
+			ReceiveBytes:   rx,
+			TransmitBytes:  tx,
+		},
+	}
+	{
+		ctx, cancel := ms.perContext()
+		defer cancel()
+		hisColl := ms.db.BrokerConnectHistory()
+		_, _ = hisColl.InsertOne(ctx, his)
+	}
 
 	ms.log().Debug("通知节点下线事件", attrs...)
 	if ntf := ms.opts.Notifier; ntf != nil {
@@ -253,15 +287,15 @@ func (ms *brokerAccept) log() *slog.Logger {
 	return slog.Default()
 }
 
-func (ms *brokerAccept) putHub(id int64, mux muxconn.Muxer, inf muxserver.PeerInfo) muxserver.Peer {
+func (ms *brokerAccept) putHub(id bson.ObjectID, mux muxconn.Muxer, inf muxserver.PeerInfo) muxserver.Peer {
 	return ms.opts.Huber.Put(id, mux, inf)
 }
 
-func (ms *brokerAccept) delHub(id int64) {
+func (ms *brokerAccept) delHub(id bson.ObjectID) {
 	ms.opts.Huber.DelID(id)
 }
 
-func (ms *brokerAccept) validAuthRequest(req *AuthRequest) error {
+func (ms *brokerAccept) validAuthRequest(req *muxproto.BrokerAuthRequest) error {
 	if v := ms.opts.Validator; v != nil {
 		return v(req)
 	}
@@ -288,17 +322,16 @@ func (ms *brokerAccept) validAuthRequest(req *AuthRequest) error {
 	return errors.Join(errs...)
 }
 
-func (ms *brokerAccept) findBrokerBySecret(secret string) (*model.Broker, error) {
+func (ms *brokerAccept) lookupBroker(secret string) (*model.Broker, error) {
 	ctx, cancel := ms.perContext()
 	defer cancel()
 
-	tbl := ms.qry.Broker
-	dao := tbl.WithContext(ctx)
+	coll := ms.db.Broker()
+	brok, err := coll.FindBySecret(ctx, secret)
 
-	brok, err := dao.Where(tbl.Secret.Eq(secret)).First()
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			err = errors.New("未找到该节点") // 没有注册节点
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			err = errors.New("节点不存在") // 没有注册节点
 		}
 		return nil, err
 	}
@@ -306,30 +339,48 @@ func (ms *brokerAccept) findBrokerBySecret(secret string) (*model.Broker, error)
 	return brok, nil
 }
 
-func (ms *brokerAccept) updateBrokerOnline(id int64, req *AuthRequest) error {
-	tbl := ms.qry.Broker
-	updates := []field.AssignExpr{
-		tbl.Status.Value(true),
-		tbl.Semver.Value(req.Semver),
-		tbl.HeartbeatAt.Value(time.Now()),
+func (ms *brokerAccept) updateBrokerOnline(id bson.ObjectID, mux muxconn.Muxer, req *muxproto.BrokerAuthRequest) error {
+	now := time.Now()
+	name, module := mux.Library()
+	laddr, raddr := mux.RemoteAddr(), mux.Addr() // manager 记录 broker 视角，本地与远程地址互换
+
+	tunStat := &model.TunnelStat{
+		ConnectedAt: now,
+		KeepaliveAt: now,
+		Library:     model.TunnelLibrary{Name: name, Module: module},
+		LocalAddr:   laddr.String(),
+		RemoteAddr:  raddr.String(),
 	}
+	exeStat := &model.ExecuteStat{
+		Inet:       req.Inet,
+		Goos:       req.Goos,
+		Goarch:     req.Goarch,
+		Semver:     req.Semver,
+		PID:        req.PID,
+		Args:       req.Args,
+		Hostname:   req.Hostname,
+		Workdir:    req.Workdir,
+		Executable: req.Executable,
+	}
+
+	filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: false}}
+	update := bson.M{"$set": bson.M{"status": true, "tunnel_stat": tunStat, "execute_stat": exeStat}}
 
 	ctx, cancel := ms.perContext()
 	defer cancel()
 
-	dao := tbl.WithContext(ctx)
-	ret, err := dao.Where(tbl.ID.Eq(id), tbl.Status.Value(false)).
-		UpdateSimple(updates...)
+	coll := ms.db.Broker()
+	ret, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
-	} else if ret.RowsAffected == 0 {
+	} else if ret.ModifiedCount == 0 {
 		return errors.New("没有修改任何数据")
 	}
 
 	return nil
 }
 
-func (ms *brokerAccept) loadConfig() (*BrokConfig, error) {
+func (ms *brokerAccept) loadConfig() (*muxproto.BrokerBootConfig, error) {
 	bl := ms.opts.BootLoader
 	if bl == nil {
 		return nil, errors.New("没有设置配置加载方式（ConfigLoader）")
@@ -341,17 +392,16 @@ func (ms *brokerAccept) loadConfig() (*BrokConfig, error) {
 	return bl.LoadBoot(ctx)
 }
 
-func (ms *brokerAccept) responseError(conn net.Conn, err *AuthError) error {
+func (ms *brokerAccept) responseError(conn net.Conn, err *muxproto.AuthError) error {
 	timeout := ms.perTimeout()
-	resp := &authResponse{Code: err.Code, Text: err.Text}
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 
-	return muxproto.WriteAuth(conn, resp)
+	return muxproto.WriteAuth(conn, err)
 }
 
-func (ms *brokerAccept) responseConfig(conn net.Conn, cfg *BrokConfig) error {
+func (ms *brokerAccept) responseConfig(conn net.Conn, cfg *muxproto.BrokerBootConfig) error {
 	timeout := ms.perTimeout()
-	resp := &authResponse{Code: http.StatusAccepted, Config: cfg}
+	resp := &muxproto.BrokerAuthResponse{Code: http.StatusAccepted, Config: cfg}
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 
 	return muxproto.WriteAuth(conn, resp)
