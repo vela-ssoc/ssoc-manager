@@ -3,7 +3,7 @@ package request
 import "go.mongodb.org/mongo-driver/v2/bson"
 
 type ObjectID struct {
-	ID string `json:"id" query:"id" validate:"required,hex"`
+	ID string `json:"id" query:"id" validate:"required,mongodb"`
 }
 
 func (i ObjectID) Get() bson.ObjectID {

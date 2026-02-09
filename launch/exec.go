@@ -118,6 +118,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	hub := muxserver.NewBrokerHub()
 	brkHubHookSvc := brkservice.NewHubHook(log)
 	curBrokerSvc := curservice.NewBroker(db, dbCfg, log)
+	expBrokerSvc := expservice.NewBroker(db, log)
 	expPyroscopeSvc := expservice.NewPyroscopeConfig(db, log)
 	expVictoriaMetricsSvc := expservice.NewVictoriaMetricsConfig(db, log)
 
@@ -144,8 +145,9 @@ func Start(ctx context.Context, cfg *config.Config) error {
 
 	}
 	httpsAPIs := []shipx.RouteBinder{ // https 主业务
-		restapi.NewTunnel(accept),
+		restapi.NewBroker(expBrokerSvc),
 		restapi.NewBrokerTunnel(brkcli),
+		restapi.NewTunnel(accept),
 	}
 
 	for k, v := range srvCfg.Static { // 注册静态资源

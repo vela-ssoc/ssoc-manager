@@ -14,7 +14,7 @@ type Server struct {
 }
 
 type Database struct {
-	URI string `json:"uri"`
+	URI string `json:"uri" validate:"mongodb_connection_string"`
 }
 
 type Logger struct {

@@ -1,9 +1,191 @@
 openapi: 3.1.0
 info:
   title: SSOCv2 接口文档
-  description: Title
+  description: SSOCv2 接口文档（草案）
   version: 26.1.30
+  contact:
+    name: WangZY
+    url: 'https://example.com'
+    email: hi@example.com
+  termsOfService: 'https://example.com'
+  summary: SSOCv2 接口文档（草案）
 servers:
   - url: /api/v1
     description: 当前
-paths: null
+paths:
+  /broker:
+    post:
+      summary: 【调度节点】新建
+      operationId: post-broker
+      responses:
+        '200':
+          description: OK
+      description: 新建调度节点
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: cqxaqldfqcwuq
+                  description: 节点名（唯一）
+                  example: 大桥六线
+                exposes:
+                  type: array
+                  x-stoplight:
+                    id: h9oa1skn690om
+                  items:
+                    $ref: '#/components/schemas/ExposeAddress'
+                    x-stoplight:
+                      id: n1lqq2ba228he
+                config:
+                  $ref: '#/components/schemas/BrokerConfig'
+                  x-stoplight:
+                    id: lr91ogv25f68i
+              required:
+                - name
+      tags:
+        - "\U0001F5A5️ 节点"
+components:
+  schemas:
+    MapStatic:
+      title: MapStatic
+      x-stoplight:
+        id: z9pc6gv5046yd
+      type: object
+      properties:
+        /:
+          type: string
+          x-stoplight:
+            id: 6qanrvweuwc1p
+          description: 路径及映射
+          example: resources/static/root
+        /foo:
+          type: string
+          x-stoplight:
+            id: 7mv1u57zge2cj
+          example: path/to/dir
+          description: 路径及映射
+      required:
+        - /
+        - /foo
+      description: |-
+        访问路径与磁盘目录的映射。
+
+        > map 类型顺序不稳定，前端在展示时按照 key 的字典序排序后展示。
+    ExposeAddress:
+      title: ExposeAddress
+      x-stoplight:
+        id: 3o9iwu2wyjqm9
+      type: object
+      properties:
+        name:
+          type: string
+          x-stoplight:
+            id: 14wc0kik78zbo
+          description: 名字
+          example: 内网
+        addr:
+          type: string
+          x-stoplight:
+            id: e6aocog3g5761
+          description: 地址
+          example: '10.33.44.21:443'
+      required:
+        - name
+        - addr
+      description: 服务暴露地址
+    BrokerConfig:
+      title: BrokerConfig
+      x-stoplight:
+        id: rcvl7l19tzhtp
+      type: object
+      description: 调度节点配置文件
+      properties:
+        server:
+          type: object
+          x-stoplight:
+            id: h00po4pc09iqn
+          required:
+            - addr
+            - static
+          description: 服务监听配置
+          properties:
+            addr:
+              type: string
+              x-stoplight:
+                id: zr5rp5jeenwni
+              example: '0.0.0.0:8021'
+              description: 服务监听地址
+            static:
+              $ref: '#/components/schemas/MapStatic'
+              x-stoplight:
+                id: xeijnwqnqpb48
+        logger:
+          type: object
+          x-stoplight:
+            id: j0tofvyk80vwg
+          required:
+            - level
+            - console
+          description: 日志配置
+          properties:
+            level:
+              type: string
+              x-stoplight:
+                id: p8ymcopjyxrrp
+              description: 日志级别
+              enum:
+                - DEBUG
+                - INFO
+                - WARN
+                - ERROR
+              example: INFO
+            console:
+              type: boolean
+              x-stoplight:
+                id: w0x8xst836i4m
+              description: 是否将日志输出到控制台（stdout）
+            filename:
+              type: string
+              x-stoplight:
+                id: l0huyts2pu8p8
+              description: 日志输出文件（空代表不输出到文件）
+              example: resources/log/application.jsonl
+            maxsize:
+              type: integer
+              x-stoplight:
+                id: 3dtuayhqzk16m
+              description: 日志文件分割大小（单位：M，0 默认 100M）
+              minimum: 0
+              example: 200
+            maxbackups:
+              type: integer
+              x-stoplight:
+                id: vp3t3pigxhp1s
+              description: 日志备份文件留存个数（0 表示无限制）
+            maxage:
+              type: integer
+              x-stoplight:
+                id: 1pd5nmd1slizv
+              description: 日志文件保留天数（0 表示无限制）
+              minimum: 0
+              example: 180
+            compress:
+              type: boolean
+              x-stoplight:
+                id: qjjhfo85fm3c9
+              description: 备份文件是否开启压缩（gzip）
+            localtime:
+              type: boolean
+              x-stoplight:
+                id: xxid9zynuu8bw
+              description: 备份文件是否使用本地时区命名，否则使用 UTC 时区命名
+      required:
+        - server
+        - logger
+tags:
+  - name: "\U0001F5A5️ 节点"
