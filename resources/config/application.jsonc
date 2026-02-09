@@ -12,6 +12,6 @@
   "logger": {
     "console": true,
     "level": "INFO",
-    "filename":"resources/log/application.jsonl"
+    "filename": "resources/log/application.jsonl"
   }
 }
