@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	loki "github.com/magnetde/slog-loki"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/logger"
@@ -80,6 +81,13 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		h := slog.NewJSONHandler(file, logOpts)
 		logh.Append(h)
 	}
+	{
+		// TODO 改进 Loki Client
+		handler := loki.NewHandler("https://loki.example.com", loki.WithName("manager"))
+		defer handler.Close()
+		logh.Append(handler)
+	}
+
 	log.Info("日志初始化完毕")
 
 	log.Info("开始连接接数据库")
