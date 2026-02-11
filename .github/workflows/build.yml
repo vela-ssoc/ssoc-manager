@@ -25,9 +25,14 @@ jobs:
         goarch:
           - amd64
           - arm64
+          - loong64
         exclude:
           - goos: windows
-            goarch: arm64   # 排除不用的组合
+            goarch: arm64
+          - goos: windows
+            goarch: loong64
+          - goos: darwin
+            goarch: loong64
 
     steps:
       - name: 检出代码
