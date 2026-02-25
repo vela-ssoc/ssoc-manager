@@ -8,7 +8,6 @@ import (
 
 	"github.com/grafana/pyroscope-go"
 	"github.com/vela-ssoc/ssoc-common/logger"
-	"github.com/vela-ssoc/ssoc-common/memcache"
 	"github.com/vela-ssoc/ssoc-common/store/model"
 	"github.com/vela-ssoc/ssoc-common/store/repository"
 	"github.com/vela-ssoc/ssoc-proto/muxproto"
@@ -17,16 +16,12 @@ import (
 type PyroscopeConfig struct {
 	db  repository.Database
 	log *slog.Logger
-	mem memcache.Cache[*model.PyroscopeConfig, error]
 	mtx sync.Mutex // 防止并发启动
 	prf *pyroscope.Profiler
 }
 
 func NewPyroscopeConfig(db repository.Database, log *slog.Logger) *PyroscopeConfig {
-	py := &PyroscopeConfig{db: db, log: log}
-	py.mem = memcache.NewCache(py.enabled)
-
-	return py
+	return &PyroscopeConfig{db: db, log: log}
 }
 
 func (py *PyroscopeConfig) Start(ctx context.Context) error {
@@ -37,8 +32,9 @@ func (py *PyroscopeConfig) Start(ctx context.Context) error {
 		return nil
 	}
 
-	dat, err := py.Enabled(ctx)
+	dat, err := py.enabled(ctx)
 	if err != nil {
+		py.log.Error("查询 pyroscope 配置出错", "error", err)
 		return err
 	}
 
@@ -75,21 +71,18 @@ func (py *PyroscopeConfig) Start(ctx context.Context) error {
 	return nil
 }
 
-func (py *PyroscopeConfig) Stop() error {
+func (py *PyroscopeConfig) Close() error {
 	py.mtx.Lock()
-	prf := py.prf
-	py.prf = nil
-	py.mtx.Unlock()
+	defer py.mtx.Unlock()
 
-	if prf != nil {
-		return prf.Stop()
+	if py.prf == nil {
+		return nil
 	}
 
-	return nil
-}
+	err := py.prf.Stop()
+	py.prf = nil
 
-func (py *PyroscopeConfig) Enabled(ctx context.Context) (*model.PyroscopeConfig, error) {
-	return py.mem.Load(ctx)
+	return err
 }
 
 func (py *PyroscopeConfig) enabled(ctx context.Context) (*model.PyroscopeConfig, error) {

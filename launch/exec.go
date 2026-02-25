@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	loki "github.com/magnetde/slog-loki"
 	"github.com/vela-ssoc/ssoc-common/appcfg"
 	"github.com/vela-ssoc/ssoc-common/cronv3"
 	"github.com/vela-ssoc/ssoc-common/logger"
@@ -81,12 +80,6 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		h := slog.NewJSONHandler(file, logOpts)
 		logh.Append(h)
 	}
-	{
-		// TODO 改进 Loki Client
-		handler := loki.NewHandler("https://loki.example.com", loki.WithName("manager"))
-		defer handler.Close()
-		logh.Append(handler)
-	}
 
 	log.Info("日志初始化完毕")
 
@@ -127,7 +120,8 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	brkHubHookSvc := brkservice.NewHubHook(log)
 	curBrokerSvc := curservice.NewBroker(db, dbCfg, log)
 	expBrokerSvc := expservice.NewBroker(db, log)
-	expPyroscopeSvc := expservice.NewPyroscopeConfig(db, log)
+	expLokiConfigSvc := expservice.NewLokiConfig(db, logh, log)
+	expPyroscopeConfigSvc := expservice.NewPyroscopeConfig(db, log)
 	expVictoriaMetricsSvc := expservice.NewVictoriaMetricsConfig(db, log)
 
 	sysdial := new(net.Dialer)
@@ -214,8 +208,11 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	if err1 := curBrokerSvc.Reset(time.Minute); err1 != nil {
 		log.Warn("重置 broker 在线状态出错", "error", err1)
 	}
-	if err1 := expPyroscopeSvc.Start(ctx); err1 != nil {
+	if err1 := expPyroscopeConfigSvc.Start(ctx); err1 != nil {
 		log.Warn("pyroscope 上报程序启动出错", "error", err1)
+	}
+	if err1 := expLokiConfigSvc.Start(ctx); err1 != nil {
+		log.Warn("loki 日志上报启动出错", "error", err1)
 	}
 
 	errs := make(chan error, 1)

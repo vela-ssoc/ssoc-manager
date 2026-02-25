@@ -15,18 +15,18 @@ import (
 type VictoriaMetricsConfig struct {
 	db  repository.Database
 	log *slog.Logger
-	mem memcache.Cache[*model.VictoriaMetricsConfig, error]
+	che *memcache.Cache[*model.VictoriaMetricsConfig]
 }
 
 func NewVictoriaMetricsConfig(db repository.Database, log *slog.Logger) *VictoriaMetricsConfig {
 	vm := &VictoriaMetricsConfig{db: db, log: log}
-	vm.mem = memcache.NewCache(vm.enabled)
+	vm.che = memcache.NewCache(vm.enabled)
 
 	return vm
 }
 
 func (vm *VictoriaMetricsConfig) LoadConfig(ctx context.Context) (string, *metrics.PushOptions, error) {
-	dat, err := vm.mem.Load(ctx)
+	dat, err := vm.che.Load(ctx)
 	if err != nil {
 		return "", nil, err
 	}
