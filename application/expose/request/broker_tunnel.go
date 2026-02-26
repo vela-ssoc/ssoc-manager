@@ -9,13 +9,13 @@ import (
 )
 
 type BrokerTunnelLimit struct {
-	ObjectID
+	HexID
 	Unlimit bool      `json:"unlimit" query:"unlimit"`
 	Limit   ByteCount `json:"limit"   query:"limit"   validate:"gte=0"`
 }
 
 type BrokerTunnelSpeedtest struct {
-	ObjectID
+	HexID
 	Size ByteCount `json:"size" query:"size" validate:"gte=0"`
 }
 

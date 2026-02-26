@@ -18,7 +18,7 @@ func NewBroker(svc *service.Broker) *Broker {
 	}
 }
 
-func (b *Broker) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (b *Broker) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/brokers").GET(b.page)
 	rgb.Route("/broker").POST(b.create)
 

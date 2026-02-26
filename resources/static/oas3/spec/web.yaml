@@ -49,6 +49,38 @@ paths:
                 - name
       tags:
         - "\U0001F5A5️ 节点"
+  /certificate:
+    post:
+      summary: 【证书】新增
+      operationId: post-certificate
+      responses:
+        '200':
+          description: OK
+      description: 新增证书
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: f87doamy3at69
+                  description: 名字
+                  example: 自签测试证书
+                public_key:
+                  $ref: '#/components/schemas/PublicKey'
+                  x-stoplight:
+                    id: hdwt849lmsiv8
+                private_key:
+                  $ref: '#/components/schemas/PrivateKey'
+                  x-stoplight:
+                    id: 14ia9yx7azqoa
+              required:
+                - name
+                - public_key
+                - private_key
 components:
   schemas:
     MapStatic:
@@ -187,5 +219,25 @@ components:
       required:
         - server
         - logger
+    PublicKey:
+      title: PublicKey
+      x-stoplight:
+        id: 4gkm68zzykahp
+      type: string
+      description: |-
+        证书（公钥）
+
+        > 测试时将内容中的 `\\n` 替换为 `\n`。
+      example: '-----BEGIN CERTIFICATE-----\nMIIDIjCCAqigAwIBAgIQAL3qUti+jMQZsEjBTY5yPTAKBggqhkjOPQQDAjCBozEW\nMBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIGA1UECwwL\nZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hhaTEOMAwG\nA1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG9w0BCQEW\nEHRlc3RAZXhhbXBsZS5jb20wHhcNMjYwMjI2MDgzMDA5WhcNMjcwMjI2MDgzMDA5\nWjCBozEWMBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIG\nA1UECwwLZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hh\naTEOMAwGA1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG\n9w0BCQEWEHRlc3RAZXhhbXBsZS5jb20wdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATJ\nVv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRIKYyZ\ncLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xCXxSj\ngZ4wgZswHQYDVR0OBBYEFLqZNXBddkwmw3Hv3ZdK39xKBfCVMA4GA1UdDwEB/wQE\nAwIEsDAMBgNVHRMBAf8EAjAAMDsGA1UdJQQ0MDIGCCsGAQUFBwMCBggrBgEFBQcD\nAQYIKwYBBQUHAwMGCCsGAQUFBwMEBggrBgEFBQcDCDAfBgNVHSMEGDAWgBS6mTVw\nXXZMJsNx792XSt/cSgXwlTAKBggqhkjOPQQDAgNoADBlAjEA3RzCmBVTEdU58lxQ\nUFDiBT6J3UxFNEkmXZnkiaO7T8KQCUQ+H2Nsow7xLkMIO3KWAjBgmFARvgZElv6l\noj8YohZa5Lw2o2A6SWWcY8uaRs/fRi67MG0rcp0lNpjgb0rldX0=\n-----END CERTIFICATE-----'
+    PrivateKey:
+      title: PrivateKey
+      x-stoplight:
+        id: lrfdl2sys7zb6
+      type: string
+      description: |-
+        证书私钥
+
+        > 测试时将内容中的 `\\n` 替换为 `\n`。
+      example: '-----BEGIN PRIVATE KEY-----\nMIG/AgEAMBAGByqGSM49AgEGBSuBBAAiBIGnMIGkAgEBBDBPg9Sqc/whBbMlhqfG\n+Xof8pG2XbZr0ZC/QU/frUicSCtjoPR+f36v6M+STlziruagBwYFK4EEACKhZANi\nAATJVv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRI\nKYyZcLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xC\nXxQ=\n-----END PRIVATE KEY-----'
 tags:
   - name: "\U0001F5A5️ 节点"

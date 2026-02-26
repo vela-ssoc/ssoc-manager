@@ -1,18 +1,6 @@
 package config
 
-import (
-	"log/slog"
-	"time"
-)
-
-type LogLevel string
-
-func (l LogLevel) LevelVar() *slog.LevelVar {
-	lvl := new(slog.LevelVar)
-	_ = lvl.UnmarshalText([]byte(l))
-
-	return lvl
-}
+import "time"
 
 type Duration time.Duration
 

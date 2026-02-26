@@ -26,7 +26,7 @@ type Tunnel struct {
 	wsup *websocket.Upgrader
 }
 
-func (tnl *Tunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (tnl *Tunnel) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/tunnel").GET(tnl.open)
 
 	return nil

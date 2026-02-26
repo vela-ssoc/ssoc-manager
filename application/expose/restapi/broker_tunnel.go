@@ -23,7 +23,7 @@ func NewBrokerTunnel(cli brkclient.Client) *BrokerTunnel {
 	}
 }
 
-func (bt *BrokerTunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (bt *BrokerTunnel) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/broker/tunnel/stat").GET(bt.stat)
 	rgb.Route("/broker/tunnel/limit").POST(bt.limit)
 	rgb.Route("/broker/tunnel/speedtest").GET(bt.speedtest)
@@ -32,13 +32,13 @@ func (bt *BrokerTunnel) BindRoute(rgb *ship.RouteGroupBuilder) error {
 }
 
 func (bt *BrokerTunnel) stat(c *ship.Context) error {
-	req := new(request.ObjectID)
+	req := new(request.HexID)
 	if err := c.BindQuery(req); err != nil {
 		return err
 	}
 
 	ctx := c.Request().Context()
-	ret, err := bt.cli.TunnelStat(ctx, req.Get())
+	ret, err := bt.cli.TunnelStat(ctx, req.MustID())
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (bt *BrokerTunnel) limit(c *ship.Context) error {
 		Limit:   limit,
 	}
 
-	return bt.cli.TunnelLimit(ctx, req.Get(), dat)
+	return bt.cli.TunnelLimit(ctx, req.MustID(), dat)
 }
 
 func (bt *BrokerTunnel) speedtest(c *ship.Context) error {
@@ -72,8 +72,7 @@ func (bt *BrokerTunnel) speedtest(c *ship.Context) error {
 	quires := make(url.Values, 2)
 	quires.Set("size", num)
 
-	brokID := req.Get().Hex()
-	reqURL := muxproto.ManagerToBrokerURL(brokID, "/api/v1/speedtest")
+	reqURL := muxproto.ManagerToBrokerURL(req.ID, "/api/v1/speedtest")
 	reqURL.RawQuery = quires.Encode()
 
 	r := c.Request()

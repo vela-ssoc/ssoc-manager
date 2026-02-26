@@ -16,7 +16,7 @@ func NewHeartbeat(svc *service.Heartbeat) *Heartbeat {
 	}
 }
 
-func (hb *Heartbeat) BindRoute(rgb *ship.RouteGroupBuilder) error {
+func (hb *Heartbeat) RegisterRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/heartbeat").GET(hb.ping)
 	return nil
 }
