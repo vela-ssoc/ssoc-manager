@@ -8,7 +8,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func initLogHandler() logger.Handler {
+func initLogHandler() *logger.MultiHandler {
 	opts := &slog.HandlerOptions{
 		AddSource: true,
 		Level:     slog.LevelDebug,
