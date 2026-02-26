@@ -18,8 +18,8 @@ type Database struct {
 }
 
 type Logger struct {
-	Console bool     `json:"console"`
-	Level   LogLevel `json:"level"`
+	Console bool   `json:"console"`
+	Level   string `json:"level" validate:"omitempty,oneof=DEBUG INFO WARN ERROR"`
 	*lumberjack.Logger
 }
 

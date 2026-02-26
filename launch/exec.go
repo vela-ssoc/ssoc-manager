@@ -31,6 +31,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxaccept"
 	"github.com/vela-ssoc/ssoc-proto/muxtool"
 	"github.com/xgfone/ship/v5"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func Exec(ctx context.Context, cfg string) error {
@@ -51,9 +52,21 @@ func Run(ctx context.Context, cfr appcfg.Reader[config.Config]) error {
 //goland:noinspection GoUnhandledErrorResult
 func Start(ctx context.Context, cfg *config.Config) error {
 	// 项目启动时还未连接到中心端，此时要默认一个日志输出。
-	logh := initLogHandler()
-	log := slog.New(logh)
-	log.Info("初始日志组件装配完毕")
+	loglevel := new(slog.LevelVar) // 默认 INFO
+	logoptions := &slog.HandlerOptions{AddSource: true, Level: loglevel}
+	bootlogfile := &lumberjack.Logger{
+		Filename:   "resources/log/application.jsonl",
+		MaxSize:    100,
+		MaxBackups: 10,
+		LocalTime:  true,
+		Compress:   true,
+	}
+	loghandlers := logger.NewMultiHandler(
+		slog.NewJSONHandler(bootlogfile, logoptions), // 输出到文件
+		slog.NewTextHandler(os.Stdout, logoptions),   // 输出到控制台
+	)
+	log := slog.New(loghandlers)
+	log.Info("日志组件准备完毕（临时）")
 
 	valid := validation.New()
 	if err := valid.RegisterCustomValidations(validation.All()); err != nil {
@@ -67,21 +80,19 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	}
 	log.Info("配置加载成功")
 
-	logh.Replace() // 清空默认日志，改为配置文件设置的日志输出方式。
+	loghandlers.Replace() // 清空默认日志，改为配置文件设置的日志输出方式。
 	srvCfg, dbCfg, logCfg := cfg.Server, cfg.Database, cfg.Logger
-	logLevel := logCfg.Level.LevelVar()
-	logOpts := &slog.HandlerOptions{Level: logLevel, AddSource: true}
+	_ = loglevel.UnmarshalText([]byte(logCfg.Level))
 	if logCfg.Console {
-		h := logger.NewTint(os.Stdout, logOpts)
-		logh.Append(h)
+		h := logger.NewTint(os.Stdout, logoptions)
+		loghandlers.Append(h)
 	}
 	if file := logCfg.Lumber(); file != nil {
 		defer file.Close()
-		h := slog.NewJSONHandler(file, logOpts)
-		logh.Append(h)
+		h := slog.NewJSONHandler(file, logoptions)
+		loghandlers.Append(h)
 	}
-
-	log.Info("日志初始化完毕")
+	log.Info("日志组件准备完毕（配置）")
 
 	log.Info("开始连接接数据库")
 	mdb, err := mongodb.Connect(dbCfg.URI)
@@ -99,7 +110,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	crontab := cronv3.New(log)
 	crontab.Start()
 
-	shipLog := shipx.NewLog(logh)
+	shipLog := shipx.NewLog(loghandlers)
 	httpsSH := ship.Default()
 	httpSH := ship.Default()
 	brokSH := ship.Default()
@@ -120,7 +131,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	brkHubHookSvc := brkservice.NewHubHook(log)
 	curBrokerSvc := curservice.NewBroker(db, dbCfg, log)
 	expBrokerSvc := expservice.NewBroker(db, log)
-	expLokiConfigSvc := expservice.NewLokiConfig(db, logh, log)
+	expLokiConfigSvc := expservice.NewLokiConfig(db, logoptions, loghandlers, log)
 	expPyroscopeConfigSvc := expservice.NewPyroscopeConfig(db, log)
 	expVictoriaMetricsSvc := expservice.NewVictoriaMetricsConfig(db, log)
 
@@ -241,4 +252,24 @@ func serveHTTP(errs chan<- error, srv *http.Server, ln net.Listener) {
 
 func serveHTTPS(errs chan<- error, srv *http.Server, ln net.Listener) {
 	errs <- srv.ServeTLS(ln, "", "")
+}
+
+func bootstrapMultiHandler() *logger.MultiHandler {
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+		Level:     slog.LevelDebug,
+	}
+
+	file := &lumberjack.Logger{
+		Filename:   "resources/log/application.jsonl",
+		MaxSize:    100,
+		MaxBackups: 10,
+		LocalTime:  true,
+		Compress:   true,
+	}
+
+	return logger.NewMultiHandler(
+		logger.NewTint(os.Stdout, opts),
+		slog.NewJSONHandler(file, opts),
+	)
 }
