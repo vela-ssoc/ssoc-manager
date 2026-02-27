@@ -2,8 +2,10 @@ package restapi
 
 import (
 	"archive/zip"
+	"bufio"
 	"mime"
 	"net/http"
+	"net/textproto"
 	"strconv"
 	"strings"
 	"time"
@@ -147,6 +149,25 @@ func (crt *Certificate) download(c *ship.Context) error {
 			return err
 		}
 		_, err = cw.Write(priKey)
+
+		// 携带 INFO 信息（自定义附带信息）
+		cw, err = zipfs.Create(cname + ".info")
+		if err != nil {
+			return err
+		}
+		bio := bufio.NewWriter(cw)
+		tw := textproto.NewWriter(bio)
+		_ = tw.PrintfLine("ID: %s", dat.ID.Hex())
+		_ = tw.PrintfLine("Name: %s", dat.Name)
+		_ = tw.PrintfLine("CommonName: %s", dat.CommonName)
+		_ = tw.PrintfLine("Enabled: %v", dat.Enabled)
+		_ = tw.PrintfLine("CertificateSHA256: %s", dat.CertificateSHA256)
+		_ = tw.PrintfLine("PublicKeySHA256: %s", dat.PublicKeySHA256)
+		_ = tw.PrintfLine("PrivateKeySHA256: %s", dat.PrivateKeySHA256)
+		_ = tw.PrintfLine("NotBefore: %s", dat.NotBefore)
+		_ = tw.PrintfLine("NotAfter: %s", dat.NotAfter)
+		_ = tw.PrintfLine("CreatedAt: %s", dat.CreatedAt)
+		_ = tw.PrintfLine("UpdatedAt: %s", dat.UpdatedAt)
 	}
 
 	return nil

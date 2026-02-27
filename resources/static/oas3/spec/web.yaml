@@ -9,6 +9,9 @@ info:
     email: hi@example.com
   termsOfService: 'https://example.com'
   summary: SSOCv2 接口文档（草案）
+tags:
+  - name: "\U0001F510 证书"
+  - name: "\U0001F5A5️ 节点"
 servers:
   - url: /api/v1
     description: 当前
@@ -56,7 +59,7 @@ paths:
       responses:
         '200':
           description: OK
-      description: 新增证书
+      description: 新增 TLS 证书
       requestBody:
         content:
           application/json:
@@ -69,6 +72,11 @@ paths:
                     id: f87doamy3at69
                   description: 名字
                   example: 自签测试证书
+                enabled:
+                  type: boolean
+                  x-stoplight:
+                    id: qscpxdyxnxbmk
+                  description: 是否启用
                 public_key:
                   $ref: '#/components/schemas/PublicKey'
                   x-stoplight:
@@ -79,8 +87,39 @@ paths:
                     id: 14ia9yx7azqoa
               required:
                 - name
+                - enabled
                 - public_key
                 - private_key
+      tags:
+        - "\U0001F510 证书"
+    delete:
+      summary: 【证书】删除
+      operationId: delete-certificate
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F510 证书"
+      description: 删除 TLS 证书
+      parameters:
+        - $ref: '#/components/parameters/HexIDs'
+  /certificate/download:
+    get:
+      summary: 【证书】下载
+      tags:
+        - "\U0001F510 证书"
+      responses:
+        '200':
+          description: 返回证书、私钥的 zip 打包结果。
+          content:
+            application/zip:
+              schema:
+                type: object
+                properties: {}
+      operationId: get-certificate-download
+      description: 下载证书，不输入 `id` 代表下载所有的证书。
+      parameters:
+        - $ref: '#/components/parameters/OptionalHexIDs'
 components:
   schemas:
     MapStatic:
@@ -224,20 +263,75 @@ components:
       x-stoplight:
         id: 4gkm68zzykahp
       type: string
-      description: |-
-        证书（公钥）
-
-        > 测试时将内容中的 `\\n` 替换为 `\n`。
-      example: '-----BEGIN CERTIFICATE-----\nMIIDIjCCAqigAwIBAgIQAL3qUti+jMQZsEjBTY5yPTAKBggqhkjOPQQDAjCBozEW\nMBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIGA1UECwwL\nZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hhaTEOMAwG\nA1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG9w0BCQEW\nEHRlc3RAZXhhbXBsZS5jb20wHhcNMjYwMjI2MDgzMDA5WhcNMjcwMjI2MDgzMDA5\nWjCBozEWMBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIG\nA1UECwwLZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hh\naTEOMAwGA1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG\n9w0BCQEWEHRlc3RAZXhhbXBsZS5jb20wdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATJ\nVv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRIKYyZ\ncLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xCXxSj\ngZ4wgZswHQYDVR0OBBYEFLqZNXBddkwmw3Hv3ZdK39xKBfCVMA4GA1UdDwEB/wQE\nAwIEsDAMBgNVHRMBAf8EAjAAMDsGA1UdJQQ0MDIGCCsGAQUFBwMCBggrBgEFBQcD\nAQYIKwYBBQUHAwMGCCsGAQUFBwMEBggrBgEFBQcDCDAfBgNVHSMEGDAWgBS6mTVw\nXXZMJsNx792XSt/cSgXwlTAKBggqhkjOPQQDAgNoADBlAjEA3RzCmBVTEdU58lxQ\nUFDiBT6J3UxFNEkmXZnkiaO7T8KQCUQ+H2Nsow7xLkMIO3KWAjBgmFARvgZElv6l\noj8YohZa5Lw2o2A6SWWcY8uaRs/fRi67MG0rcp0lNpjgb0rldX0=\n-----END CERTIFICATE-----'
+      description: 证书（公钥）
+      example: |-
+        -----BEGIN CERTIFICATE-----
+        MIIDIjCCAqigAwIBAgIQAL3qUti+jMQZsEjBTY5yPTAKBggqhkjOPQQDAjCBozEW
+        MBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIGA1UECwwL
+        ZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hhaTEOMAwG
+        A1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG9w0BCQEW
+        EHRlc3RAZXhhbXBsZS5jb20wHhcNMjYwMjI2MDgzMDA5WhcNMjcwMjI2MDgzMDA5
+        WjCBozEWMBQGA1UEAwwNKi5leGFtcGxlLmNvbTENMAsGA1UECgwEU1NPQzEUMBIG
+        A1UECwwLZGV2ZWxvcG1lbnQxCzAJBgNVBAYTAkNOMREwDwYDVQQIDAhTaGFuZ2hh
+        aTEOMAwGA1UEBwwFWHVodWkxEzARBgNVBAkMCldhbnBpbmcgODgxHzAdBgkqhkiG
+        9w0BCQEWEHRlc3RAZXhhbXBsZS5jb20wdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATJ
+        Vv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRIKYyZ
+        cLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xCXxSj
+        gZ4wgZswHQYDVR0OBBYEFLqZNXBddkwmw3Hv3ZdK39xKBfCVMA4GA1UdDwEB/wQE
+        AwIEsDAMBgNVHRMBAf8EAjAAMDsGA1UdJQQ0MDIGCCsGAQUFBwMCBggrBgEFBQcD
+        AQYIKwYBBQUHAwMGCCsGAQUFBwMEBggrBgEFBQcDCDAfBgNVHSMEGDAWgBS6mTVw
+        XXZMJsNx792XSt/cSgXwlTAKBggqhkjOPQQDAgNoADBlAjEA3RzCmBVTEdU58lxQ
+        UFDiBT6J3UxFNEkmXZnkiaO7T8KQCUQ+H2Nsow7xLkMIO3KWAjBgmFARvgZElv6l
+        oj8YohZa5Lw2o2A6SWWcY8uaRs/fRi67MG0rcp0lNpjgb0rldX0=
+        -----END CERTIFICATE-----
     PrivateKey:
       title: PrivateKey
       x-stoplight:
         id: lrfdl2sys7zb6
       type: string
+      description: 证书私钥
+      example: |-
+        -----BEGIN PRIVATE KEY-----
+        MIG/AgEAMBAGByqGSM49AgEGBSuBBAAiBIGnMIGkAgEBBDBPg9Sqc/whBbMlhqfG
+        +Xof8pG2XbZr0ZC/QU/frUicSCtjoPR+f36v6M+STlziruagBwYFK4EEACKhZANi
+        AATJVv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRI
+        KYyZcLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xC
+        XxQ=
+        -----END PRIVATE KEY-----
+  parameters:
+    HexIDs:
+      name: id
+      in: query
+      required: true
+      schema:
+        uniqueItems: true
+        type: array
+        example:
+          - 698991bdeaeb0d0435aa5471
+          - 698991bdeaeb0d0435aa5472
       description: |-
-        证书私钥
-
-        > 测试时将内容中的 `\\n` 替换为 `\n`。
-      example: '-----BEGIN PRIVATE KEY-----\nMIG/AgEAMBAGByqGSM49AgEGBSuBBAAiBIGnMIGkAgEBBDBPg9Sqc/whBbMlhqfG\n+Xof8pG2XbZr0ZC/QU/frUicSCtjoPR+f36v6M+STlziruagBwYFK4EEACKhZANi\nAATJVv9HgbKB4SJdTFiao1PHvQ3wHRiMa6mb8YU2KVT3rcdO5Sg2ptmZZgjuXZRI\nKYyZcLK4vOmF111gGhnTbpIac4/u4b9egwx8DLIlQFcjVHVU5SOrdYQKof/Se0xC\nXxQ=\n-----END PRIVATE KEY-----'
-tags:
-  - name: "\U0001F5A5️ 节点"
+        ID（允许多个）
+        - `http`: id=698991bdeaeb0d0435aa5471&id=698991bdeaeb0d0435aa5472
+        - `stoplight`: ["698991bdeaeb0d0435aa5471", "698991bdeaeb0d0435aa5472"]
+    HexID:
+      name: id
+      in: query
+      required: true
+      schema:
+        type: string
+        example: 698991bdeaeb0d0435aa547f
+      description: ID
+    OptionalHexIDs:
+      name: id
+      in: query
+      required: false
+      schema:
+        type: array
+        uniqueItems: true
+        example:
+          - 698991bdeaeb0d0435aa5471
+          - 698991bdeaeb0d0435aa5472
+      description: |-
+        ID（允许多个）
+        - `http`: id=698991bdeaeb0d0435aa5471&id=698991bdeaeb0d0435aa5472
+        - `stoplight`: ["698991bdeaeb0d0435aa5471", "698991bdeaeb0d0435aa5472"]
