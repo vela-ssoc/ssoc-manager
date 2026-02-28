@@ -41,73 +41,90 @@ type brokerAccept struct {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (ms *brokerAccept) AcceptMUX(mux muxconn.Muxer) {
+func (bs *brokerAccept) AcceptMUX(mux muxconn.Muxer) error {
 	defer mux.Close()
 
 	connectAt := time.Now()
-	attrs := []any{"connect_at", connectAt, "remote_addr", mux.RemoteAddr()}
-	peer, err := ms.authentication(mux, connectAt)
+	name, module := mux.Library()
+	sessData := &tunnelSessionData{
+		ConnectAt:     connectAt,
+		LocalAddr:     mux.RemoteAddr().String(), // manager 记录 broker 视角，本地与远程地址互换
+		RemoteAddr:    mux.Addr().String(),
+		TunnelLibrary: model.TunnelLibrary{Name: name, Module: module},
+	}
+	peer, err := bs.authentication(mux, sessData)
 	if err != nil {
-		attrs = append(attrs, "error", err)
-		ms.log().Warn("节点上线失败", attrs...)
+		bs.log().Warn("节点上线失败", "session", sessData, "error", err)
 
-		if ntf := ms.opts.Notifier; ntf != nil {
-			ctx, cancel := ms.perContext()
+		if ntf := bs.opts.Notifier; ntf == nil {
+			bs.log().Debug("没有注册回调函数，无需触发认证失败回调")
+		} else {
+			bs.log().Debug("触发认证失败回调")
+
+			ctx, cancel := bs.perContext()
 			defer cancel()
 
 			ntf.OnAuthFailed(ctx, mux, connectAt, err)
 		}
 
-		return
+		return err
 	}
 
-	id, info := peer.ID(), peer.Info()
-	attrs = append(attrs, "id", id, "info", info)
-	ms.log().Debug("节点上线成功", attrs...)
+	bs.log().Debug("节点上线成功", "session", sessData)
+	if ntf := bs.opts.Notifier; ntf == nil {
+		bs.log().Debug("没有注册回调函数，无需触发上线通知回调")
+	} else {
+		bs.log().Debug("触发上线通知回调")
 
-	if ntf := ms.opts.Notifier; ntf != nil {
-		ctx, cancel := ms.perContext()
+		ctx, cancel := bs.perContext()
 		defer cancel()
 
+		info := peer.Info()
 		ntf.OnConnected(ctx, info, connectAt)
 	}
 
-	ms.log().Debug("开始服务节点业务", attrs...)
-	err = ms.serveHTTP(peer)
-	attrs = append(attrs, "error", err)
-	ms.log().Debug("节点下线", attrs...)
+	bs.log().Debug("开始服务节点业务", "session", sessData)
+	err = bs.serveHTTP(peer)
+	sessData.DisconnectAt = time.Now()
+	bs.log().Debug("节点下线", "session", sessData, "error", err)
 
-	ms.disconnected(peer)
+	bs.disconnected(sessData)
+
+	return nil
+}
+
+func (bs *brokerAccept) AcceptTCP(w http.ResponseWriter, r *http.Request) error {
+	return errors.ErrUnsupported
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (ms *brokerAccept) authentication(mux muxconn.Muxer, connectAt time.Time) (muxserver.Peer, error) {
-	timeout := ms.perTimeout()
+func (bs *brokerAccept) authentication(mux muxconn.Muxer, sessData *tunnelSessionData) (muxserver.Peer, error) {
+	timeout := bs.perTimeout()
 	oncec := muxserver.NewOnceCloser(mux)
 	timer := time.AfterFunc(timeout, oncec.Close) // 防止客户端建立连接后，但是不发起认证。
 	conn, err := mux.Accept()
 	timer.Stop()
 	if err != nil {
-		ms.log().Info("等待认证通道超时", "error", err)
+		bs.log().Info("等待认证通道超时", "error", err)
 		return nil, err
 	}
 	defer conn.Close()
 
 	if oncec.Closed() {
-		ms.log().Info("等待认证通道超时")
+		bs.log().Info("等待认证通道超时")
 		return nil, net.ErrClosed
 	}
 
 	req := new(muxproto.BrokerAuthRequest)
 	_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	if err = muxproto.ReadAuth(conn, req); err != nil {
-		ms.log().Warn("认证消息读取出错", "error", err)
+		bs.log().Warn("认证消息读取出错", "error", err)
 		return nil, err
 	}
-	if err = ms.validAuthRequest(req); err != nil {
+	if err = bs.validAuthRequest(req); err != nil {
 		ae := &muxproto.AuthError{Code: http.StatusBadRequest, Text: err.Error()}
-		ms.log().Warn("认证消息参数校验出错", "error", ae)
-		ms.responseError(conn, ae)
+		bs.log().Warn("认证消息参数校验出错", "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
 
@@ -117,71 +134,71 @@ func (ms *brokerAccept) authentication(mux muxconn.Muxer, connectAt time.Time) (
 		Goos:        req.Goos,
 		Goarch:      req.Goarch,
 		Hostname:    req.Hostname,
-		ConnectedAt: connectAt,
+		ConnectedAt: sessData.ConnectAt,
 	}
-	brok, err := ms.lookupBroker(req.Secret)
+	brok, err := bs.findInstance(req.Secret)
 	if err != nil {
 		ae := &muxproto.AuthError{Code: http.StatusNotFound, Text: err.Error()}
-		ms.log().Error("通过密钥查询节点错误", "info", inf, "error", ae)
-		ms.responseError(conn, ae)
+		bs.log().Error("通过密钥查询节点错误", "info", inf, "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
 
-	id := brok.ID
-	inf.Name = brok.Name
-	attrs := []any{"info", inf}
+	id, name := brok.ID, brok.Name
+	inf.Name = name
+	sessData.ID = id
+	sessData.Name = name
+	sessData.Request = req
+
 	if brok.Status {
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（数据库校验）"}
-		attrs = append(attrs, "error", ae)
-		ms.log().Warn("预检节点在线状态", attrs...)
-		ms.responseError(conn, ae)
+		bs.log().Warn("预检节点在线状态", "session", sessData, "error", ae)
+		bs.responseError(conn, ae)
 
 		return nil, ae
 	}
-	peer := ms.putHub(id, mux, inf)
+	peer := bs.putHub(id, mux, inf)
 	if peer == nil {
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（连接池检查）"}
-		attrs = append(attrs, "error", ae)
-		ms.log().Warn("预检节点在线状态", attrs...)
-		ms.responseError(conn, ae)
+		bs.log().Warn("预检节点在线状态", "session", sessData, "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
-	cfg, err := ms.loadConfig()
+
+	sessData.Peer = peer
+	cfg, err := bs.loadConfig()
 	if err != nil {
-		ms.delHub(id) // 从连接池中删除
+		bs.delHub(id) // 从连接池中删除
 
 		ae := &muxproto.AuthError{Code: http.StatusBadRequest, Text: err.Error()}
-		attrs = append(attrs, "error", ae)
-		ms.log().Warn("加载启动配置出错", attrs...)
-		ms.responseError(conn, ae)
+		bs.log().Warn("加载启动配置出错", "session", sessData, "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
 
-	if err = ms.responseConfig(conn, cfg); err != nil {
-		ms.delHub(id) // 从连接池中删除
+	if err = bs.responseConfig(conn, cfg); err != nil {
+		bs.delHub(id) // 从连接池中删除
 
 		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
-		attrs = append(attrs, "error", ae)
-		ms.log().Warn("回写验证通过报文出错", attrs...)
-		ms.responseError(conn, ae)
+		bs.log().Warn("回写验证通过报文出错", "session", sessData, "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
 
-	if err = ms.updateBrokerOnline(id, mux, req); err != nil {
-		ms.delHub(id) // 从连接池中删除
+	if err = bs.updateOnline(sessData); err != nil {
+		bs.delHub(id) // 从连接池中删除
 
 		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
-		attrs = append(attrs, "error", ae)
-		ms.log().Error("修改数据库上线状态出错", attrs...)
-		ms.responseError(conn, ae)
+		bs.log().Error("修改数据库上线状态出错", "session", sessData, "error", ae)
+		bs.responseError(conn, ae)
 		return nil, ae
 	}
 
 	return peer, nil
 }
 
-func (ms *brokerAccept) serveHTTP(peer muxserver.Peer) error {
-	h := ms.opts.Handler
+func (bs *brokerAccept) serveHTTP(peer muxserver.Peer) error {
+	h := bs.opts.Handler
 	if h == nil {
 		h = http.NotFoundHandler()
 	}
@@ -196,107 +213,105 @@ func (ms *brokerAccept) serveHTTP(peer muxserver.Peer) error {
 	return srv.Serve(mux)
 }
 
-func (ms *brokerAccept) disconnected(peer muxserver.Peer) {
-	disconnectAt := time.Now()
-	id, info := peer.ID(), peer.Info()
-	mux := peer.MUX()
-
-	attrs := []any{"id", id, "info", info, "connect_at", info.ConnectedAt, "disconnect_at", disconnectAt}
-	// 修改数据库在线状态
+func (bs *brokerAccept) disconnected(sessData *tunnelSessionData) {
+	id, peer := sessData.ID, sessData.Peer
+	tx, rx := peer.MUX().Traffic()
 	{
-		tx, rx := mux.Traffic() // 站在 manager 视角记录 broker，RX TX 互换。
 		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: true}}
 		update := bson.M{"$set": bson.M{
 			"status":                      false,
-			"tunnel_stat.disconnected_at": disconnectAt,
+			"tunnel_stat.disconnected_at": sessData.DisconnectAt,
 			"tunnel_stat.receive_bytes":   rx,
 			"tunnel_stat.transmit_bytes":  tx,
 		}}
-		ctx, cancel := ms.perContext()
+		ctx, cancel := bs.perContext()
 		defer cancel()
 
-		coll := ms.db.Broker()
+		coll := bs.db.Broker()
 		ret, err := coll.UpdateOne(ctx, filter, update)
 		if err != nil {
-			attrs = append(attrs, "error", err)
-			ms.log().Error("节点下线修改数据库出错", attrs...)
+			bs.log().Error("节点下线修改数据库出错", "session", sessData, "error", err)
 		} else if ret.ModifiedCount <= 0 {
-			ms.log().Error("节点下线修改数据库未匹配到数据", attrs...)
+			bs.log().Error("节点下线修改数据库未匹配到数据", "session", sessData)
 		} else {
-			ms.log().Info("节点下线修改数据库完毕", attrs...)
+			bs.log().Info("节点下线修改数据库完毕", "session", sessData)
 		}
 	}
-	ms.delHub(id) // 从 hub 中删除连接
+	bs.delHub(id) // 从 hub 中删除连接
 
-	tx, rx := mux.Traffic()
-	name, module := mux.Library()
-	connectAt := info.ConnectedAt
-	raddr, laddr := mux.Addr(), mux.RemoteAddr()
-	his := &model.BrokerConnectHistory{
-		BrokerID: id,
-		Name:     info.Name,
-		Semver:   info.Semver,
-		Inet:     info.Inet,
-		Goos:     info.Goos,
-		Goarch:   info.Goarch,
-		TunnelStat: model.TunnelStatHistory{
-			ConnectedAt:    connectAt,
-			DisconnectedAt: disconnectAt,
-			Library:        model.TunnelLibrary{Name: name, Module: module},
-			LocalAddr:      laddr.String(),
-			RemoteAddr:     raddr.String(),
+	{
+		tunStat := sessData.TunnelStat
+		tunStatHis := model.TunnelStatHistory{
+			Inet:           tunStat.Inet,
+			ConnectedAt:    sessData.ConnectAt,
+			DisconnectedAt: sessData.DisconnectAt,
+			ConnectSeconds: sessData.connectedSeconds(),
+			Library:        tunStat.Library,
+			LocalAddr:      sessData.LocalAddr,
+			RemoteAddr:     sessData.RemoteAddr,
 			ReceiveBytes:   rx,
 			TransmitBytes:  tx,
-		},
-	}
-	{
-		ctx, cancel := ms.perContext()
+		}
+		his := &model.BrokerConnectHistory{
+			BrokerID:    id,
+			Name:        sessData.Name,
+			ExecuteStat: sessData.ExecuteStat,
+			TunnelStat:  tunStatHis,
+		}
+
+		ctx, cancel := bs.perContext()
 		defer cancel()
-		hisColl := ms.db.BrokerConnectHistory()
+		hisColl := bs.db.BrokerConnectHistory()
 		_, _ = hisColl.InsertOne(ctx, his)
 	}
 
-	ms.log().Debug("通知节点下线事件", attrs...)
-	if ntf := ms.opts.Notifier; ntf != nil {
-		ctx, cancel := ms.perContext()
+	if ntf := bs.opts.Notifier; ntf == nil {
+		bs.log().Debug("没有注册回调函数，无需触发下线通知回调")
+	} else {
+		bs.log().Debug("触发下线通知回调")
+
+		ctx, cancel := bs.perContext()
 		defer cancel()
 
-		ntf.OnDisconnected(ctx, info, connectAt, disconnectAt)
+		info := peer.Info()
+		ntf.OnDisconnected(ctx, info, sessData.ConnectAt, sessData.DisconnectAt)
 	}
+
+	bs.log().Info("节点下线处理完毕", "session", sessData)
 }
 
-func (ms *brokerAccept) perTimeout() time.Duration {
-	if d := ms.opts.PerTimeout; d > 0 {
+func (bs *brokerAccept) perTimeout() time.Duration {
+	if d := bs.opts.PerTimeout; d > 0 {
 		return d
 	}
 
 	return 10 * time.Second
 }
 
-func (ms *brokerAccept) perContext() (context.Context, context.CancelFunc) {
-	d := ms.perTimeout()
+func (bs *brokerAccept) perContext() (context.Context, context.CancelFunc) {
+	d := bs.perTimeout()
 
 	return context.WithTimeout(context.Background(), d)
 }
 
-func (ms *brokerAccept) log() *slog.Logger {
-	if l := ms.opts.Logger; l != nil {
+func (bs *brokerAccept) log() *slog.Logger {
+	if l := bs.opts.Logger; l != nil {
 		return l
 	}
 
 	return slog.Default()
 }
 
-func (ms *brokerAccept) putHub(id bson.ObjectID, mux muxconn.Muxer, inf muxserver.PeerInfo) muxserver.Peer {
-	return ms.opts.Huber.Put(id, mux, inf)
+func (bs *brokerAccept) putHub(id bson.ObjectID, mux muxconn.Muxer, inf muxserver.PeerInfo) muxserver.Peer {
+	return bs.opts.Huber.Put(id, mux, inf)
 }
 
-func (ms *brokerAccept) delHub(id bson.ObjectID) {
-	ms.opts.Huber.DelID(id)
+func (bs *brokerAccept) delHub(id bson.ObjectID) {
+	bs.opts.Huber.DelID(id)
 }
 
-func (ms *brokerAccept) validAuthRequest(req *muxproto.BrokerAuthRequest) error {
-	if v := ms.opts.Validator; v != nil {
+func (bs *brokerAccept) validAuthRequest(req *muxproto.BrokerAuthRequest) error {
+	if v := bs.opts.Validator; v != nil {
 		return v(req)
 	}
 
@@ -322,13 +337,12 @@ func (ms *brokerAccept) validAuthRequest(req *muxproto.BrokerAuthRequest) error 
 	return errors.Join(errs...)
 }
 
-func (ms *brokerAccept) lookupBroker(secret string) (*model.Broker, error) {
-	ctx, cancel := ms.perContext()
+func (bs *brokerAccept) findInstance(secret string) (*model.Broker, error) {
+	ctx, cancel := bs.perContext()
 	defer cancel()
 
-	coll := ms.db.Broker()
+	coll := bs.db.Broker()
 	brok, err := coll.FindBySecret(ctx, secret)
-
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			err = errors.New("节点不存在") // 没有注册节点
@@ -339,37 +353,40 @@ func (ms *brokerAccept) lookupBroker(secret string) (*model.Broker, error) {
 	return brok, nil
 }
 
-func (ms *brokerAccept) updateBrokerOnline(id bson.ObjectID, mux muxconn.Muxer, req *muxproto.BrokerAuthRequest) error {
-	now := time.Now()
-	name, module := mux.Library()
-	laddr, raddr := mux.RemoteAddr(), mux.Addr() // manager 记录 broker 视角，本地与远程地址互换
-
-	tunStat := &model.TunnelStat{
-		ConnectedAt: now,
-		KeepaliveAt: now,
-		Library:     model.TunnelLibrary{Name: name, Module: module},
-		LocalAddr:   laddr.String(),
-		RemoteAddr:  raddr.String(),
+func (bs *brokerAccept) updateOnline(sessData *tunnelSessionData) error {
+	req, info := sessData.Request, sessData.Peer.Info()
+	tunStat := model.TunnelStat{
+		Inet:        info.Inet,
+		ConnectedAt: sessData.ConnectAt,
+		KeepaliveAt: sessData.ConnectAt,
+		Library:     sessData.TunnelLibrary,
+		LocalAddr:   sessData.LocalAddr,
+		RemoteAddr:  sessData.RemoteAddr,
 	}
-	exeStat := &model.ExecuteStat{
-		Inet:       req.Inet,
-		Goos:       req.Goos,
-		Goarch:     req.Goarch,
-		Semver:     req.Semver,
+
+	semver := req.Semver
+	version := model.Semver(semver).Uint64()
+	exeStat := model.ExecuteStat{
+		Goos:       info.Goos,
+		Goarch:     info.Goarch,
+		Semver:     info.Semver,
+		Version:    version,
 		PID:        req.PID,
 		Args:       req.Args,
 		Hostname:   req.Hostname,
 		Workdir:    req.Workdir,
 		Executable: req.Executable,
 	}
+	sessData.ExecuteStat = exeStat
+	sessData.TunnelStat = tunStat
 
-	filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: false}}
+	filter := bson.D{{Key: "_id", Value: sessData.ID}, {Key: "status", Value: false}}
 	update := bson.M{"$set": bson.M{"status": true, "tunnel_stat": tunStat, "execute_stat": exeStat}}
 
-	ctx, cancel := ms.perContext()
+	ctx, cancel := bs.perContext()
 	defer cancel()
 
-	coll := ms.db.Broker()
+	coll := bs.db.Broker()
 	ret, err := coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
@@ -380,27 +397,27 @@ func (ms *brokerAccept) updateBrokerOnline(id bson.ObjectID, mux muxconn.Muxer, 
 	return nil
 }
 
-func (ms *brokerAccept) loadConfig() (*muxproto.BrokerBootConfig, error) {
-	bl := ms.opts.BootLoader
+func (bs *brokerAccept) loadConfig() (*muxproto.BrokerBootConfig, error) {
+	bl := bs.opts.BootLoader
 	if bl == nil {
 		return nil, errors.New("没有设置配置加载方式（ConfigLoader）")
 	}
 
-	ctx, cancel := ms.perContext()
+	ctx, cancel := bs.perContext()
 	defer cancel()
 
 	return bl.LoadBoot(ctx)
 }
 
-func (ms *brokerAccept) responseError(conn net.Conn, err *muxproto.AuthError) error {
-	timeout := ms.perTimeout()
+func (bs *brokerAccept) responseError(conn net.Conn, err *muxproto.AuthError) error {
+	timeout := bs.perTimeout()
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 
 	return muxproto.WriteAuth(conn, err)
 }
 
-func (ms *brokerAccept) responseConfig(conn net.Conn, cfg *muxproto.BrokerBootConfig) error {
-	timeout := ms.perTimeout()
+func (bs *brokerAccept) responseConfig(conn net.Conn, cfg *muxproto.BrokerBootConfig) error {
+	timeout := bs.perTimeout()
 	resp := &muxproto.BrokerAuthResponse{Code: http.StatusAccepted, Config: cfg}
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 

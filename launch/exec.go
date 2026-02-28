@@ -110,16 +110,17 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	crontab := cronv3.New(log)
 	crontab.Start()
 
-	shipLog := shipx.NewLog(loghandlers)
+	shipLog := logger.NewFormat(loghandlers, 6)
+	shipErr := shipx.NewErrorHandler(log)
 	httpsSH := ship.Default()
 	httpSH := ship.Default()
 	brokSH := ship.Default()
-	httpsSH.NotFound = shipx.NotFound
-	httpSH.NotFound = shipx.NotFound
-	brokSH.NotFound = shipx.NotFound
-	httpsSH.HandleError = shipx.HandleError
-	httpSH.HandleError = shipx.HandleError
-	brokSH.HandleError = shipx.HandleError
+	httpsSH.NotFound = shipErr.NotFound
+	httpSH.NotFound = shipErr.NotFound
+	brokSH.NotFound = shipErr.NotFound
+	httpsSH.HandleError = shipErr.HandleError
+	httpSH.HandleError = shipErr.HandleError
+	brokSH.HandleError = shipErr.HandleError
 	httpsSH.Logger = shipLog
 	httpSH.Logger = shipLog
 	brokSH.Logger = shipLog
