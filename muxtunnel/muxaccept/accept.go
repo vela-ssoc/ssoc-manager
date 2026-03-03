@@ -145,7 +145,7 @@ func (bs *brokerAccept) authentication(mux muxconn.Muxer, sessData *tunnelSessio
 	}
 
 	id, name := brok.ID, brok.Name
-	inf.Name = name
+	inf.Instance = name
 	sessData.ID = id
 	sessData.Name = name
 	sessData.Request = req
