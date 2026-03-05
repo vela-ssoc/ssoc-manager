@@ -131,7 +131,6 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	crtPool := tlscert.NewMatch(db.Certificate(), log)
 
 	hub := muxserver.NewBrokerHub()
-	brkHubHookSvc := brkservice.NewHubHook(log)
 	curBrokerSvc := curservice.NewBroker(db, dbCfg, log)
 	expBrokerSvc := expservice.NewBroker(db, log)
 	expCertificateSvc := expservice.NewCertificate(db, crtPool, log)
@@ -150,7 +149,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 		Validator:  valid.Validate,
 		Logger:     log,
 		BootLoader: curBrokerSvc,
-		Notifier:   brkHubHookSvc,
+		Notifier:   brkservice.NewBrokerConnectNotice(),
 	}
 	accept := muxaccept.NewAccept(db, acceptOpt)
 
@@ -163,7 +162,7 @@ func Start(ctx context.Context, cfg *config.Config) error {
 	}
 	httpsAPIs := []shipx.RouteRegister{ // https 主业务
 		restapi.NewBroker(expBrokerSvc),
-		restapi.NewBrokerTunnel(brkcli),
+		restapi.NewBrokerTunnel(hub, brkcli),
 		restapi.NewCertificate(expCertificateSvc),
 		restapi.NewTunnel(accept),
 	}

@@ -8,8 +8,8 @@ require (
 	github.com/grafana/pyroscope-go v1.2.7
 	github.com/magnetde/slog-loki v0.1.4
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/vela-ssoc/ssoc-common v0.0.0-20260303071638-00c666192ed4
-	github.com/vela-ssoc/ssoc-proto v0.0.0-20260303071527-9cc410414db6
+	github.com/vela-ssoc/ssoc-common v0.0.0-20260305014033-5216ee315ebb
+	github.com/vela-ssoc/ssoc-proto v0.0.0-20260304120203-3a5b79b179c9
 	github.com/xgfone/ship/v5 v5.3.2
 	go.mongodb.org/mongo-driver/v2 v2.5.0
 	golang.org/x/time v0.14.0

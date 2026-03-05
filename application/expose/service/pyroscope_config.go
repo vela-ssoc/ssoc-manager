@@ -38,30 +38,16 @@ func (py *PyroscopeConfig) Start(ctx context.Context) error {
 		return err
 	}
 
-	//profileTypes := []pyroscope.ProfileType{
-	//	pyroscope.ProfileCPU,
-	//	pyroscope.ProfileInuseObjects,
-	//	pyroscope.ProfileAllocObjects,
-	//	pyroscope.ProfileInuseSpace,
-	//	pyroscope.ProfileAllocSpace,
-	//	pyroscope.ProfileGoroutines,
-	//	pyroscope.ProfileMutexCount,
-	//	pyroscope.ProfileMutexDuration,
-	//	pyroscope.ProfileBlockCount,
-	//	pyroscope.ProfileBlockDuration,
-	//}
-
 	lh := py.log.Handler()
 	log := logger.NewFormat(lh, 6)
 	cfg := pyroscope.Config{
 		ApplicationName:   muxproto.ManagerDomain,
-		Tags:              map[string]string{"instance": "ssoc-manager"},
+		Tags:              map[string]string{"instance": "manager"},
 		ServerAddress:     dat.URL,
 		BasicAuthUser:     dat.Username,
 		BasicAuthPassword: dat.Password,
 		Logger:            log,
-		// ProfileTypes:      profileTypes,
-		HTTPHeaders: dat.Headers,
+		HTTPHeaders:       dat.Headers,
 	}
 	prf, err := pyroscope.Start(cfg)
 	if err != nil {

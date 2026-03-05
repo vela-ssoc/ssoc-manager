@@ -19,6 +19,11 @@ type BrokerTunnelSpeedtest struct {
 	Size ByteCount `json:"size" query:"size" validate:"gte=0"`
 }
 
+type BrokerTunnelKill struct {
+	HexID
+	StreamID uint64 `json:"stream_id" query:"stream_id" validate:"gte=0"`
+}
+
 type ByteCount float64
 
 func (bc *ByteCount) UnmarshalText(text []byte) error {

@@ -25,10 +25,12 @@ type Options struct {
 	Logger     *slog.Logger
 	PerTimeout time.Duration
 	BootLoader muxserver.BootLoader[muxproto.BrokerBootConfig] // 必须填写，节点认证通过后加载启动配置。
-	Notifier   muxserver.ConnectNotifier
+	Notifier   Notifier
 }
 
 func NewAccept(db repository.Database, opts Options) muxserver.MUXAccepter {
+	opts.Notifier = wrapSafeNotifier(opts.Notifier)
+
 	return &brokerAccept{
 		db:   db,
 		opts: opts,
@@ -52,35 +54,19 @@ func (bs *brokerAccept) AcceptMUX(mux muxconn.Muxer) error {
 		RemoteAddr:    mux.Addr().String(),
 		TunnelLibrary: model.TunnelLibrary{Name: name, Module: module},
 	}
+
 	peer, err := bs.authentication(mux, sessData)
-	if err != nil {
-		bs.log().Warn("节点上线失败", "session", sessData, "error", err)
-
-		if ntf := bs.opts.Notifier; ntf == nil {
-			bs.log().Debug("没有注册回调函数，无需触发认证失败回调")
-		} else {
-			bs.log().Debug("触发认证失败回调")
-
-			ctx, cancel := bs.perContext()
-			defer cancel()
-
-			ntf.OnAuthFailed(ctx, mux, connectAt, err)
-		}
-
-		return err
-	}
-
-	bs.log().Debug("节点上线成功", "session", sessData)
-	if ntf := bs.opts.Notifier; ntf == nil {
-		bs.log().Debug("没有注册回调函数，无需触发上线通知回调")
-	} else {
-		bs.log().Debug("触发上线通知回调")
-
+	{
+		ntf := bs.opts.Notifier
 		ctx, cancel := bs.perContext()
 		defer cancel()
+		if err != nil {
+			_ = ntf.OnFailed(ctx, mux, err)
+			return err
+		}
 
-		info := peer.Info()
-		ntf.OnConnected(ctx, info, connectAt)
+		id, info := peer.ID(), peer.Info()
+		_ = ntf.OnConnected(ctx, id, info)
 	}
 
 	bs.log().Debug("开始服务节点业务", "session", sessData)
@@ -215,7 +201,8 @@ func (bs *brokerAccept) serveHTTP(peer muxserver.Peer) error {
 
 func (bs *brokerAccept) disconnected(sessData *tunnelSessionData) {
 	id, peer := sessData.ID, sessData.Peer
-	tx, rx := peer.MUX().Traffic()
+	mux := peer.MUX()
+	tx, rx := mux.Traffic()
 	{
 		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: true}}
 		update := bson.M{"$set": bson.M{
@@ -240,12 +227,14 @@ func (bs *brokerAccept) disconnected(sessData *tunnelSessionData) {
 	bs.delHub(id) // 从 hub 中删除连接
 
 	{
+		cumulative, _ := mux.NumStreams()
 		tunStat := sessData.TunnelStat
 		tunStatHis := model.TunnelStatHistory{
 			Inet:           tunStat.Inet,
 			ConnectedAt:    sessData.ConnectAt,
 			DisconnectedAt: sessData.DisconnectAt,
 			ConnectSeconds: sessData.connectedSeconds(),
+			Cumulative:     cumulative,
 			Library:        tunStat.Library,
 			LocalAddr:      sessData.LocalAddr,
 			RemoteAddr:     sessData.RemoteAddr,
@@ -265,16 +254,13 @@ func (bs *brokerAccept) disconnected(sessData *tunnelSessionData) {
 		_, _ = hisColl.InsertOne(ctx, his)
 	}
 
-	if ntf := bs.opts.Notifier; ntf == nil {
-		bs.log().Debug("没有注册回调函数，无需触发下线通知回调")
-	} else {
-		bs.log().Debug("触发下线通知回调")
-
+	{
+		ntf := bs.opts.Notifier
 		ctx, cancel := bs.perContext()
 		defer cancel()
 
 		info := peer.Info()
-		ntf.OnDisconnected(ctx, info, sessData.ConnectAt, sessData.DisconnectAt)
+		_ = ntf.OnDisconnected(ctx, id, info, sessData.DisconnectAt)
 	}
 
 	bs.log().Info("节点下线处理完毕", "session", sessData)
