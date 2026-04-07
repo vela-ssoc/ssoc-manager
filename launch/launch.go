@@ -168,10 +168,11 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	brkmux.NotFound = prob.NotFound
 	brkmux.HandleError = prob.HandleError
 	brkgrp := brkmux.Group("/")
+	siemAPI := brkapi.NewSIEM(siemServerSvc)
+	siemAPI.Route(anon, bearer, basic)
 	{
 		alert := brkapi.NewAlert(dongCli, log)
 		alert.Router(brkgrp)
-		siemAPI := brkapi.NewSIEM(siemServerSvc)
 		siemAPI.Router(brkgrp)
 	}
 

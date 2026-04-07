@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/xgfone/ship/v5"
 )
 
@@ -22,6 +23,11 @@ type SIEM struct {
 func (sim *SIEM) Router(rgb *ship.RouteGroupBuilder) {
 	rgb.Route("/proxy/siem").Any(sim.proxy)
 	rgb.Route("/proxy/siem/*path").Any(sim.proxy)
+}
+
+func (sim *SIEM) Route(_, bearer, _ *ship.RouteGroupBuilder) {
+	bearer.Route("/siem").Data(route.Ignore()).GET(sim.proxy)
+	bearer.Route("/siem/*path").Data(route.Ignore()).GET(sim.proxy)
 }
 
 func (sim *SIEM) proxy(c *ship.Context) error {
