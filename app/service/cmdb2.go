@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-manager/integration/cmdb2"
@@ -21,6 +22,13 @@ func NewCmdb2(qry *query.Query, cli cmdb2.Client) *Cmdb2 {
 type Cmdb2 struct {
 	qry *query.Query
 	cli cmdb2.Client
+}
+
+func (biz *Cmdb2) Run() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+	defer cancel()
+
+	_ = biz.Rsync(ctx)
 }
 
 func (biz *Cmdb2) Rsync(ctx context.Context) error {

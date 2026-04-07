@@ -437,6 +437,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	cmdb2Service := service.NewCmdb2(qry, cmdb2Client)
 	mgtapi.NewCmdb2(cmdb2Service).Route(anon, bearer, basic)
 
+	crond.Schedule("同步节点 cmdb 资产信息",
+		cronv3.NewPeriodicallyTimes(24*time.Hour),
+		cmdb2Service.Run)
+
 	agentSvc := exposesvc.NewAgent(qry, log)
 	exposeapi.NewAgentConsole(huber, agentSvc).Route(anon, bearer, basic)
 	occupySvc := exposesvc.NewOccupy(qry, log)
