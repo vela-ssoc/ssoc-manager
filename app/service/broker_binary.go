@@ -131,9 +131,7 @@ func (biz *BrokerBinary) Open(ctx context.Context, bid, fid int64, addr net.Addr
 		servers = append(servers, &netutil.Address{Addr: addr.String(), Name: host})
 	}
 	hide := &negotiate.Hide{
-		ID:      bid,
 		Secret:  brk.Secret,
-		Semver:  string(bin.Semver),
 		Servers: servers,
 	}
 	enc, exx := ciphertext.EncryptPayload(hide)

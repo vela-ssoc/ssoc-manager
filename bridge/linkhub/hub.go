@@ -94,7 +94,7 @@ func (hub *brokerHub) Name() string {
 }
 
 func (hub *brokerHub) Auth(ctx context.Context, ident negotiate.Ident) (negotiate.Issue, http.Header, error) {
-	id, secret, inet := ident.ID, ident.Secret, ident.Inet
+	secret, inet := ident.Secret, ident.Inet
 	if len(inet) == 0 || inet.IsLoopback() {
 		return negotiate.Issue{}, nil, ErrBrokerInet
 	}
@@ -102,12 +102,13 @@ func (hub *brokerHub) Auth(ctx context.Context, ident negotiate.Ident) (negotiat
 	// 查询 broker
 	brkTbl := hub.qry.Broker
 	brk, err := brkTbl.WithContext(ctx).
-		Where(brkTbl.ID.Eq(id), brkTbl.Secret.Eq(secret)).
+		Where(brkTbl.Secret.Eq(secret)).
 		First()
 	if err != nil {
 		return negotiate.Issue{}, nil, ErrBrokerNotFound
 	}
 
+	id := brk.ID
 	sid := strconv.FormatInt(id, 10)
 	if brk.Status || hub.getConn(sid) != nil {
 		return negotiate.Issue{}, nil, ErrBrokerRepeat
@@ -119,6 +120,7 @@ func (hub *brokerHub) Auth(ctx context.Context, ident negotiate.Ident) (negotiat
 	_, _ = hub.random.Read(passwd)
 
 	issue := negotiate.Issue{
+		ID:     id,
 		Name:   brk.Name,
 		Passwd: passwd,
 		Server: profile.BrokerServer{
@@ -161,7 +163,7 @@ func (hub *brokerHub) Join(tran net.Conn, ident negotiate.Ident, issue negotiate
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	info, err := tbl.WithContext(ctx).
-		Where(tbl.ID.Eq(ident.ID), tbl.Status.Is(false)).
+		Where(tbl.ID.Eq(issue.ID), tbl.Status.Is(false)).
 		UpdateSimple(updates...)
 	cancel()
 	if err != nil {
@@ -174,7 +176,7 @@ func (hub *brokerHub) Join(tran net.Conn, ident negotiate.Ident, issue negotiate
 	defer func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 		_, _ = tbl.WithContext(ctx).
-			Where(tbl.ID.Eq(ident.ID)).
+			Where(tbl.ID.Eq(issue.ID)).
 			Where(tbl.Status.Is(true)).
 			UpdateColumn(tbl.Status, false)
 		cancel()
@@ -326,7 +328,7 @@ func (hub *brokerHub) sendJSON(ctx context.Context, id int64, path string, req, 
 }
 
 func (hub *brokerHub) newConn(tran net.Conn, ident negotiate.Ident, issue negotiate.Issue) *spdyServerConn {
-	id := ident.ID
+	id := issue.ID
 	sid := strconv.FormatInt(id, 10)
 	cfg := smux.DefaultConfig()
 	cfg.KeepAliveDisabled = true

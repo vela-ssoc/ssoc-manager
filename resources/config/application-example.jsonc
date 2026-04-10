@@ -59,7 +59,7 @@
     "console": false,
     // 是否将日志输出到文件，不配置则认为不输出到文件。
     // 部署上线请配置输出文件。
-    "filename": "resources/log/app.jsonl",
+    "filename": "resources/log/application.jsonl",
     // https://github.com/natefinch/lumberjack/blob/v2.2.1/lumberjack.go#L85-L87
     "maxsize": 0,
     // https://github.com/natefinch/lumberjack/blob/v2.2.1/lumberjack.go#L89-L94
