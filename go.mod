@@ -8,7 +8,7 @@ require (
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260410023425-43458d170b51
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260410025954-720112ba4d82
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260410052144-7ed5973aac01
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
 	golang.org/x/crypto v0.50.0
