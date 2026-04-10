@@ -1,14 +1,14 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: 编译下载
+name: 编译
 
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
 
 jobs:
 
@@ -36,9 +36,13 @@ jobs:
           GOARCH: amd64
         run: sh build.sh
 
+      - name: 获取短哈希
+        id: vars
+        run: echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: 上传产物
         uses: actions/upload-artifact@v5
         with:
           retention-days: 30
-          name: ssoc-manager
+          name: ssoc-manager_${{ env.GIT_SHORT_SHA }}
           path: ssoc-manager_*
