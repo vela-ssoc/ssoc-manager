@@ -27,6 +27,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
+	"github.com/vela-ssoc/ssoc-common/logger"
 	"github.com/vela-ssoc/ssoc-manager/app/brkapi"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	"github.com/vela-ssoc/ssoc-manager/app/middle"
@@ -45,7 +46,7 @@ import (
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 func Run(ctx context.Context, path string) error {
@@ -59,18 +60,24 @@ func Run(ctx context.Context, path string) error {
 
 func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	logCfg := cfg.Logger
-	//goland:noinspection GoUnhandledErrorResult
-	defer logCfg.Close()
-
-	logWriter := logCfg.LogWriter()
-	logOption := &slog.HandlerOptions{AddSource: true, Level: logWriter.Level()}
-	logHandler := slog.NewJSONHandler(logWriter, logOption)
+	logLevel := new(slog.LevelVar)
+	_ = logLevel.UnmarshalText([]byte(logCfg.Level))
+	logOpt := &slog.HandlerOptions{AddSource: true, Level: logLevel}
+	logHandler := logger.NewMultiHandler()
+	if logCfg.Console {
+		h := logger.NewTint(os.Stdout, logOpt)
+		logHandler.Append(h)
+	}
+	if lum := logCfg.Lumber(); lum != nil {
+		defer lum.Close()
+		h := slog.NewJSONHandler(lum, logOpt)
+		logHandler.Append(h)
+	}
 	log := slog.New(logHandler)
 	log.Info("日志组件初始化完毕")
 
 	dbCfg := cfg.Database
-	gormLogLevel := sqldb.MappingGormLogLevel(dbCfg.Level)
-	gormLog, _ := sqldb.NewLog(logWriter, logger.Config{LogLevel: gormLogLevel})
+	gormLog := sqldb.NewGormLog(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
 	gormCfg := &gorm.Config{Logger: gormLog}
 	db, err := sqldb.Open(dbCfg.DSN, gormCfg)
 	if err != nil {
