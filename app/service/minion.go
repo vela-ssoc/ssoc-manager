@@ -97,20 +97,21 @@ func (biz *Minion) Page(ctx context.Context, page param.Pager, scope dynsql.Scop
 	for _, m := range minions {
 		id := m.ID
 		ms := &param.MinionSummary{
-			ID:         id,
-			Inet:       m.Inet,
-			Goos:       m.Goos,
-			Edition:    m.Edition,
-			Status:     m.Status,
-			IDC:        m.IDC,
-			IBu:        m.IBu,
-			Comment:    m.Comment,
-			BrokerName: m.BrokerName,
-			Unload:     m.Unload,
-			Uptime:     m.Uptime.Time,
-			Customized: m.Customized,
-			Unstable:   m.Unstable,
-			Tags:       tagMap[id],
+			ID:          id,
+			Inet:        m.Inet,
+			Goos:        m.Goos,
+			Edition:     m.Edition,
+			Status:      m.Status,
+			HeartbeatAt: m.HeartbeatAt,
+			IDC:         m.IDC,
+			IBu:         m.IBu,
+			Comment:     m.Comment,
+			BrokerName:  m.BrokerName,
+			Unload:      m.Unload,
+			Uptime:      m.Uptime.Time,
+			Customized:  m.Customized,
+			Unstable:    m.Unstable,
+			Tags:        tagMap[id],
 		}
 		if ms.Tags == nil {
 			ms.Tags = []string{}

@@ -16,3 +16,7 @@ type spdyServerConn struct {
 func (sc *spdyServerConn) ID() int64 {
 	return sc.id
 }
+
+type Peer interface {
+	ID() int64
+}

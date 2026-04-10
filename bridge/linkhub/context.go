@@ -8,10 +8,14 @@ type contextKey struct {
 
 var brokerCtxKey = &contextKey{name: "broker-context"}
 
-func Ctx(ctx context.Context) any {
+func FromContext(ctx context.Context) Peer {
 	if ctx != nil {
-		val, _ := ctx.Value(brokerCtxKey).(any)
+		val, _ := ctx.Value(brokerCtxKey).(Peer)
 		return val
 	}
 	return nil
+}
+
+func withContext(c *spdyServerConn) context.Context {
+	return context.WithValue(context.Background(), brokerCtxKey, c)
 }

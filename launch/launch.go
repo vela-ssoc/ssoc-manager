@@ -34,6 +34,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/app/session"
+	brokerapi "github.com/vela-ssoc/ssoc-manager/application/broker/restapi"
+	brokersvc "github.com/vela-ssoc/ssoc-manager/application/broker/service"
 	exposeapi "github.com/vela-ssoc/ssoc-manager/application/expose/restapi"
 	exposesvc "github.com/vela-ssoc/ssoc-manager/application/expose/service"
 	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
@@ -181,6 +183,10 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		alert := brkapi.NewAlert(dongCli, log)
 		alert.Router(brkgrp)
 		siemAPI.Router(brkgrp)
+
+		brkHeartbeatSvc := brokersvc.NewHeartbeat(qry, log)
+		brkHeartbeatAPI := brokerapi.NewHeartbeat(brkHeartbeatSvc)
+		brkHeartbeatAPI.Router(brkgrp)
 	}
 
 	huber := linkhub.New(qry, brkmux, pool, cfg) // 将连接中心注入到 broker 接入网关中

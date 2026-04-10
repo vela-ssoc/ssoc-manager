@@ -185,7 +185,7 @@ func (hub *brokerHub) Join(tran net.Conn, ident negotiate.Ident, issue negotiate
 	srv := &http.Server{
 		Handler: hub.handler,
 		BaseContext: func(net.Listener) context.Context {
-			return context.WithValue(context.Background(), brokerCtxKey, conn)
+			return withContext(conn)
 		},
 	}
 
