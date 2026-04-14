@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"gorm.io/gorm"
 )
@@ -63,7 +64,7 @@ func (r *minionCSVReader) Next() ([][]string, error) {
 	records := make([][]string, 0, len(mons))
 	for _, mon := range mons {
 		id := strconv.FormatInt(mon.ID, 10)
-		status := mon.Status.String()
+		status := r.statusString(mon.Status)
 		record := []string{
 			id, mon.Inet, mon.Goos, mon.Arch, mon.Edition, status, mon.BrokerName,
 			mon.IDC, mon.IBu, mon.Category, mon.Comment, mon.OpDuty, mon.Identity,
@@ -72,4 +73,19 @@ func (r *minionCSVReader) Next() ([][]string, error) {
 	}
 
 	return records, nil
+}
+
+func (*minionCSVReader) statusString(ms model.MinionStatus) string {
+	switch ms {
+	case 0:
+		return "未激活"
+	case 1:
+		return "离线"
+	case 2:
+		return "在线"
+	case 3:
+		return "已删除"
+	default:
+		return "未知"
+	}
 }

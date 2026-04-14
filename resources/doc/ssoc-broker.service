@@ -7,7 +7,7 @@ Type=simple
 LimitNOFILE=65535
 WorkingDirectory=/vdb/ssoc/broker
 ExecStart=/vdb/ssoc/broker/ssoc-broker
-ExecStop=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
 Restart=always
 RestartSec=5
 Environment=HOME=/root
