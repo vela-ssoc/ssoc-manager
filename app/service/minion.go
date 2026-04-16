@@ -281,11 +281,13 @@ func (biz *Minion) Create(ctx context.Context, mc *param.MinionCreate) error {
 		return errcode.FmtErrInetExist.Fmt(ipv4)
 	}
 
+	now := time.Now()
 	mon := &model.Minion{
-		Inet:   ipv4,
-		Goos:   mc.Goos,
-		Arch:   mc.Arch,
-		Status: model.MSOffline,
+		Inet:        ipv4,
+		Goos:        mc.Goos,
+		Arch:        mc.Arch,
+		Status:      model.MSOffline,
+		HeartbeatAt: now, // fix mysql datetime 不能为 0000-00-00
 	}
 	if err := tbl.WithContext(ctx).Create(mon); err != nil {
 		return err

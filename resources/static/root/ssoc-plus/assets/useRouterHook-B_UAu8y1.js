@@ -1,0 +1,1 @@
+import{bI as t}from"./index-C0uiuEpp.js";function c(){const o=t();return function(u,s,r=!0){u.startsWith("/")||(u="/"+u);let e;r?(o.push(u),e="/ssoc-plus"+(u==="/"?"":u)):e=u,window.$wujie?.bus.$emit("sub-route-change",s,e)}}export{c as u};

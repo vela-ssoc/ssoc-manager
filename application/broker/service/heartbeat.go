@@ -26,7 +26,7 @@ func (hb *Heartbeat) Alive(ctx context.Context, id int64) error {
 
 	now := time.Now()
 	_, err := dao.Where(tbl.ID.Eq(id), tbl.Status.Is(true)).
-		Update(tbl.HeartbeatAt, now)
+		UpdateSimple(tbl.HeartbeatAt.Value(now))
 
 	return err
 }

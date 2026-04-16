@@ -80,7 +80,7 @@ func (biz *Broker) Create(ctx context.Context, req *mrequest.BrokerCreate) error
 	}
 
 	buf := make([]byte, 20)
-	rand.Read(buf)
+	_, _ = rand.Read(buf)
 	secret := hex.EncodeToString(buf)
 
 	now := time.Now()
