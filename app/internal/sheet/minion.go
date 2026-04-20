@@ -77,13 +77,13 @@ func (r *minionCSVReader) Next() ([][]string, error) {
 
 func (*minionCSVReader) statusString(ms model.MinionStatus) string {
 	switch ms {
-	case 0:
+	case model.MSInactive:
 		return "未激活"
-	case 1:
+	case model.MSOffline:
 		return "离线"
-	case 2:
+	case model.MSOnline:
 		return "在线"
-	case 3:
+	case model.MSDelete:
 		return "已删除"
 	default:
 		return "未知"
