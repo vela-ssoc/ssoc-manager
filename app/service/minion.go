@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"time"
 
@@ -21,12 +22,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func NewMinion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minionfilter.Filter) *Minion {
+func NewMinion(qry *query.Query, cmdbw cmdb.Client, pusher push.Pusher, flt *minionfilter.Filter, log *slog.Logger) *Minion {
 	return &Minion{
 		qry:    qry,
 		cmdbw:  cmdbw,
 		pusher: pusher,
 		flt:    flt,
+		log:    log,
 	}
 }
 
@@ -35,6 +37,7 @@ type Minion struct {
 	cmdbw  cmdb.Client
 	pusher push.Pusher
 	flt    *minionfilter.Filter
+	log    *slog.Logger
 }
 
 func (biz *Minion) Cond() *response.Cond {
@@ -459,6 +462,7 @@ func (biz *Minion) batchFunc(
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
+	startAt := time.Now()
 	tbl, tagTbl := biz.qry.Minion, biz.qry.MinionTag
 	deleted := uint8(model.MSDelete)
 	dao := tbl.WithContext(ctx).
@@ -478,14 +482,24 @@ func (biz *Minion) batchFunc(
 		Scopes(scope.Where).
 		Limit(limit)
 
+	var cnt int64
+	db.Count(&cnt)
+
 	var err error
 	for err == nil {
 		var mids []int64
-		err = db.Offset(offset).Limit(limit).Scan(&mids).Error
+		err = db.Offset(offset).Scan(&mids).Error
 		size := len(mids)
-		if err != nil || size == 0 {
+		if err != nil {
+			biz.log.Warn("循环推送查询出错", "error", err)
 			break
 		}
+		if size == 0 {
+			biz.log.Info("循环推送升级结束")
+			break
+		}
+
+		biz.log.Info("推送升级进度", "offset", offset, "count", cnt)
 		offset += size
 
 		dats, exx := tbl.WithContext(ctx).
@@ -500,21 +514,26 @@ func (biz *Minion) batchFunc(
 		hm := make(map[int64][]int64, 16)
 		for _, dat := range dats {
 			bid := dat.BrokerID
-			if dat.Status == model.MSDelete || bid == 0 {
+			if bid == 0 {
 				continue
 			}
+
 			hm[bid] = append(hm[bid], dat.ID)
 		}
 
 		for bid, ids := range hm {
 			if err = cb(ctx, bid, ids); err != nil {
-				break
+				biz.log.Warn("执行推送逻辑出错", "broker_id", bid, "minion_ids", ids, "error", err)
 			}
 		}
-		if size < limit {
-			break
-		}
 	}
+
+	endAt := time.Now()
+	du := endAt.Sub(startAt)
+	biz.log.Info("推送升级结束",
+		"offset", offset, "count", cnt,
+		"took", du, "start_at", startAt, "end_at", endAt,
+	)
 
 	return err
 }

@@ -236,7 +236,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	cmdbCfg := cmdb.NewConfigure(store)
 	cmdbClient := cmdb.NewClient(qry, cmdbCfg, client)
-	minionService := service.NewMinion(qry, cmdbClient, pusher, minionFilterSvc)
+	minionService := service.NewMinion(qry, cmdbClient, pusher, minionFilterSvc, log)
 	minionREST := mgtapi.NewMinion(qry, huber, minionService)
 	minionREST.Route(anon, bearer, basic)
 
