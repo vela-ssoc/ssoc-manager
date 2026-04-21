@@ -495,7 +495,6 @@ func (biz *Minion) batchFunc(
 			break
 		}
 		if size == 0 {
-			biz.log.Info("循环推送升级结束")
 			break
 		}
 
