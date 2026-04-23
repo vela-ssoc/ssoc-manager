@@ -2734,6 +2734,156 @@ paths:
           in: query
           name: occur_at
           description: 发生时间
+  /victoria-metrics-configs:
+    get:
+      summary: 【VM】查询 VM 配置列表
+      tags:
+        - "\U0001F195 新增接口"
+      responses:
+        '200':
+          description: OK
+      operationId: get-victoria-metrics-configs
+      description: 查询 VM 配置列表
+  /victoria-metrics-config:
+    post:
+      summary: 【VM】新增 VM 配置
+      operationId: post-victoria-metrics-config
+      responses:
+        '200':
+          description: OK
+        '201':
+          description: Created
+      tags:
+        - "\U0001F195 新增接口"
+      description: 新增 VM 配置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  x-stoplight:
+                    id: m2zkia1181xd0
+                  description: 名字
+                  example: 这是名字
+                  maxLength: 20
+                enabled:
+                  type: boolean
+                  x-stoplight:
+                    id: nmbmshvj5jxlp
+                  description: 是否启用
+                method:
+                  type: string
+                  x-stoplight:
+                    id: nlk769xrxqj99
+                  description: 请求方法（空表示默认方法）
+                  example: GET
+                  enum:
+                    - GET
+                    - POST
+                    - PUT
+                url:
+                  type: string
+                  x-stoplight:
+                    id: biq13a9utu5ux
+                  example: 'https://victoria-metrics.example.com/api/v1/import/prometheus'
+                  description: victoria-metrics 请求地址
+                username:
+                  type: string
+                  x-stoplight:
+                    id: u1mkue31nqwcb
+                  description: 认证用户名
+                  example: admin
+                  maxLength: 100
+                password:
+                  type: string
+                  x-stoplight:
+                    id: usaeypcm7e0zc
+                  description: 认证密码
+                  maxLength: 100
+                  example: H23#@dsSWXds
+              required:
+                - name
+                - enabled
+                - url
+    put:
+      summary: 【VM】修改 VM 配置
+      operationId: put-victoria-metrics-config
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 修改 VM 配置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  $ref: '#/components/schemas/Int64ID'
+                name:
+                  type: string
+                  x-stoplight:
+                    id: wz716jcx3wfjz
+                  description: 名字
+                  example: 新的名字
+                  maxLength: 20
+                  minLength: 1
+                enabled:
+                  type: boolean
+                  x-stoplight:
+                    id: dehgq0eozrugs
+                  description: 是否启用
+                method:
+                  type: string
+                  x-stoplight:
+                    id: 5yn0zyxxhepz2
+                  description: 请求方法（留空默认 GET）
+                  example: GET
+                  enum:
+                    - GET
+                    - POST
+                    - PUT
+                url:
+                  type: string
+                  x-stoplight:
+                    id: rzudjz2898712
+                  example: 'https://victoria-metrics.example.com/api/v1/import/prometheus'
+                  maxLength: 200
+                  description: 请求地址
+                username:
+                  type: string
+                  x-stoplight:
+                    id: j49ph3qvghb59
+                  description: 认证用户名
+                  maxLength: 100
+                  example: admin
+                password:
+                  type: string
+                  x-stoplight:
+                    id: aj6ff411hh7fo
+                  description: 认证密码
+                  example: EV#$ewds42
+              required:
+                - id
+                - name
+                - url
+        description: ''
+    delete:
+      summary: 【VM】删除 VM 配置
+      operationId: delete-victoria-metrics-config
+      responses:
+        '200':
+          description: OK
+      tags:
+        - "\U0001F195 新增接口"
+      description: 删除 VM 配置
+      parameters:
+        - $ref: '#/components/parameters/ID'
 components:
   securitySchemes:
     Authorization:

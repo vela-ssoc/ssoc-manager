@@ -462,6 +462,9 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	substanceExtensionSvc := exposesvc.NewSubstanceExtension(qry, pusher, log)
 	exposeapi.NewSubstanceExtension(substanceExtensionSvc).Route(anon, bearer, basic)
 
+	victoriaMetricsConfigSvc := exposesvc.NewVictoriaMetricsConfig(qry, log)
+	exposeapi.NewVictoriaMetricsConfig(victoriaMetricsConfigSvc).BindRoute(bearer)
+
 	zombieConnectSvc := exposesvc.NewZombieConnect(qry, log)
 	exposeapi.NewZombieConnect(zombieConnectSvc).BindRoute(bearer)
 
