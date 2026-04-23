@@ -8,6 +8,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-manager/application/expose/request"
+	"gorm.io/gen/field"
 )
 
 type VictoriaMetricsConfig struct {
@@ -64,19 +65,23 @@ func (vmc *VictoriaMetricsConfig) Update(ctx context.Context, req *request.Victo
 	id, enabled := req.ID, req.Enabled
 	tbl := vmc.qry.VictoriaMetricsConfig
 	dao := tbl.WithContext(ctx)
-	dat, err := dao.Where(tbl.ID.Eq(id)).First()
+	_, err := dao.Where(tbl.ID.Eq(id)).First()
 	if err != nil {
 		return err
 	}
 
-	dat.Name = req.Name
-	dat.Enabled = enabled
-	dat.Method = req.Method
-	dat.URL = req.URL
-	dat.Username = req.Username
-	dat.Password = req.Password
+	columns := []field.AssignExpr{
+		tbl.Name.Value(req.Name),
+		tbl.Enabled.Value(enabled),
+		tbl.Method.Value(req.Method),
+		tbl.URL.Value(req.URL),
+		tbl.Username.Value(req.Username),
+		tbl.Password.Value(req.Password),
+	}
+
 	if !enabled {
-		_, err = dao.Where(tbl.ID.Eq(id)).Updates(dat)
+		_, err = dao.Where(tbl.ID.Eq(id)).
+			UpdateSimple(columns...)
 		return err
 	}
 
@@ -88,7 +93,7 @@ func (vmc *VictoriaMetricsConfig) Update(ctx context.Context, req *request.Victo
 			UpdateColumnSimple(tblx.Enabled.Value(false)); err1 != nil {
 			return err1
 		}
-		_, err1 := daox.Where(tblx.ID.Eq(id)).Updates(dat)
+		_, err1 := daox.Where(tblx.ID.Eq(id)).UpdateSimple(columns...)
 
 		return err1
 	})
