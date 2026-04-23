@@ -21,7 +21,7 @@ func NewVictoriaMetricsConfig(svc *service.VictoriaMetricsConfig) *VictoriaMetri
 
 func (vmc *VictoriaMetricsConfig) BindRoute(rgb *ship.RouteGroupBuilder) error {
 	rgb.Route("/victoria-metrics-configs").
-		Data(route.Named("查询 victoria-metrics 配置").Ignore()).POST(vmc.list)
+		Data(route.Named("查询 victoria-metrics 配置").Ignore()).GET(vmc.list)
 	rgb.Route("/victoria-metrics-config").
 		Data(route.Named("新增 victoria-metrics 配置")).POST(vmc.create).
 		Data(route.Named("更新 victoria-metrics 配置")).PUT(vmc.update).

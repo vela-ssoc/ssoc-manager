@@ -76,7 +76,7 @@ func (vmc *VictoriaMetricsConfig) Update(ctx context.Context, req *request.Victo
 	dat.Username = req.Username
 	dat.Password = req.Password
 	if !enabled {
-		_, err = dao.Updates(dat)
+		_, err = dao.Where(tbl.ID.Eq(id)).Updates(dat)
 		return err
 	}
 
@@ -88,8 +88,9 @@ func (vmc *VictoriaMetricsConfig) Update(ctx context.Context, req *request.Victo
 			UpdateColumnSimple(tblx.Enabled.Value(false)); err1 != nil {
 			return err1
 		}
+		_, err1 := daox.Where(tblx.ID.Eq(id)).Updates(dat)
 
-		return daox.Create(dat)
+		return err1
 	})
 }
 
