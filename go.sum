@@ -98,8 +98,12 @@ github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9 h1:LmHUawsLq
 github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9/go.mod h1:trjb2g9NEFQclQl8dg/AXvJuWx3KIibHoWHTCQ7dEFw=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260416082213-73998100d55e h1:YB7TxyZIZt2LwXpBfWmW1JwYZbjUzBzU3I43C1GfNTk=
 github.com/vela-ssoc/ssoc-common v0.0.0-20260416082213-73998100d55e/go.mod h1:aOJH+5LLm3TsyO7SaZZfkoTLegm3wYzdONi8s0ti+iU=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260422094355-44ef886fda40 h1:GtoUGT2AnRpf9ojyqGnNrYu5mC2PaMcVomHsnu/A5og=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260422094355-44ef886fda40/go.mod h1:Zg22/ZQC1i/Xnf3qf0T3DJIm02GBGFB2H+3lzUgmpNk=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260414011006-f29192d8b3f1 h1:kDq09UrmQFNYHq9BP8jSiuc0evKRnqSIvShM/6rwtOw=
 github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260414011006-f29192d8b3f1/go.mod h1:tiP9E3xK7KWWCXM15EZuv6caa4TD/g9jKSKzxfKEbDM=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260423052233-fd8fe0f382c7 h1:+sFLeQsbTwYgMkHxegtOZgj1NzGYv2jBpVEokDYjZOk=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260423052233-fd8fe0f382c7/go.mod h1:tiP9E3xK7KWWCXM15EZuv6caa4TD/g9jKSKzxfKEbDM=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xgfone/ship/v5 v5.3.2 h1:PFFNyCTT8psAfeizDexFX33SgFJpVikPuSMcjYxqGJA=
