@@ -8,7 +8,7 @@ require (
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260602084748-cee02e77f0e4
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260602110648-c2d829fe6cbc
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260603082054-f24a3d4e136c
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
 	golang.org/x/crypto v0.52.0
@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	github.com/xmx/opengauss v0.0.0-20260602105729-50647c2ab019 // indirect
+	github.com/xmx/opengauss v0.0.0-20260603081556-5de8a5edfb8d // indirect
 	github.com/xtaci/smux v1.5.57 // indirect
 	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9 // indirect
 	golang.org/x/mod v0.36.0 // indirect
