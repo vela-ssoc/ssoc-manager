@@ -2,39 +2,30 @@ package service
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/dong/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/memoize"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
 func NewAlertServer(qry *query.Query) *AlertServer {
-	als := &AlertServer{qry: qry}
-	als.mem = memoize.NewTTL2(als.slowLoad, time.Hour)
-
-	return als
+	return &AlertServer{qry: qry}
 }
 
 type AlertServer struct {
-	qry   *query.Query
-	mutex sync.Mutex
-	mem   memoize.TTLCache2[*dong.AlertConfig, error]
+	qry *query.Query
 }
 
 func (als *AlertServer) Find(ctx context.Context) (*model.AlertServer, error) {
-	return als.first(ctx)
+	return als.slowQuery(ctx)
 }
 
 func (als *AlertServer) Upsert(ctx context.Context, req *mrequest.AlertServerUpsert) error {
 	now := time.Now()
-	als.mutex.Lock()
-	defer als.mutex.Unlock()
 
-	old, _ := als.first(ctx)
+	old, _ := als.slowQuery(ctx)
 	data := &model.AlertServer{
 		Mode:      req.Mode,
 		Name:      req.Name,
@@ -49,38 +40,25 @@ func (als *AlertServer) Upsert(ctx context.Context, req *mrequest.AlertServerUps
 	}
 
 	tbl := als.qry.AlertServer
-	err := tbl.WithContext(ctx).Save(data)
-	if err == nil {
-		als.mem.Forget()
-	}
 
-	return err
+	return tbl.WithContext(ctx).Save(data)
 }
 
 func (als *AlertServer) Delete(ctx context.Context) error {
-	als.mutex.Lock()
-	defer als.mutex.Unlock()
-
 	tbl := als.qry.AlertServer
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.ID.Neq(0)). // 跳过全表删除检查。
 		Delete()
-	if err == nil {
-		als.mem.Forget()
-	}
 
 	return err
 }
 
 func (als *AlertServer) AlertConfigure(ctx context.Context) (*dong.AlertConfig, error) {
-	return als.mem.Load(ctx)
-}
-
-func (als *AlertServer) slowLoad(ctx context.Context) (*dong.AlertConfig, error) {
-	dat, err := als.first(ctx)
+	dat, err := als.slowQuery(ctx)
 	if err != nil {
 		return nil, err
 	}
+
 	cfg := &dong.AlertConfig{
 		SIEM:    dat.Mode == "siem",
 		URL:     dat.URL,
@@ -91,9 +69,9 @@ func (als *AlertServer) slowLoad(ctx context.Context) (*dong.AlertConfig, error)
 	return cfg, nil
 }
 
-func (als *AlertServer) first(ctx context.Context) (*model.AlertServer, error) {
+func (als *AlertServer) slowQuery(ctx context.Context) (*model.AlertServer, error) {
 	tbl := als.qry.AlertServer
 	return tbl.WithContext(ctx).
-		Order(tbl.CreatedAt.Desc()).
+		Order(tbl.UpdatedAt.Desc()).
 		First()
 }
