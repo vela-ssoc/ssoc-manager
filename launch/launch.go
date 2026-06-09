@@ -156,7 +156,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	siemServerSvc := service.NewSIEMServer(qry)
 
 	client := netutil.NewClient()
-	dongCli := dong.NewAlert(alertServerSvc)
+	dongCli := dong.NewAlert(alertServerSvc, log)
 
 	// 初始化协程池
 	pool := gopool.New(4096)
