@@ -3,15 +3,15 @@ module github.com/vela-ssoc/ssoc-manager
 go 1.26
 
 require (
-	github.com/google/pprof v0.0.0-20260507013755-92041b743c96
+	github.com/google/pprof v0.0.0-20260604005048-7023385849c0
 	github.com/gorilla/websocket v1.5.3
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260602084748-cee02e77f0e4
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260603082054-f24a3d4e136c
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260609062637-225b5888d917
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/xgfone/ship/v5 v5.3.2
-	golang.org/x/crypto v0.52.0
+	golang.org/x/crypto v0.53.0
 	gorm.io/datatypes v1.2.7
 	gorm.io/gen v0.3.28
 	gorm.io/gorm v1.31.1
@@ -37,12 +37,12 @@ require (
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/xmx/opengauss v0.0.0-20260603081556-5de8a5edfb8d // indirect
 	github.com/xtaci/smux v1.5.57 // indirect
-	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9 // indirect
-	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
+	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

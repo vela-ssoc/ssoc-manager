@@ -22,15 +22,20 @@ func (alt *Alert) Router(rgb *ship.RouteGroupBuilder) {
 }
 
 func (alt *Alert) dong(c *ship.Context) error {
-	alt.log.Info("发送咚咚告警")
 	req := new(mrequest.BlinkAlert)
 	if err := c.Bind(req); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
+
+	attrs := []any{"job_numbers", req.UserIDs, "group_ids", req.GroupIDs, "title", req.Title}
+	alt.log.Info("准备发送咚咚告警", attrs...)
 	err := alt.cli.Send(ctx, req.UserIDs, req.GroupIDs, req.Title, req.Detail)
 	if err != nil {
-		alt.log.Error("告警发送失败", slog.Any("error", err))
+		attrs = append(attrs, "err", err)
+		alt.log.Error("告警发送失败", attrs...)
+	} else {
+		alt.log.Info("告警发送成功", attrs...)
 	}
 
 	return err
