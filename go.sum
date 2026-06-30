@@ -98,10 +98,10 @@ github.com/vela-public/onekit v1.7.31 h1:kKYCmRMJ9bW6NX8s8SF94TGTSTjcSEMldhxy1Fu
 github.com/vela-public/onekit v1.7.31/go.mod h1:zw0WC0HIWhQ7Cf1/YLEUkHzcTzMgNkNVUgMg0JFTSsE=
 github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9 h1:LmHUawsLqn59BBKJxvB3qMFCxbM83SxT/Mttc2eB1GA=
 github.com/vela-ssoc/luatemplate v0.0.0-20250730015819-638c8e0aa8b9/go.mod h1:trjb2g9NEFQclQl8dg/AXvJuWx3KIibHoWHTCQ7dEFw=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260602084748-cee02e77f0e4 h1:Fpsg1NZS9507dYj1U8m0tKO1WcyuuC7aCN28rCYnWzw=
-github.com/vela-ssoc/ssoc-common v0.0.0-20260602084748-cee02e77f0e4/go.mod h1:bMn53X0THMvLEGk75BB6cM3UA4Xrw+w6Onk/2/QfEt0=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260626063254-e6df189b31e4 h1:1YCa7nXl9dPVKFWFbMs/ptM2blgPCqUglg5FJU8YOqI=
-github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260626063254-e6df189b31e4/go.mod h1:EV0YJVJTE00GKBmEzfaBfgSk7iZfEF4b4ndqn4WSXT0=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c h1:GSMgW4FBObW+4HsE1imoTmYPpARGLqevpKYa985TrpE=
+github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c/go.mod h1:MnEJwYwWAxn9jpYhC4rDNvqvnzrrRQPpkwMDgX8Mtlc=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260630031522-6c20937c4f24 h1:sfwLgJDGS4iXkkuqqQ+ldfwojaF/i3YvcRuLTe/sf+o=
+github.com/vela-ssoc/ssoc-common-mb v0.0.0-20260630031522-6c20937c4f24/go.mod h1:JeW1SpX+v2QHEa2cGX1cDO7QGn0F+McxHUEbxkUicpw=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277 h1:yoGmjdg62V+7ttvssABuXmXMyqwWdDTACQ8YZOXKRnQ=
 github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277/go.mod h1:DMN/az9fN2p0mJ1CNouJjsEJWs69Ucqbtq34DOCaTlc=
 github.com/xgfone/ship/v5 v5.3.2 h1:PFFNyCTT8psAfeizDexFX33SgFJpVikPuSMcjYxqGJA=
