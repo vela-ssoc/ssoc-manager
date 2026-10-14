@@ -147,8 +147,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 		}
 	}
 
-	base := "/api/v1"
-	anon := sh.Group(base).Use(recordMid)
+	baseV1 := "/api/v1"
+	anon := sh.Group(baseV1).Use(recordMid)
 	bearer := anon.Clone().Use(auth.Bearer)
 	basic := anon.Clone().Use(auth.Basic)
 
@@ -468,8 +468,16 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	zombieConnectSvc := exposesvc.NewZombieConnect(qry, log)
 	exposeapi.NewZombieConnect(zombieConnectSvc).BindRoute(bearer)
 
-	davREST := mgtapi.NewDavFS(base)
+	davREST := mgtapi.NewDavFS(baseV1)
 	davREST.Route(anon, bearer, basic)
+
+	{
+		baseV3 := "/api/v3"
+		v3group := sh.Group(baseV3).Use(recordMid /*, auth.Bearer*/)
+		if err = runV3(ctx, cfg, v3group, log); err != nil {
+			return err
+		}
+	}
 
 	pprofDir := "resources/pprof"
 	_ = os.RemoveAll(pprofDir)
