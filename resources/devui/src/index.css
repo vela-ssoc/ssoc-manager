@@ -235,28 +235,53 @@
 }
 
 .sso-letter:nth-child(1) {
-  --c0: #499c54;
-  --c1: #c75450;
-  --c2: #3592c4;
-  --c3: #f0a732;
+  --c0: #55a76a;
+  --c1: #e55765;
+  --c2: #4682fa;
+  --c3: #ffaf0f;
 }
 .sso-letter:nth-child(2) {
-  --c0: #f0a732;
-  --c1: #499c54;
-  --c2: #c75450;
-  --c3: #3592c4;
+  --c0: #ffaf0f;
+  --c1: #55a76a;
+  --c2: #e55765;
+  --c3: #4682fa;
 }
 .sso-letter:nth-child(3) {
-  --c0: #3592c4;
-  --c1: #f0a732;
-  --c2: #499c54;
-  --c3: #c75450;
+  --c0: #4682fa;
+  --c1: #ffaf0f;
+  --c2: #55a76a;
+  --c3: #e55765;
 }
 .sso-letter:nth-child(4) {
-  --c0: #c75450;
-  --c1: #3592c4;
-  --c2: #f0a732;
-  --c3: #499c54;
+  --c0: #e55765;
+  --c1: #4682fa;
+  --c2: #ffaf0f;
+  --c3: #55a76a;
+}
+
+.dark .sso-letter:nth-child(1) {
+  --c0: #57965c;
+  --c1: #db5c5c;
+  --c2: #548af7;
+  --c3: #f2c55c;
+}
+.dark .sso-letter:nth-child(2) {
+  --c0: #f2c55c;
+  --c1: #57965c;
+  --c2: #db5c5c;
+  --c3: #548af7;
+}
+.dark .sso-letter:nth-child(3) {
+  --c0: #548af7;
+  --c1: #f2c55c;
+  --c2: #57965c;
+  --c3: #db5c5c;
+}
+.dark .sso-letter:nth-child(4) {
+  --c0: #db5c5c;
+  --c1: #548af7;
+  --c2: #f2c55c;
+  --c3: #57965c;
 }
 
 @keyframes sso-color-cycle {

@@ -46,6 +46,7 @@ src/
   features/        # 按业务域组织
     zip-archive/   # 归档（列表圈 + 创建/编辑弹窗 + api + types）
     zip-file/      # 归档内部文件（文件树 + 预览 + 编辑 + api + types）
+    reverse-proxy/ # 反向代理（列表 + 创建/编辑/删除）
   pages/           # 路由页面
   providers/       # theme-provider
   lib/             # http / theme / format / utils 等基础设施
@@ -89,6 +90,12 @@ Base：`/api/v3`
 | POST   | `/zip-file/unzip`       | 上传 zip 摄入（multipart：`name`,`description`,`method`,`password`,`file`） | `zipFileApi.unzip`                  |
 | POST   | `/zip-file/mkdir`       | 创建目录（`name`,`full_name`）                                              | `zipFileApi.mkdir`                  |
 | DELETE | `/zip-file/content`     | 删除文件/目录（`name`,`full_name`）                                         | `zipFileApi.remove`                 |
+| GET    | `/reverse-proxies`      | 反向代理列表                                                                | `reverseProxyApi.list`              |
+| POST   | `/reverse-proxy`        | 新建反向代理                                                                | `reverseProxyApi.create`            |
+| PUT    | `/reverse-proxy`        | 更新反向代理                                                                | `reverseProxyApi.update`            |
+| DELETE | `/reverse-proxy`        | 删除反向代理（`location`）                                                  | `reverseProxyApi.remove`            |
+
+反向代理页面路由为 `/reverse-proxies`。create/update 使用 JSON body，字段为 `location`、`name`、`upstream`、`header`、`manager`、`broker`。Header 在表单中通过键值对编辑，提交为 JSON map。
 
 ### 关键字段
 

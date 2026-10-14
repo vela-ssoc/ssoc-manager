@@ -72,6 +72,7 @@ export function ContentPreview({
   const [dirty, setDirty] = useState(false)
   const [split, setSplit] = useState(true)
   const [csvEdit, setCsvEdit] = useState(false)
+  const originalContentRef = useRef("")
   const previewRef = useRef<HTMLDivElement | null>(null)
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
@@ -81,6 +82,7 @@ export function ContentPreview({
     let cancelled = false
     setLoading(true)
     setContent("")
+    originalContentRef.current = ""
     setImageUrl("")
     setDirty(false)
 
@@ -102,7 +104,10 @@ export function ContentPreview({
           setImageUrl(URL.createObjectURL(blob))
         } else if (isText) {
           blob.text().then((t) => {
-            if (!cancelled) setContent(t)
+            if (!cancelled) {
+              originalContentRef.current = t
+              setContent(t)
+            }
           })
         }
       })
@@ -131,6 +136,11 @@ export function ContentPreview({
     const ext = fileExtension(file.file_name)
     return EDITABLE_LANGUAGES[ext] ?? "plaintext"
   }, [file.file_name])
+
+  const handleEditorChange = (value: string) => {
+    setContent(value)
+    setDirty(value !== originalContentRef.current)
+  }
 
   if (isDir) {
     return (
@@ -241,6 +251,7 @@ export function ContentPreview({
               try {
                 await zipFileApi.update(archiveName, file.full_name, content, file.file_name)
                 toast.success("保存成功")
+                originalContentRef.current = content
                 setDirty(false)
                 onChanged?.()
               } catch (err) {
@@ -279,8 +290,7 @@ export function ContentPreview({
                 })
               }}
               onChange={(value) => {
-                setContent(value)
-                setDirty(true)
+                handleEditorChange(value)
               }}
             />
           </div>
@@ -299,8 +309,7 @@ export function ContentPreview({
             language={language}
             value={content}
             onChange={(value) => {
-              setContent(value)
-              setDirty(true)
+              handleEditorChange(value)
             }}
           />
         </div>

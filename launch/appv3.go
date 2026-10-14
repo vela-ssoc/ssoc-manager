@@ -32,8 +32,10 @@ func runV3(ctx context.Context, cfg *profile.ManagerConfig, v3 *ship.RouteGroupB
 			return db.CreateIndex(ctx)
 		}),
 
+		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(service.NewZipArchive),
 		gontainer.NewFactory(service.NewZipFile),
+		gontainer.NewFactory(webapi.NewReverseProxy),
 		gontainer.NewFactory(webapi.NewZipArchive),
 		gontainer.NewFactory(webapi.NewZipFile),
 

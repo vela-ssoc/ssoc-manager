@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
-import { Archive } from "lucide-react"
+import { Archive, Network, type LucideIcon } from "lucide-react"
 
 import { Logo, SSOCText } from "@/components/logo"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -8,14 +8,19 @@ import { cn } from "@/lib/utils"
 interface NavItem {
   title: string
   href: string
-  icon: typeof Archive
+  icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
   {
-    title: "归档文件",
+    title: "虚拟文件",
     href: "/zip-archives",
     icon: Archive,
+  },
+  {
+    title: "反向代理",
+    href: "/reverse-proxies",
+    icon: Network,
   },
 ]
 

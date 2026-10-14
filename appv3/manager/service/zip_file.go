@@ -186,12 +186,14 @@ func (zf *ZipFile) Update(ctx context.Context, name, fullName string, content io
 	}
 
 	// 归档文件信息版本号 +1
-	increment := bson.M{
-		"$inc": bson.M{"version": 1},
-		"$set": bson.M{"updated_at": now},
+	if notexists || file.Checksum.SHA512 != sum.SHA512 {
+		increment := bson.M{
+			"$inc": bson.M{"version": 1},
+			"$set": bson.M{"updated_at": now},
+		}
+		achc := zf.db.ZipArchive()
+		_, err = achc.UpdateByID(ctx, archive.ID, increment)
 	}
-	achc := zf.db.ZipArchive()
-	_, err = achc.UpdateByID(ctx, archive.ID, increment)
 
 	return err
 }
@@ -389,7 +391,7 @@ func (zf *ZipFile) saveZipFile(ctx context.Context, archiveID bson.ObjectID, fil
 
 func (zf *ZipFile) detectMIMEType(br *bufio.Reader, fileName string) string {
 	peek, err := br.Peek(512)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return "application/octet-stream"
 	}
 
