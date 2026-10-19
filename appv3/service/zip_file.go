@@ -18,8 +18,8 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/dbzipfs"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
-	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/request"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
+	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -31,22 +31,22 @@ import (
 )
 
 type ZipFile struct {
-	db  *repository.BaseDB
+	db  polydb.Sourcer
 	log *slog.Logger
 }
 
-func NewZipFile(db *repository.BaseDB, log *slog.Logger) *ZipFile {
+func NewZipFile(db polydb.Sourcer, log *slog.Logger) *ZipFile {
 	return &ZipFile{db: db, log: log}
 }
 
 // Unzip 摄入 zip 文件，并按照 zip 在数据库中创建对应的虚拟文件系统。
-func (zf *ZipFile) Unzip(ctx context.Context, param request.ZipArchiveCreate, zr *zip.Reader) error {
-	if err := zf.precheck(zr); err != nil { // 检测 zip 文件内部信息是否合法
+func (zf *ZipFile) Unzip(ctx context.Context, param request.ZipArchiveCreate, zr *zip.Reader, size int64) error {
+	if err := zf.precheck(zr, size); err != nil { // 检测 zip 文件内部信息是否合法
 		return err
 	}
 
 	// 检查文件是否存在
-	coll := zf.db.ZipArchive()
+	coll := zf.db.MDB().ZipArchive()
 	if _, err := coll.FindByName(ctx, param.Name); err == nil {
 		return os.ErrExist
 	} else if !errors.Is(err, mongo.ErrNoDocuments) {
@@ -79,7 +79,7 @@ func (zf *ZipFile) Unzip(ctx context.Context, param request.ZipArchiveCreate, zr
 
 // List 获取文件列表。
 func (zf *ZipFile) List(ctx context.Context, name string) (*model.ZipArchive, []*model.ZipFile, error) {
-	achc, coll := zf.db.ZipArchive(), zf.db.ZipFile()
+	achc, coll := zf.db.MDB().ZipArchive(), zf.db.MDB().ZipFile()
 	opts := options.FindOne().SetProjection(bson.M{"_id": 1})
 	archive, err := achc.FindByName(ctx, name, opts)
 	if err != nil {
@@ -93,7 +93,7 @@ func (zf *ZipFile) List(ctx context.Context, name string) (*model.ZipArchive, []
 
 // Mkdir 创建目录
 func (zf *ZipFile) Mkdir(ctx context.Context, name, fullName string) error {
-	coll := zf.db.ZipArchive()
+	coll := zf.db.MDB().ZipArchive()
 	ach, err := coll.FindByName(ctx, name)
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func (zf *ZipFile) Update(ctx context.Context, name, fullName string, content io
 		return os.ErrExist
 	}
 
-	coll := zf.db.ZipFile()
+	coll := zf.db.MDB().ZipFile()
 	bucket := coll.GridFSBucket()
 
 	// 如果文件不存在，说明首次创建，要先逐级创建父目录，然后上传文件内容。
@@ -191,7 +191,7 @@ func (zf *ZipFile) Update(ctx context.Context, name, fullName string, content io
 			"$inc": bson.M{"version": 1},
 			"$set": bson.M{"updated_at": now},
 		}
-		achc := zf.db.ZipArchive()
+		achc := zf.db.MDB().ZipArchive()
 		_, err = achc.UpdateByID(ctx, archive.ID, increment)
 	}
 
@@ -207,14 +207,15 @@ func (zf *ZipFile) Delete(ctx context.Context, name, fullName string) error {
 
 	// 文件类型删除文件和内容即可。
 	// 目录类型要删除当前目录和该目录下所有子目录和子目录下的文件。
-	zfs := dbzipfs.NewZip(ctx, zf.db, archive.ID)
+	mdb := zf.db.MDB()
+	zfs := dbzipfs.NewZip(ctx, mdb, archive.ID)
 	err = zf.deleteAll(ctx, zfs, fullName)
 
 	return err
 }
 
 func (zf *ZipFile) Get(ctx context.Context, name, fullName string) (*model.ZipArchive, *model.ZipFile, error) {
-	achc, coll := zf.db.ZipArchive(), zf.db.ZipFile()
+	achc, coll := zf.db.MDB().ZipArchive(), zf.db.MDB().ZipFile()
 	opts := options.FindOne().SetProjection(bson.M{"_id": 1})
 	archive, err := achc.FindByName(ctx, name, opts)
 	if err != nil {
@@ -234,14 +235,14 @@ func (zf *ZipFile) Open(ctx context.Context, name, fullName string) (*model.ZipA
 		return archive, file, nil, err
 	}
 
-	bucket := zf.db.ZipFile().GridFSBucket()
+	bucket := zf.db.MDB().ZipFile().GridFSBucket()
 	stm, err := bucket.OpenDownloadStream(ctx, file.GridID)
 
 	return archive, file, stm, err
 }
 
 func (zf *ZipFile) deleteAll(ctx context.Context, zfs *dbzipfs.Zip, root string) error {
-	coll := zf.db.ZipFile()
+	coll := zf.db.MDB().ZipFile()
 	bucket := coll.GridFSBucket()
 
 	return fs.WalkDir(zfs, root, func(path string, d fs.DirEntry, err error) error {
@@ -271,7 +272,7 @@ func (zf *ZipFile) deleteAll(ctx context.Context, zfs *dbzipfs.Zip, root string)
 
 func (zf *ZipFile) mkdirAll(ctx context.Context, archiveID bson.ObjectID, dir string, createdAt time.Time) error {
 	dir = path.Clean(dir)
-	coll := zf.db.ZipFile()
+	coll := zf.db.MDB().ZipFile()
 	for {
 		if dir == "" || dir == "." {
 			return nil
@@ -315,7 +316,7 @@ func (zf *ZipFile) saveContent(ctx context.Context, fileID bson.ObjectID, name s
 	h := model.NewHashWriter()
 	tr := io.TeeReader(r, h)
 
-	bucket := zf.db.ZipFile().GridFSBucket()
+	bucket := zf.db.MDB().ZipFile().GridFSBucket()
 	stm, err := bucket.OpenUploadStreamWithID(ctx, fileID, name)
 	if err != nil {
 		return 0, model.Checksum{}, nil
@@ -380,7 +381,7 @@ func (zf *ZipFile) saveZipFile(ctx context.Context, archiveID bson.ObjectID, fil
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	coll := zf.db.ZipFile()
+	coll := zf.db.MDB().ZipFile()
 	if _, err = coll.InsertOne(ctx, data); err != nil {
 		bucket := coll.GridFSBucket()
 		_ = bucket.Delete(ctx, fileID) // rollback content
@@ -408,7 +409,30 @@ func (zf *ZipFile) detectMIMEType(br *bufio.Reader, fileName string) string {
 	return str
 }
 
-func (zf *ZipFile) precheck(zr *zip.Reader) error {
+func (zf *ZipFile) precheck(zr *zip.Reader, size int64) error {
+	const maxsize = 100 * 1024 * 1024
+
+	files := zr.File
+	if len(files) > 1000 {
+		return errors.ErrUnsupported
+	}
+
+	var uncompressedSize64 uint64
+	for _, file := range files {
+		uncompressedSize64 += file.UncompressedSize64
+		if uncompressedSize64 > maxsize {
+			return errors.ErrUnsupported
+		}
+	}
+	if uncompressedSize64 == 0 {
+		return errors.ErrUnsupported
+	}
+
+	ratio := uncompressedSize64 / uint64(size)
+	if ratio > 100 { // 压缩率异常
+		return errors.ErrUnsupported
+	}
+
 	return nil
 }
 

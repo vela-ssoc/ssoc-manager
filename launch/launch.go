@@ -23,7 +23,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-common-mb/profile"
-	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
@@ -38,6 +37,7 @@ import (
 	brokersvc "github.com/vela-ssoc/ssoc-manager/application/broker/service"
 	exposeapi "github.com/vela-ssoc/ssoc-manager/application/expose/restapi"
 	exposesvc "github.com/vela-ssoc/ssoc-manager/application/expose/service"
+	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-manager/bridge/blink"
 	"github.com/vela-ssoc/ssoc-manager/bridge/linkhub"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
@@ -473,8 +473,14 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	{
 		baseV3 := "/api/v3"
-		v3group := sh.Group(baseV3).Use(recordMid /*, auth.Bearer*/)
-		if err = runV3(ctx, cfg, v3group, log); err != nil {
+		v3noauth := sh.Group(baseV3).Use(recordMid)
+		v3auth := v3noauth.Clone().Use(auth.Bearer)
+		routeV3 := shipx.RouteGroup{
+			Ship:        sh,
+			APIV3:       v3auth,
+			APIV3NoAuth: v3noauth,
+		}
+		if err = runV3(ctx, cfg, routeV3, huber, db, log); err != nil {
 			return err
 		}
 	}

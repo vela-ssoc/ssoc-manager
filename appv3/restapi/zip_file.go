@@ -1,4 +1,4 @@
-package webapi
+package restapi
 
 import (
 	"archive/zip"
@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/request"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/response"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/service"
+	"github.com/vela-ssoc/ssoc-manager/appv3/request"
+	"github.com/vela-ssoc/ssoc-manager/appv3/response"
+	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
 )
@@ -67,7 +67,7 @@ func (zf *ZipFile) unzip(c *ship.Context) error {
 		return err
 	}
 
-	return zf.svc.Unzip(ctx, param.ZipArchiveCreate, zr)
+	return zf.svc.Unzip(ctx, param.ZipArchiveCreate, zr, size)
 }
 
 func (zf *ZipFile) mkdir(c *ship.Context) error {

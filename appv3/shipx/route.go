@@ -10,8 +10,9 @@ type HTTPRegister interface {
 }
 
 type RouteGroup struct {
-	Ship  *ship.Ship
-	APIV3 *ship.RouteGroupBuilder
+	Ship        *ship.Ship
+	APIV3       *ship.RouteGroupBuilder
+	APIV3NoAuth *ship.RouteGroupBuilder
 }
 
 func (sr RouteGroup) RegisterHTTP(handlers gontainer.Multiple[HTTPRegister]) error {

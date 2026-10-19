@@ -1,11 +1,11 @@
-package webapi
+package restapi
 
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/request"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/response"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/service"
+	"github.com/vela-ssoc/ssoc-manager/appv3/request"
+	"github.com/vela-ssoc/ssoc-manager/appv3/response"
+	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
 )
@@ -24,6 +24,9 @@ func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
 	g.APIV3.Route("/reverse-proxy").POST(rp.create)   // 新增
 	g.APIV3.Route("/reverse-proxy").PUT(rp.update)    // 修改
 	g.APIV3.Route("/reverse-proxy").DELETE(rp.delete) // 删除
+
+	g.APIV3NoAuth.Route("/reverse/:location").Any(rp.handle)
+	g.APIV3NoAuth.Route("/reverse/:location/*path").Any(rp.handle)
 
 	return nil
 }
@@ -82,4 +85,17 @@ func (rp *ReverseProxy) delete(c *ship.Context) error {
 	ctx := c.Request().Context()
 
 	return rp.svc.Delete(ctx, param.Location)
+}
+
+func (rp *ReverseProxy) handle(c *ship.Context) error {
+	w, r := shipx.Strip(c, "path")
+	ctx := r.Context()
+	loc := c.Param("location")
+	r.Header.Del(ship.HeaderAuthorization)
+
+	if err := rp.svc.Handle(ctx, loc, w, r); err != nil {
+		return ship.ErrNotFound
+	}
+
+	return nil
 }

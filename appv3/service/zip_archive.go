@@ -7,30 +7,31 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/dbzipfs"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
-	"github.com/vela-ssoc/ssoc-manager/appv3/manager/request"
+	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type ZipArchive struct {
-	db  *repository.BaseDB
+	db  polydb.Sourcer
 	log *slog.Logger
 }
 
-func NewZipArchive(db *repository.BaseDB, log *slog.Logger) *ZipArchive {
+func NewZipArchive(db polydb.Sourcer, log *slog.Logger) *ZipArchive {
 	return &ZipArchive{db: db, log: log}
 }
 
 func (za *ZipArchive) Page(ctx context.Context, param request.PageSizeKeyword) (*repository.Pages[model.ZipArchive], error) {
 	filter := param.RegexTo(nil, "name", "description")
-	coll := za.db.ZipArchive()
+	coll := za.db.MDB().ZipArchive()
 	pn, sn := param.PSN()
 
 	return coll.Page(ctx, filter, pn, sn)
 }
 
 func (za *ZipArchive) Get(ctx context.Context, name string) (*model.ZipArchive, error) {
-	coll := za.db.ZipArchive()
+	coll := za.db.MDB().ZipArchive()
 	return coll.FindByName(ctx, name)
 }
 
@@ -39,7 +40,8 @@ func (za *ZipArchive) Open(ctx context.Context, name string) (*model.ZipArchive,
 	if err != nil {
 		return nil, nil, err
 	}
-	zfs := dbzipfs.NewZip(ctx, za.db, dat.ID)
+	mdb := za.db.MDB()
+	zfs := dbzipfs.NewZip(ctx, mdb, dat.ID)
 
 	return dat, zfs, nil
 }
@@ -57,7 +59,7 @@ func (za *ZipArchive) Create(ctx context.Context, param request.ZipArchiveCreate
 		UpdatedAt:   now,
 	}
 
-	coll := za.db.ZipArchive()
+	coll := za.db.MDB().ZipArchive()
 	_, err := coll.InsertOne(ctx, data)
 
 	return err
@@ -76,7 +78,7 @@ func (za *ZipArchive) Update(ctx context.Context, param request.ZipArchiveUpdate
 		},
 	}
 
-	coll := za.db.ZipArchive()
+	coll := za.db.MDB().ZipArchive()
 	_, err := coll.UpdateOne(ctx, bson.M{"name": param.Name}, update)
 
 	return err
