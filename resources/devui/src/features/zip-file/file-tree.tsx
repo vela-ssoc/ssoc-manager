@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Trash2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { TooltipHint } from "@/components/tooltip-hint"
 
 import { CollapseIcon, FileIcon } from "./file-icon"
 import type { TreeNode } from "./types"
@@ -141,17 +142,19 @@ function TreeNodeItem({
         />
         <span className="min-w-0 flex-1 truncate">{node.name}</span>
         {onDelete && (
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-destructive z-10 hidden size-5 shrink-0 items-center justify-center rounded group-hover:flex"
-            title="删除"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(node)
-            }}
-          >
-            <Trash2 className="size-3.5" />
-          </button>
+          <TooltipHint content="删除">
+            <button
+              type="button"
+              aria-label="删除"
+              className="text-muted-foreground hover:text-destructive z-10 hidden size-5 shrink-0 items-center justify-center rounded group-hover:flex"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(node)
+              }}
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </TooltipHint>
         )}
       </div>
 

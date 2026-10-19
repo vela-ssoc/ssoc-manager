@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TooltipHint } from "@/components/tooltip-hint"
 import {
   Select,
   SelectContent,
@@ -84,14 +85,16 @@ function PasswordInput({
         className="pr-9"
         onChange={(e) => onChange(e.target.value)}
       />
-      <button
-        type="button"
-        className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded"
-        title="随机生成密码"
-        onClick={() => onChange(randomPassword())}
-      >
-        <RefreshCw className="size-3.5" />
-      </button>
+      <TooltipHint content="随机生成密码">
+        <button
+          type="button"
+          aria-label="随机生成密码"
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded"
+          onClick={() => onChange(randomPassword())}
+        >
+          <RefreshCw className="size-3.5" />
+        </button>
+      </TooltipHint>
     </div>
   )
 }

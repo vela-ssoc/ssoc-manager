@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 import {
   Archive,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Edit3,
   Plus,
@@ -14,7 +12,9 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DataPagination } from "@/components/data-pagination"
 import { Input } from "@/components/ui/input"
+import { TooltipHint } from "@/components/tooltip-hint"
 import { zipArchiveApi } from "@/features/zip-archive/api"
 import { zipFileApi } from "@/features/zip-file/api"
 import type { ZipArchive, ZipArchiveForm } from "@/features/zip-archive/types"
@@ -27,7 +27,7 @@ import { formatDateTime } from "@/lib/format"
 
 export function ZipArchivePage() {
   const navigate = useNavigate()
-  const size = 10
+  const [size, setSize] = useState(12)
   const [records, setRecords] = useState<ZipArchive[]>([])
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
@@ -60,8 +60,6 @@ export function ZipArchivePage() {
   useEffect(() => {
     void load()
   }, [load])
-
-  const totalPages = Math.max(1, Math.ceil(total / size))
 
   const handleSubmit = async (form: ZipArchiveForm, id?: string) => {
     setSubmitting(true)
@@ -110,7 +108,7 @@ export function ZipArchivePage() {
           <Input
             value={keyword}
             placeholder="搜索"
-            className="pl-9"
+            className="h-7 pl-9"
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -120,7 +118,7 @@ export function ZipArchivePage() {
             }}
           />
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus /> 新建
         </Button>
       </div>
@@ -136,7 +134,7 @@ export function ZipArchivePage() {
             <span>暂无数据</span>
           </div>
         ) : (
-          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-2 overflow-auto sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-2 overflow-auto [scrollbar-gutter:stable] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {records.map((item) => (
               <div
                 key={item.id}
@@ -151,38 +149,44 @@ export function ZipArchivePage() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="truncate text-sm font-semibold">{item.name}</h3>
                   <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <a
-                      href={zipArchiveApi.downloadUrl(item.name)}
-                      title="下载"
-                      className="flex size-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Download className="size-3.5" />
-                    </a>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      title="编辑"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditing(item)
-                      }}
-                    >
-                      <Edit3 />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-destructive"
-                      title="删除"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toast.error("删除归档功能还在开发中...")
-                      }}
-                    >
-                      <Trash2 />
-                    </Button>
+                    <TooltipHint content="下载">
+                      <a
+                        href={zipArchiveApi.downloadUrl(item.name)}
+                        aria-label="下载"
+                        className="flex size-7 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Download className="size-3.5" />
+                      </a>
+                    </TooltipHint>
+                    <TooltipHint content="编辑">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        aria-label="编辑"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditing(item)
+                        }}
+                      >
+                        <Edit3 />
+                      </Button>
+                    </TooltipHint>
+                    <TooltipHint content="删除">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-destructive"
+                        aria-label="删除"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toast.error("删除归档功能还在开发中...")
+                        }}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </TooltipHint>
                   </div>
                 </div>
 
@@ -211,32 +215,17 @@ export function ZipArchivePage() {
         )}
       </div>
 
-      <div className="text-muted-foreground flex items-center justify-between text-sm">
-        <span>
-          共 {total} 条
-        </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <ChevronLeft />
-          </Button>
-          <span>
-            {page}/{totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-      </div>
+      <DataPagination
+        current={page}
+        size={size}
+        total={total}
+        loading={loading}
+        onPageChange={setPage}
+        onPageSizeChange={(nextSize) => {
+          setSize(nextSize)
+          setPage(1)
+        }}
+      />
 
       <CreateArchiveDialog
         open={createOpen}

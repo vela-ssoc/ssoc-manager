@@ -1,14 +1,24 @@
+import { clearAuthProfile } from "@/lib/auth-session"
+
 const API_BASE = "/api/v3"
+const LEGACY_API_BASE = "/api/v1"
 
 export class ApiError extends Error {
   status: number
   detail?: ProblemDetail
+  kind: "http" | "network" | "aborted"
 
-  constructor(status: number, message: string, detail?: ProblemDetail) {
+  constructor(
+    status: number,
+    message: string,
+    detail?: ProblemDetail,
+    kind: "http" | "network" | "aborted" = "http"
+  ) {
     super(message)
     this.name = "ApiError"
     this.status = status
     this.detail = detail
+    this.kind = kind
   }
 }
 
@@ -28,8 +38,40 @@ export function getToken(): string | null {
   }
 }
 
-function buildUrl(path: string, query?: Record<string, unknown>): string {
-  const url = path.startsWith("/") ? API_BASE + path : path
+export function setToken(token: string) {
+  try {
+    localStorage.setItem("token", token)
+  } catch {
+    // Ignore unavailable local storage.
+  }
+}
+
+export function clearToken() {
+  try {
+    localStorage.removeItem("token")
+  } catch {
+    // Ignore unavailable local storage.
+  }
+  clearAuthProfile()
+}
+
+function redirectToLogin() {
+  clearToken()
+  const base = import.meta.env.BASE_URL.endsWith("/")
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`
+  const loginPath = `${base}login`
+  if (window.location.pathname !== loginPath) {
+    window.location.replace(loginPath)
+  }
+}
+
+function buildUrl(
+  path: string,
+  query?: Record<string, unknown>,
+  apiBase = API_BASE
+): string {
+  const url = path.startsWith("/") ? apiBase + path : path
   if (!query) return url
 
   const params = new URLSearchParams()
@@ -42,6 +84,8 @@ function buildUrl(path: string, query?: Record<string, unknown>): string {
 }
 
 async function parseError(response: Response): Promise<ApiError> {
+  if (response.status === 401) redirectToLogin()
+
   let detail: ProblemDetail | undefined
   let message = `请求失败（${response.status}）`
   try {
@@ -56,14 +100,34 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, message, detail)
 }
 
+async function fetchResponse(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new ApiError(0, "请求已取消", undefined, "aborted")
+    }
+    throw new ApiError(
+      0,
+      "网络连接失败，请检查网络连接后重试",
+      undefined,
+      "network"
+    )
+  }
+}
+
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown
   query?: Record<string, unknown>
 }
 
-async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestOptions = {},
+  apiBase = API_BASE
+): Promise<T> {
   const { query, body, headers, ...rest } = init
-  const url = buildUrl(path, query)
+  const url = buildUrl(path, query, apiBase)
 
   const finalHeaders = new Headers(headers)
   const token = getToken()
@@ -76,7 +140,7 @@ async function request<T>(path: string, init: RequestOptions = {}): Promise<T> {
     finalHeaders.set("Content-Type", "application/json")
   }
 
-  const response = await fetch(url, {
+  const response = await fetchResponse(url, {
     ...rest,
     headers: finalHeaders,
     body:
@@ -116,6 +180,19 @@ export const http = {
     request<T>(path, { method: "DELETE", query }),
 }
 
+export const legacyHttp = {
+  get: <T>(path: string, query?: Record<string, unknown>) =>
+    request<T>(path, { method: "GET", query }, LEGACY_API_BASE),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "POST", body }, LEGACY_API_BASE),
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "PUT", body }, LEGACY_API_BASE),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "PATCH", body }, LEGACY_API_BASE),
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: "DELETE", body }, LEGACY_API_BASE),
+}
+
 // 下载文件：如果后端不支持在 URL 上携带 token，
 // 则回退为 fetch + blob（通过 Header 携带认证），保持调用方 API 一致。
 export async function download(
@@ -126,7 +203,7 @@ export async function download(
   const token = getToken()
   if (token) headers.set("Authorization", token)
 
-  const response = await fetch(buildUrl(path, query), { headers })
+  const response = await fetchResponse(buildUrl(path, query), { headers })
   if (!response.ok) throw await parseError(response)
 
   return response.blob()

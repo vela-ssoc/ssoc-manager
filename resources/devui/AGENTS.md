@@ -27,12 +27,11 @@
 
 ```bash
 npm run dev     # 开发（vite，端口见 vite.config.ts）
-npm run build   # tsc -b && vite build（必须通过）
+npm run build   # tsc -b && vite build（按需执行）
 npm run lint    # eslint（必须 0 error）
 ```
 
-改动后 **必须运行 `npm run build` 验证**，有需要时跑 `npm run lint`（允许 badge/button/file-icon 的 3 个既有 react-refresh
-warning，不允许新增 error/warning）。
+除非用户明确要求，不要在每次改动后运行 `npm run build`；如有必要，可单独运行 `npm run lint`（允许 badge/button/file-icon 的 3 个既有 react-refresh warning，不允许新增 error/warning）。
 
 ## 4. 目录结构
 
@@ -41,24 +40,33 @@ src/
   components/
     ui/            # shadcn 风格通用组件（button/input/select/dialog/card/table/...）
     layout/        # 整体布局（sidebar + 展示区）
+    data-pagination.tsx # 共享分页（每页条数、输入页码跳转）
     logo.tsx       # 四色 Logo 与 SSOC 彩色文字
     theme-toggle.tsx
   features/        # 按业务域组织
     zip-archive/   # 归档（列表圈 + 创建/编辑弹窗 + api + types）
     zip-file/      # 归档内部文件（文件树 + 预览 + 编辑 + api + types）
     reverse-proxy/ # 反向代理（列表 + 创建/编辑/删除）
+    broker/        # 中继节点（v3 API 列表 + 新增）
+    minion/        # 探针节点类型、旧版 API 封装和新建表单
   pages/           # 路由页面
+    settings.tsx   # 主题与强调色设置
   providers/       # theme-provider
-  lib/             # http / theme / format / utils 等基础设施
+  lib/             # http / theme / format / toast / utils 等基础设施
+    fonts.ts       # 可选字体注册表与持久化配置
   index.css        # 全局样式 + 主题变量（唯一配色来源）
 ```
 
 > 约定：新增业务功能放到 `features/<domain>/`，页面放 `pages/`，通用 UI 放 `components/ui/`。
+> 所有分页列表优先复用 `DataPagination`，统一支持每页条数选择和页码输入跳转。卡片列表的条数选项用 12 的倍数，便于铺满响应式网格。
 
 ## 5. 网络请求规范（重要）
 
 - API BASE 固定为 **`/api/v3`**（`src/lib/http.ts` 的 `API_BASE`）。
 - 认证 token 从 `localStorage` 的 `key = "token"` 读取。
+- `/login` 使用旧版 `/api/v1` 登录流程：`POST /auth/valid` 校验账号密码，未绑定 OTP 时调用 `POST /auth/totp` 并显示二维码，最后用 `POST /auth/submit` 完成登录。返回 session token 写入 `localStorage.token`，用户资料写入 `localStorage.auth-profile` 并显示在 Sidebar 用户区。业务路由由 `RequireAuth` 保护，统一请求收到 401 会清除 token/资料并跳转登录页。
+- 中继节点页 `/brokers` 使用 v3 接口：`GET /api/v3/brokers`（`{ records }`）、`GET /api/v3/broker?slug=...`（详情）、`POST /api/v3/broker`（新增）、`PUT /api/v3/broker`（更新）和 `GET /api/v3/config`（中心端配置，用于展示继承值）。新增弹窗只提供服务配置，完整配置在详情页 `/brokers/:slug` 编辑。`config` 的 `server`/`logger`/`database` 可分别为 `null`，表示继承中心端配置。
+- 探针节点页 `/minions` 使用旧版 `/api/v1/minions`（动态 status filter 通过 `filters` JSON query）和 `DELETE /minion` 逻辑删除。前端暂不提供新增探针功能。
 - 普通请求：token 自动写入 `Authorization` Header， **无 `Bearer` Scheme**（这一行为在 `http.ts` 中已处理好，业务代码用
   `http.get/post/put/delete` 即可，无需手动加）。
 - **GET 下载类接口**：token 通过 **query 参数 `authorization`** 传递，交给浏览器直接下载。
@@ -70,8 +78,8 @@ src/
 
 ### 后端错误约定
 
-后端错误遵循 RFC7807 `problem+json`，`http.ts` 统一解析为 `ApiError`（含 `status`/`detail`）。业务层捕获后用
-`toast.error(err.message)` 提示即可。
+后端错误遵循 RFC7807 `problem+json`，`http.ts` 统一解析为 `ApiError`（含 `status`/`detail`/`kind`）；网络连接失败与请求取消也分别归类为 `network` / `aborted`。业务层捕获后用
+`toast.error(err.message)` 提示即可。所有 toast 从 `@/lib/toast` 导入，统一由 `AppToaster` 渲染。
 
 ## 6. 后端接口对照（appv3）
 
@@ -132,13 +140,14 @@ Base：`/api/v3`
 
 - 主题：支持 dark/light，逻辑在 `src/lib/theme.ts` + `providers/theme-provider.tsx`。
     - 判断当前是否暗色：复用 `src/features/zip-file/file-icon.tsx` 的 `useIsDark()`（监听 `html.dark`）。
-- **主题色：东方财富橙**。
-    - 亮色 `--primary: hsl(24 90% 52%)`；暗色 `--primary: hsl(25 80% 48%)`。
+- **默认强调色：东方财富橙**；用户可在 `/settings` 设置页选择 Green/Teal/Blue/Indigo/Purple/Yellow/Orange/Red/Pink。
+    - 主题设置（系统/亮色/暗色）与强调色持久化在 localStorage 的 `theme` / `accent-color`。
+    - `primary`、`ring`、`sidebar-primary` 和 `destructive` 等强调色语义变量由 `src/lib/theme.ts` 按当前选择动态应用，避免在业务组件中硬编码主题色。
+- 字体选项由 `src/lib/fonts.ts` 的 `FONT_OPTIONS` 统一维护，只影响 Monaco Editor；当前含 Space Mono、IBM Plex Mono、JetBrains Mono、Maple Mono、Ubuntu Mono、Comic Mono 和系统等宽。Monaco 的 CJK 字体回退顺序为 NSimSun、Microsoft YaHei、PingFang SC、系统默认。新增字体资源放在 `public/fonts/`，在 `index.css` 注册 `@font-face`，并在字体注册表中新增选项。网页其它区域不随该设置改变字体。
     - 暗色下选中/悬停高亮用 **中性灰**（`--accent` 灰色），不用橙色（橙色高亮在暗色下突兀）。
     - 暗色背景纯黑 `hsl(0 0% 0%)`。
 - 圆角：`--radius: 0.375rem`，控件统一 `rounded-md`。
-- 字体： **全局等宽**（`body` 用 `ui-monospace/SFMono/Menlo/Consolas/Courier New`，中文回退
-  `PingFang SC / Microsoft YaHei`）。
+- 字体：网页全局采用系统默认等宽字体；中文按浏览器/操作系统默认回退，不应用 Monaco 专属中文字体顺序。
 - 滚动条：全局默认透明隐藏，悬停时淡入（`index.css` 中已有 `::-webkit-scrollbar` 规则）。
 - 时间格式：统一 `yyyy-MM-dd HH:mm:ss`， **一律用 `lib/format.ts` 的 `formatDateTime()`**，禁止手写 `toLocaleString`/自定义
   datePart。
@@ -148,11 +157,13 @@ Base：`/api/v3`
 ## 9. 交互约定
 
 - 右键菜单：`src/components/ui/context-menu.tsx`（`ContextMenu`/`ContextMenuItem`），选项 hover 高亮。
+- 所有悬浮提示统一使用 `src/components/tooltip-hint.tsx` 的 `TooltipHint` 或 `InfoTooltip`；禁止使用 HTML `title` 原生提示。
 - 删除确认：用自定义 `Dialog`， **禁止**原生 `alert/confirm/prompt`。
 - 新建归档弹窗：顶部 tab 切换「上传 ZIP」/「手动创建」；加密方式选了非「不加密」时 **必须填密码**（zod `superRefine`）。
 - 密码框：右侧内嵌「随机生成」按钮（`a-zA-Z0-9` 10 位）。
 - 归档列表卡片（`pages/zip-archive.tsx`）：hover 显示 下载/编辑/删除 三个操作；点击卡片进入详情页 `/zip-archives/:name`。
 - 详情页顶部：返回 + 名称 + 下载 + 编辑 + 右侧统计（文件数/目录数/总大小）。
+- Sidebar 用户信息区域可打开菜单；退出登录调用旧版 `DELETE /api/v1/logout`，无论接口结果如何都清理本地 token/profile 并返回登录页。
 
 ## 10. 代码风格
 

@@ -1,11 +1,11 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
-import { Toaster } from "sonner"
 
 import App from "@/App"
-import { ThemeProvider } from "@/providers/theme-provider"
+import { AppToaster } from "@/components/app-toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ThemeProvider } from "@/providers/theme-provider"
 
 import "./index.css"
 
@@ -15,7 +15,7 @@ createRoot(document.getElementById("root")!).render(
       <TooltipProvider>
         <BrowserRouter basename="/devui">
           <App />
-          <Toaster richColors position="top-center" />
+          <AppToaster />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

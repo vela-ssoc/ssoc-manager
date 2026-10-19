@@ -10,10 +10,13 @@ import {
   Save,
   Square,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { Button } from "@/components/ui/button"
+import { TooltipHint } from "@/components/tooltip-hint"
+import { getMonacoFontFamily } from "@/lib/fonts"
 import { useIsDark } from "@/features/zip-file/file-icon"
+import { useTheme } from "@/providers/theme-provider"
 
 import { zipFileApi } from "./api"
 import { CsvTable, MarkdownPreview } from "./renderers"
@@ -214,34 +217,40 @@ export function ContentPreview({
           {file.file_name} · {formatFileSize(file.file_size)}
         </div>
         <div className="flex items-center gap-1">
-          <a
-            href={zipFileApi.contentUrl(archiveName, file.full_name)}
-            title="下载"
-            className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
-          >
-            <Download className="size-3.5" />
-          </a>
-          {isMarkdown && (
-            <Button
-              variant={split ? "secondary" : "ghost"}
-              size="icon"
-              className="size-7"
-              title={split ? "取消分屏" : "分屏预览"}
-              onClick={() => setSplit((v) => !v)}
+          <TooltipHint content="下载">
+            <a
+              href={zipFileApi.contentUrl(archiveName, file.full_name)}
+              aria-label="下载"
+              className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
             >
-              <Columns2 />
-            </Button>
+              <Download className="size-3.5" />
+            </a>
+          </TooltipHint>
+          {isMarkdown && (
+            <TooltipHint content={split ? "取消分屏" : "分屏预览"}>
+              <Button
+                variant={split ? "secondary" : "ghost"}
+                size="icon"
+                className="size-7"
+                aria-label={split ? "取消分屏" : "分屏预览"}
+                onClick={() => setSplit((v) => !v)}
+              >
+                <Columns2 />
+              </Button>
+            </TooltipHint>
           )}
           {isCsv && (
-            <Button
-              variant={csvEdit ? "secondary" : "ghost"}
-              size="icon"
-              className="size-7"
-              title={csvEdit ? "表格模式" : "源码编辑"}
-              onClick={() => setCsvEdit((v) => !v)}
-            >
-              <Square />
-            </Button>
+            <TooltipHint content={csvEdit ? "表格模式" : "源码编辑"}>
+              <Button
+                variant={csvEdit ? "secondary" : "ghost"}
+                size="icon"
+                className="size-7"
+                aria-label={csvEdit ? "表格模式" : "源码编辑"}
+                onClick={() => setCsvEdit((v) => !v)}
+              >
+                <Square />
+              </Button>
+            </TooltipHint>
           )}
           <Button
             size="sm"
@@ -330,13 +339,15 @@ function PreviewHeader({
       <div className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
         {file.file_name} · {formatFileSize(file.file_size)}
       </div>
-      <a
-        href={zipFileApi.contentUrl(archiveName, file.full_name)}
-        title="下载"
-        className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
-      >
-        <Download className="size-3.5" />
-      </a>
+      <TooltipHint content="下载">
+        <a
+          href={zipFileApi.contentUrl(archiveName, file.full_name)}
+          aria-label="下载"
+          className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
+        >
+          <Download className="size-3.5" />
+        </a>
+      </TooltipHint>
     </div>
   )
 }
@@ -355,6 +366,7 @@ function CodeEditor({
   onMount?: (editor: editor.IStandaloneCodeEditor) => void
 }) {
   const dark = useIsDark()
+  const { font } = useTheme()
 
   return (
     <Editor
@@ -380,6 +392,7 @@ function CodeEditor({
       options={{
         minimap: { enabled: false },
         fontSize: 13,
+        fontFamily: getMonacoFontFamily(font),
         scrollBeyondLastLine: false,
         automaticLayout: true,
         wordWrap: "on",

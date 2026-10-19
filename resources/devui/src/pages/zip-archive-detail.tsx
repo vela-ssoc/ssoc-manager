@@ -17,7 +17,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/lib/toast"
 
 import { cn } from "@/lib/utils"
 
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TooltipHint } from "@/components/tooltip-hint"
 import {
   ContextMenu,
   ContextMenuItem,
@@ -266,22 +267,26 @@ export function ZipArchiveDetailPage() {
           <ArrowLeft />
         </Button>
         <h2 className="truncate text-sm font-semibold">{name}</h2>
-        <a
-          href={zipArchiveApi.downloadUrl(name)}
-          title="下载 ZIP"
-          className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
-        >
-          <Download className="size-4" />
-        </a>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          title="编辑"
-          onClick={() => setEditOpen(true)}
-        >
-          <Edit3 className="size-4" />
-        </Button>
+        <TooltipHint content="下载 ZIP">
+          <a
+            href={zipArchiveApi.downloadUrl(name)}
+            aria-label="下载 ZIP"
+            className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
+          >
+            <Download className="size-4" />
+          </a>
+        </TooltipHint>
+        <TooltipHint content="编辑">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            aria-label="编辑"
+            onClick={() => setEditOpen(true)}
+          >
+            <Edit3 className="size-4" />
+          </Button>
+        </TooltipHint>
 
         <div className="text-muted-foreground ml-auto flex items-center gap-3 text-xs">
           <span>文件 {stats.fileCount}</span>
@@ -638,4 +643,3 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   )
 }
-

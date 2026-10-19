@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { z } from "zod"
-import { Plus, Trash2 } from "lucide-react"
+import { ExternalLink, Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +14,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { InfoTooltip } from "@/components/info-tooltip"
+import { TooltipHint } from "@/components/tooltip-hint"
+import { cn } from "@/lib/utils"
+import { toast } from "@/lib/toast"
 
 import type { ReverseProxy, ReverseProxyForm } from "./types"
 
@@ -41,7 +44,11 @@ const COMMON_HEADERS = [
 ]
 
 const schema = z.object({
-  location: z.string().trim().min(1, "路径不能为空"),
+  location: z
+    .string()
+    .trim()
+    .min(1, "路径不能为空")
+    .regex(/^[^/]+$/, "路径不能包含 /"),
   name: z.string().trim().min(1, "名称不能为空").max(20, "名称不能超过 20 字"),
   upstream: z.string().trim().url("请输入有效的 HTTP/HTTPS 上游地址"),
 })
@@ -142,6 +149,21 @@ export function ReverseProxyDialog({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [headerRows, setHeaderRows] = useState<Array<{ key: string; value: string }>>([])
 
+  const savedLocation = initial?.location ?? ""
+  const savedManager = initial?.manager ?? false
+
+  const managerActive = savedManager && Boolean(savedLocation)
+  const managerUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/api/v3/reverse/${form.location}`
+  const brokerPrefix = `/api/v3/reverse/${form.location}`
+
+  const guardVisit = () => {
+    if (managerActive) {
+      window.open(managerUrl, "_blank", "noopener,noreferrer")
+    } else {
+      toast.error("该配置尚未提交生效，请先保存")
+    }
+  }
+
   useEffect(() => {
     if (!open) return
     setForm(
@@ -202,7 +224,7 @@ export function ReverseProxyDialog({
             <Input
               id="proxy-location"
               value={form.location}
-              placeholder="例如 /your-service-name"
+              placeholder="例如 your-service-name"
               disabled={Boolean(initial)}
               onChange={(e) => update({ location: e.target.value })}
             />
@@ -246,23 +268,76 @@ export function ReverseProxyDialog({
                 </p>
               </InfoTooltip>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center justify-between rounded-md border px-3 py-2">
-                <span className="text-sm">Manager 节点</span>
-                <SwitchControl
-                  label="启用 Manager 节点"
-                  checked={form.manager}
-                  onChange={(manager) => update({ manager })}
-                />
-              </div>
-              <div className="flex items-center justify-between rounded-md border px-3 py-2">
-                <span className="text-sm">Broker 节点</span>
-                <SwitchControl
-                  label="启用 Broker 节点"
-                  checked={form.broker}
-                  onChange={(broker) => update({ broker })}
-                />
-              </div>
+
+            <div className="overflow-hidden rounded-md border">
+              <table className="w-full table-fixed text-sm">
+                <thead>
+                  <tr className="bg-muted/40 text-muted-foreground border-b text-xs">
+                    <th className="w-20 px-3 py-2 text-left font-medium">服务</th>
+                    <th className="w-14 px-3 py-2 text-left font-medium">启用</th>
+                    <th className="px-3 py-2 text-left font-medium">访问地址</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b last:border-b-0">
+                    <td className="px-3 py-2">中心端</td>
+                    <td className="px-3 py-2">
+                      <SwitchControl
+                        label="启用 Manager 节点"
+                        checked={form.manager}
+                        onChange={(manager) => update({ manager })}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      {form.manager && form.location ? (
+                        <div className="flex items-center gap-1.5">
+                          <TooltipHint content={managerUrl}>
+                            <span className="text-muted-foreground min-w-0 flex-1 truncate text-xs">
+                              {managerUrl}
+                            </span>
+                          </TooltipHint>
+                          <button
+                            type="button"
+                            aria-label="访问"
+                            onClick={guardVisit}
+                            className={cn(
+                              "flex size-6 shrink-0 items-center justify-center rounded",
+                              managerActive
+                                ? "text-primary hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                                : "text-muted-foreground/50 cursor-not-allowed"
+                            )}
+                          >
+                            <ExternalLink className="size-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">不可访问</span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2">中继节点</td>
+                    <td className="px-3 py-2">
+                      <SwitchControl
+                        label="启用 Broker 节点"
+                        checked={form.broker}
+                        onChange={(broker) => update({ broker })}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      {form.broker && form.location ? (
+                        <TooltipHint content={`虚拟通道内访问，路径前缀 ${brokerPrefix}`}>
+                          <span className="text-muted-foreground block truncate text-xs">
+                            虚拟通道内访问，路径前缀 {brokerPrefix}
+                          </span>
+                        </TooltipHint>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">不可访问</span>
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -290,18 +365,20 @@ export function ReverseProxyDialog({
                       setHeaderRows(next)
                     }}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    title="移除 Header"
-                    onClick={() =>
-                      setHeaderRows((rows) => rows.filter((_, i) => i !== index))
-                    }
-                  >
-                    <Trash2 />
-                  </Button>
+                  <TooltipHint content="移除 Header">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-destructive"
+                      aria-label="移除 Header"
+                      onClick={() =>
+                        setHeaderRows((rows) => rows.filter((_, i) => i !== index))
+                      }
+                    >
+                      <Trash2 />
+                    </Button>
+                  </TooltipHint>
                 </div>
               ))}
               <Button

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
-import { Network, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { ExternalLink, Network, Pencil, Plus, Search, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatDateTime } from "@/lib/format"
+import { TooltipHint } from "@/components/tooltip-hint"
 import { reverseProxyApi } from "@/features/reverse-proxy/api"
 import { ReverseProxyDialog } from "@/features/reverse-proxy/proxy-dialog"
 import type { ReverseProxy, ReverseProxyForm } from "@/features/reverse-proxy/types"
@@ -105,11 +106,12 @@ export function ReverseProxiesPage() {
           <Input
             value={query}
             placeholder="搜索名称、路径或上游"
-            className="pl-9"
+            className="h-7 pl-9"
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <Button
+          size="sm"
           onClick={() => {
             setEditing(undefined)
             setDialogOpen(true)
@@ -137,7 +139,7 @@ export function ReverseProxiesPage() {
                 <TableHead>路径</TableHead>
                 <TableHead>上游</TableHead>
                 <TableHead>Header</TableHead>
-                <TableHead>启用节点</TableHead>
+                <TableHead className="w-[18ch]">启用节点</TableHead>
                 <TableHead>更新时间</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
@@ -148,46 +150,59 @@ export function ReverseProxiesPage() {
                 return (
                   <TableRow key={item.location}>
                     <TableCell className="w-[20ch] max-w-[20ch] font-medium">
-                      <span className="block truncate" title={item.name}>
-                        {item.name}
-                      </span>
+                      <TooltipHint content={item.name}>
+                        <span className="block truncate">{item.name}</span>
+                      </TooltipHint>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{item.location}</TableCell>
                     <TableCell className="w-[30ch] max-w-[30ch]">
-                      <span className="block truncate" title={item.upstream}>
-                        {item.upstream}
-                      </span>
+                      <TooltipHint content={item.upstream}>
+                        <span className="block truncate">{item.upstream}</span>
+                      </TooltipHint>
                     </TableCell>
                     <TableCell>
                       {headers.length ? (
-                        <div
-                          className="flex max-w-80 items-center gap-1 overflow-hidden whitespace-nowrap"
-                          title={headers.map(([key, value]) => `${key}: ${value}`).join("\n")}
-                        >
-                          {headers.slice(0, 3).map(([key, value]) => (
-                            <Badge
-                              key={key}
-                              variant="secondary"
-                              title={`${key}: ${value}`}
-                              className="max-w-28 shrink-0 truncate"
-                            >
-                              {key}
-                            </Badge>
-                          ))}
-                          {headers.length > 3 && (
-                            <Badge variant="outline" className="shrink-0">
-                              +{headers.length - 3}
-                            </Badge>
-                          )}
-                        </div>
+                        <TooltipHint content={headers.map(([key, value]) => `${key}: ${value}`).join("\n")}>
+                          <div className="flex max-w-80 items-center gap-1 overflow-hidden whitespace-nowrap">
+                            {headers.slice(0, 3).map(([key]) => (
+                              <Badge
+                                key={key}
+                                variant="secondary"
+                                className="max-w-28 shrink-0 truncate"
+                              >
+                                {key}
+                              </Badge>
+                            ))}
+                            {headers.length > 3 && (
+                              <Badge variant="outline" className="shrink-0">
+                                +{headers.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </TooltipHint>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        {item.manager && <Badge variant="outline">Manager</Badge>}
-                        {item.broker && <Badge variant="outline">Broker</Badge>}
+                        {item.manager && (
+                          <TooltipHint content="在新标签页打开">
+                            <Badge variant="outline" asChild>
+                              <a
+                                href={`${window.location.origin}/api/v3/reverse/${item.location}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="cursor-pointer hover:bg-accent"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                中心端
+                                <ExternalLink className="size-3" />
+                              </a>
+                            </Badge>
+                          </TooltipHint>
+                        )}
+                        {item.broker && <Badge variant="outline">中继节点</Badge>}
                         {!item.manager && !item.broker && (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -198,27 +213,31 @@ export function ReverseProxiesPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          title="编辑"
-                          onClick={() => {
-                            setEditing(item)
-                            setDialogOpen(true)
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 text-destructive"
-                          title="删除"
-                          onClick={() => setDeleteTarget(item)}
-                        >
-                          <Trash2 />
-                        </Button>
+                        <TooltipHint content="编辑">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            aria-label="编辑"
+                            onClick={() => {
+                              setEditing(item)
+                              setDialogOpen(true)
+                            }}
+                          >
+                            <Pencil />
+                          </Button>
+                        </TooltipHint>
+                        <TooltipHint content="删除">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-destructive"
+                            aria-label="删除"
+                            onClick={() => setDeleteTarget(item)}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </TooltipHint>
                       </div>
                     </TableCell>
                   </TableRow>
