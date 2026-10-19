@@ -53,11 +53,11 @@ type Risk struct {
 func (rest *Risk) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/risk/cond").Data(route.Ignore()).GET(rest.Cond)
 	bearer.Route("/risk/attack").Data(route.Ignore()).GET(rest.Attack)
-	anon.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
-	anon.Route("/risk/recent").Data(route.Ignore()).GET(rest.Recent)
-	anon.Route("/risks").Data(route.Ignore()).GET(rest.Page)
+	bearer.Route("/risk/group").Data(route.Ignore()).GET(rest.Group)
+	bearer.Route("/risk/recent").Data(route.Ignore()).GET(rest.Recent)
+	bearer.Route("/risks").Data(route.Ignore()).GET(rest.Page)
 	bearer.Route("/risk/csv").Data(route.Ignore()).GET(rest.CSV)
-	anon.Route("/risk/pie").Data(route.Ignore()).GET(rest.Pie)
+	bearer.Route("/risk/pie").Data(route.Ignore()).GET(rest.Pie)
 	bearer.Route("/risk").
 		Data(route.Named("批量删除风险事件")).DELETE(rest.Delete)
 	anon.Route("/risk").Data(route.Ignore()).GET(rest.HTML)
