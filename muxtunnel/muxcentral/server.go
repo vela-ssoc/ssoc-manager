@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
+	"github.com/vela-ssoc/ssoc-common-mb/profile"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -20,7 +21,6 @@ import (
 type Options struct {
 	Validate   func(any) error
 	Handler    http.Handler
-	Loader     func(ctx context.Context, id bson.ObjectID) (*muxproto.BrokerBootConfig, error)
 	Logger     *slog.Logger
 	PerTimeout time.Duration
 }
@@ -28,13 +28,15 @@ type Options struct {
 type server struct {
 	db   polydb.Sourcer
 	hub  muxproto.Huber
+	cfg  *profile.ManagerConfig
 	opts Options
 }
 
-func NewServer(db polydb.Sourcer, hub muxproto.Huber, opts Options) any {
+func NewServer(db polydb.Sourcer, hub muxproto.Huber, cfg *profile.ManagerConfig, opts Options) muxproto.MUXServer {
 	return &server{
 		db:   db,
 		hub:  hub,
+		cfg:  cfg,
 		opts: opts,
 	}
 }
@@ -64,7 +66,7 @@ func (s *server) responseError(conn net.Conn, err *muxproto.AuthError) error {
 	return muxconn.WriteAuth(conn, err)
 }
 
-func (s *server) responseConfig(conn net.Conn, cfg *muxproto.BrokerBootConfig) error {
+func (s *server) responseConfig(conn net.Conn, cfg any) error {
 	timeout := s.perTimeout()
 	resp := &muxproto.BrokerAuthResponse{Code: http.StatusAccepted, Config: cfg}
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
@@ -148,6 +150,7 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 		s.responseError(conn, ae)
 		return nil, nil, ae
 	}
+	sess.Model = brok
 	if brok.Status {
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（数据库校验）"}
 		s.log().Warn("预检节点在线状态", "request", auth, "err", ae)
@@ -156,8 +159,8 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 		return nil, nil, ae
 	}
 
-	bid := brok.ID
-	peer := s.hub.Put(bid, mux, nil)
+	slug := brok.Slug
+	peer := s.hub.Put(slug, mux, nil)
 	if peer == nil {
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（连接池检查）"}
 		s.log().Warn("预检节点在线状态", "request", auth, "err", ae)
@@ -165,21 +168,9 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 		return nil, nil, ae
 	}
 
-	cfg, err := s.loadBrokerConfig(bid)
-	if err != nil {
-		s.hub.Del(bid) // 从连接池中删除
-
-		ae := &muxproto.AuthError{Code: http.StatusBadRequest, Text: err.Error()}
-		s.log().Warn("加载启动配置出错", "request", auth, "err", ae)
-		s.responseError(conn, ae)
-		return nil, nil, ae
-	}
-	if cfg == nil {
-		s.log().Warn("加载启动配置为 NULL", "request", auth)
-	}
-
+	cfg := s.buildBrokerConfig(brok)
 	if err = s.responseConfig(conn, cfg); err != nil {
-		s.hub.Del(bid) // 从连接池中删除
+		s.hub.Del(slug) // 从连接池中删除
 
 		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
 		s.log().Warn("回写验证通过报文出错", "request", auth, "err", ae)
@@ -188,7 +179,7 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 	}
 
 	if err = s.updateBrokerOnline(peer, sess); err != nil {
-		s.hub.Del(bid) // 从连接池中删除
+		s.hub.Del(slug) // 从连接池中删除
 
 		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
 		s.log().Error("修改数据库上线状态出错", "request", auth, "err", ae)
@@ -200,12 +191,12 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 }
 
 func (s *server) disconnected(p muxproto.Peer, data *sessionData) {
-	id, disconnAt := p.ID(), time.Now()
+	slug, disconnAt := data.Model.Slug, time.Now()
 
 	mux := p.MUX()
 	tx, rx := mux.Traffic() // 中心端侧 RX/TX 互换
 	{
-		filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: true}}
+		filter := bson.D{{Key: "slug", Value: slug}, {Key: "status", Value: true}}
 		update := bson.M{"$set": bson.M{
 			"status":                     false,
 			"disconnected_at":            disconnAt,
@@ -225,17 +216,20 @@ func (s *server) disconnected(p muxproto.Peer, data *sessionData) {
 			s.log().Info("节点下线修改数据库完毕", "request", data)
 		}
 	}
-	s.hub.Del(id) // 从 HUB 中删除
+	s.hub.Del(slug) // 从 HUB 中删除
 
 	{
+		sec := int64(disconnAt.Sub(data.ConnectedAt).Seconds())
 		cumulative, _ := mux.NumStreams()
 		data.TunnelStat.Cumulative = cumulative
 		data.TunnelStat.ReceiveBytes = rx
 		data.TunnelStat.TransmitBytes = tx
 		his := &model.BrokerConnectHistory{
-			BrokerID:       id,
+			BrokerID:       data.Model.ID,
+			Slug:           slug,
 			ExecuteStat:    data.ExecuteStat,
 			TunnelStat:     data.TunnelStat,
+			Seconds:        sec,
 			DisconnectedAt: disconnAt,
 		}
 
@@ -267,7 +261,7 @@ func (s *server) findBrokerBySecret(secret string) (*model.Broker, error) {
 
 func (s *server) updateBrokerOnline(p muxproto.Peer, sess *sessionData) error {
 	auth := sess.Request
-	id, mux := p.ID(), p.MUX()
+	slug, mux := p.Slug(), p.MUX()
 	library, module := mux.Library()
 	tunstat := model.TunnelStat{
 		Library:     library,
@@ -290,7 +284,7 @@ func (s *server) updateBrokerOnline(p muxproto.Peer, sess *sessionData) error {
 	sess.TunnelStat = tunstat
 	sess.ExecuteStat = exestat
 
-	filter := bson.D{{Key: "_id", Value: id}, {Key: "status", Value: false}}
+	filter := bson.D{{Key: "slug", Value: slug}, {Key: "status", Value: false}}
 	update := bson.M{"$set": bson.M{
 		"status":       true,
 		"tunnel_stat":  tunstat,
@@ -339,14 +333,34 @@ func (s *server) validAuthRequest(req muxproto.BrokerAuthRequest) error {
 	return errors.Join(errs...)
 }
 
-func (s *server) loadBrokerConfig(id bson.ObjectID) (*muxproto.BrokerBootConfig, error) {
-	f := s.opts.Loader
-	if f == nil {
-		return nil, nil
+func (s *server) buildBrokerConfig(brok *model.Broker) model.BrokerConfig {
+	sc, cfg := s.cfg, brok.Config
+	cfg.Slug = brok.Slug
+	if cfg.Server == nil {
+		cfg.Server = &model.BrokerServerConfig{Addr: sc.Server.Addr}
+	}
+	if cfg.Database == nil {
+		cfg.Database = new(model.BrokerDatabaseConfig)
+	}
+	if cfg.Database.URI == "" {
+		cfg.Database.URI = sc.Database.URI
+	}
+	if cfg.Database.DSN == "" {
+		cfg.Database.DSN = sc.Database.DSN
+	}
+	if cfg.Logger == nil {
+		l := sc.Logger
+		cfg.Logger = &model.BrokerLoggerConfig{
+			Level:      l.Level,
+			Console:    l.Console,
+			Filename:   l.Filename,
+			MaxSize:    l.MaxSize,
+			MaxAge:     l.MaxAge,
+			MaxBackups: l.MaxBackups,
+			LocalTime:  l.LocalTime,
+			Compress:   l.Compress,
+		}
 	}
 
-	ctx, cancel := s.perContext()
-	defer cancel()
-
-	return f(ctx, id)
+	return cfg
 }

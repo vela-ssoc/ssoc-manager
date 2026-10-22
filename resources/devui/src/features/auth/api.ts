@@ -24,6 +24,10 @@ export const legacyAuthApi = {
     return legacyHttp.post<AuthSession>("/auth/submit", { uid, code })
   },
 
+  oauth(code: string) {
+    return legacyHttp.post<AuthSession>("/auth/oauth", { code })
+  },
+
   logout() {
     return legacyHttp.delete<unknown>("/logout")
   },

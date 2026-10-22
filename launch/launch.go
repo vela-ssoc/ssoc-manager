@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +23,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/sonatype"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
+	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-common-mb/profile"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
@@ -77,6 +80,30 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	}
 	log := slog.New(logHandler)
 	log.Info("日志组件初始化完毕")
+
+	// 系统拨号器
+	sysdial := net.Dialer{
+		Timeout: 30 * time.Second,
+		KeepAliveConfig: net.KeepAliveConfig{
+			Enable:   true,
+			Idle:     30 * time.Second,
+			Interval: 15 * time.Second,
+			Count:    3,
+		},
+	}
+	sysdial.SetMultipathTCP(true)
+	hubv3 := muxproto.NewBHub()
+	dialer := muxproto.NewDualDialer(hubv3, sysdial)
+	httpcli := &http.Client{
+		Transport: &http.Transport{
+			DialContext:         dialer.DialContext,
+			TLSHandshakeTimeout: 10 * time.Second,
+			MaxIdleConns:        20,
+			MaxIdleConnsPerHost: 2,
+			MaxConnsPerHost:     20,
+			IdleConnTimeout:     30 * time.Second,
+		},
+	}
 
 	dbCfg := cfg.Database
 	gormLog := sqldb.NewGormLog(logHandler, gormlogger.Config{LogLevel: gormlogger.Info})
@@ -480,7 +507,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 			APIV3:       v3auth,
 			APIV3NoAuth: v3noauth,
 		}
-		if err = runV3(ctx, cfg, routeV3, huber, db, log); err != nil {
+		if err = runV3(ctx, cfg, routeV3, huber, hubv3, httpcli, db, log); err != nil {
 			return err
 		}
 	}

@@ -80,7 +80,7 @@ export function ContentPreview({
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
   useEffect(() => {
-    if (isDir) return
+    if (isDir || edited) return
 
     let cancelled = false
     setLoading(true)
@@ -127,7 +127,7 @@ export function ContentPreview({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [archiveName, file.id, isDir])
+  }, [archiveName, file.id, isDir, edited])
 
   useEffect(() => {
     return () => {

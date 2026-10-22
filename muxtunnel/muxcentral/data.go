@@ -8,6 +8,7 @@ import (
 )
 
 type sessionData struct {
+	Model       *model.Broker
 	Request     muxproto.BrokerAuthRequest
 	TunnelStat  model.TunnelStat
 	ExecuteStat model.ExecuteStat

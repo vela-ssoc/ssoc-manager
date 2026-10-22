@@ -12,6 +12,9 @@ import { TooltipHint } from "@/components/tooltip-hint"
 import { toast } from "@/lib/toast"
 import { saveAuthSession } from "@/lib/auth-session"
 import { legacyAuthApi } from "@/features/auth/api"
+import { OAuthQrLogin } from "@/features/auth/oauth-login"
+
+type LoginMode = "password" | "qrcode"
 
 interface ReturnLocation {
   pathname?: string
@@ -22,6 +25,7 @@ interface ReturnLocation {
 type LoginStep = "credentials" | "totp"
 
 export function LoginPage() {
+  const [mode, setMode] = useState<LoginMode>("qrcode")
   const [step, setStep] = useState<LoginStep>("credentials")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -86,6 +90,18 @@ export function LoginPage() {
     }
   }
 
+  const submitOauth = async (code: string) => {
+    const session = await legacyAuthApi.oauth(code)
+    if (!session.token) throw new Error("登录响应中没有 Token")
+
+    saveAuthSession(session)
+    const from = (location.state as { from?: ReturnLocation } | null)?.from
+    const destination = from?.pathname && from.pathname !== "/login"
+      ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
+      : "/legacy"
+    navigate(destination, { replace: true })
+  }
+
   return (
     <main className="flex min-h-svh items-center justify-center bg-background p-4">
       <div className="bg-card w-full max-w-sm rounded-md border p-6 shadow-sm">
@@ -99,7 +115,34 @@ export function LoginPage() {
           </div>
         </div>
 
-        {step === "credentials" ? (
+        <div className="bg-muted mb-6 flex gap-0.5 rounded-md p-0.5">
+          <button
+            type="button"
+            className={`flex-1 rounded px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "qrcode"
+                ? "bg-card shadow-sm"
+                : "text-muted-foreground"
+            }`}
+            onClick={() => setMode("qrcode")}
+          >
+            咚咚扫码
+          </button>
+          <button
+            type="button"
+            className={`flex-1 rounded px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "password"
+                ? "bg-card shadow-sm"
+                : "text-muted-foreground"
+            }`}
+            onClick={() => setMode("password")}
+          >
+            账密登录
+          </button>
+        </div>
+
+        {mode === "qrcode" ? (
+          <OAuthQrLogin onCode={submitOauth} />
+        ) : step === "credentials" ? (
           <form className="grid gap-4" onSubmit={validateCredentials}>
             <div className="grid gap-2">
               <Label htmlFor="login-username">用户名</Label>

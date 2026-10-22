@@ -195,9 +195,14 @@ export function BrokerDialog({
               enabled={Boolean(serverConfig)}
               onToggle={(on) => setServerConfig(on ? { addr: "" } : null)}
               inherit={
-                managerConfig?.server?.addr
-                  ? `继承中心端配置：${managerConfig.server.addr}`
-                  : "继承中心端配置"
+                managerConfig?.server?.addr ? (
+                  <div className="space-y-0.5">
+                    <div>继承中心端配置</div>
+                    <div>监听地址 {managerConfig.server.addr}</div>
+                  </div>
+                ) : (
+                  "继承中心端配置"
+                )
               }
             >
               <div className="grid gap-1.5">

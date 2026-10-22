@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "@/lib/toast"
-import { Plus, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, Plus, Search } from "lucide-react"
 
 import { TooltipHint } from "@/components/tooltip-hint"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { brokerApi } from "@/features/broker/api"
 import { BrokerDialog } from "@/features/broker/broker-dialog"
 import type { Broker, BrokerForm, ManagerConfig } from "@/features/broker/types"
+import { formatBytes } from "@/features/broker/types"
 
 export function BrokersPage() {
   const navigate = useNavigate()
@@ -108,15 +109,20 @@ export function BrokersPage() {
                 className="flex cursor-pointer flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20"
               >
                 <div className="flex min-w-0 items-center gap-2">
+                  <TooltipHint content={broker.name || broker.slug}>
+                    <h2 className="min-w-0 truncate text-sm font-semibold">
+                      {broker.name || broker.slug}
+                    </h2>
+                  </TooltipHint>
                   <TooltipHint content={broker.status ? "在线" : "离线"}>
                     <span
                       role="status"
                       aria-label={broker.status ? "在线" : "离线"}
-                      className="inline-flex size-6 shrink-0 cursor-help items-center justify-center"
+                      className="inline-flex shrink-0 cursor-help items-center"
                     >
                       <span
                         className={cn(
-                          "size-2.5 rounded-full",
+                          "size-2 rounded-full",
                           broker.status
                             ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]"
                             : "bg-muted-foreground/50"
@@ -124,15 +130,47 @@ export function BrokersPage() {
                       />
                     </span>
                   </TooltipHint>
-                  <TooltipHint content={broker.name || broker.slug}>
-                    <h2 className="min-w-0 truncate text-sm font-semibold">
-                      {broker.name || broker.slug}
-                    </h2>
-                  </TooltipHint>
+                  <div className="ml-auto flex shrink-0 items-center gap-2 text-[11px]">
+                    <TrafficField
+                      direction="up"
+                      value={formatBytes(broker.tunnel_stat?.transmit_bytes ?? 0)}
+                    />
+                    <TrafficField
+                      direction="down"
+                      value={formatBytes(broker.tunnel_stat?.receive_bytes ?? 0)}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid gap-y-2">
-                  <BrokerField label="标识" value={broker.slug || "—"} mono />
+                <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+                  <BrokerField label="主机" value={broker.execute_stat?.hostname || "—"} />
+                  <BrokerField
+                    label="平台"
+                    value={
+                      [broker.execute_stat?.goos, broker.execute_stat?.goarch]
+                        .filter(Boolean)
+                        .join("/") || "—"
+                    }
+                  />
+                  <BrokerField label="版本" value={broker.execute_stat?.version || "—"} mono />
+                  <BrokerField label="网络" value={broker.tunnel_stat?.inet || "—"} />
+                  <BrokerField
+                    label="模块"
+                    value={broker.tunnel_stat?.module || "—"}
+                  />
+                  <BrokerField
+                    label="活跃子流数"
+                    value={String(broker.active_streams ?? 0)}
+                  />
+                  <BrokerField
+                    label="累计子流"
+                    value={String(broker.tunnel_stat?.cumulative ?? 0)}
+                  />
+                  <BrokerField
+                    label="远端地址"
+                    value={broker.tunnel_stat?.remote_addr || "—"}
+                    mono
+                  />
                   <BrokerField
                     label="最近心跳"
                     value={
@@ -140,8 +178,6 @@ export function BrokersPage() {
                     }
                   />
                 </div>
-
-                <ExposeTable exposes={broker.exposes} />
               </div>
             ))}
           </div>
@@ -178,40 +214,23 @@ function BrokerField({
   )
 }
 
-function ExposeTable({ exposes }: { exposes: Broker["exposes"] }) {
-  const items = exposes?.filter((item) => item.addr) ?? []
-  if (items.length === 0) {
-    return (
-      <div className="text-muted-foreground text-xs">暂无暴露地址</div>
-    )
-  }
-
+function TrafficField({
+  direction,
+  value,
+}: {
+  direction: "up" | "down"
+  value: string
+}) {
+  const Icon = direction === "up" ? ArrowUp : ArrowDown
   return (
-    <div className="overflow-hidden rounded-md border">
-      <table className="w-full table-fixed text-xs">
-        <thead>
-          <tr className="bg-muted/40 text-muted-foreground border-b">
-            <th className="w-1/3 px-2 py-1.5 text-left font-medium">名称</th>
-            <th className="px-2 py-1.5 text-left font-medium">地址</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={index} className="border-b last:border-b-0">
-              <td className="px-2 py-1.5">
-                <TooltipHint content={item.name || "—"}>
-                  <div className="truncate">{item.name || "—"}</div>
-                </TooltipHint>
-              </td>
-              <td className="px-2 py-1.5">
-                <TooltipHint content={item.addr}>
-                  <div className="truncate font-mono">{item.addr}</div>
-                </TooltipHint>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <span className="inline-flex items-center gap-1 font-mono">
+      <Icon
+        className={cn(
+          "size-3",
+          direction === "up" ? "text-green-500" : "text-orange-500"
+        )}
+      />
+      <span>{value}</span>
+    </span>
   )
 }

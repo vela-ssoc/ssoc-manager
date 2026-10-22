@@ -16,7 +16,7 @@ export function TooltipHint({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent className="max-w-80 whitespace-pre-wrap leading-relaxed">
+      <TooltipContent className="max-w-80 break-words whitespace-pre-wrap leading-relaxed">
         {content}
       </TooltipContent>
     </Tooltip>

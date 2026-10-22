@@ -80,3 +80,30 @@ func UnwrapError(err error) (statusCode int, title string, detail string) {
 
 	return
 }
+
+func HandleError1(c *ship.Context, e error) {
+	if w := c.Response(); !w.Wrote {
+		HandleResponseError(w, c.Request(), e)
+	}
+}
+
+func HandleResponseError(w http.ResponseWriter, r *http.Request, e error) {
+	details := &problem.Details{
+		Host:     "",
+		Type:     "",
+		Title:    "",
+		Status:   0,
+		Detail:   "",
+		Instance: "",
+		Method:   "",
+		Datetime: time.Time{},
+	}
+
+	w.Header().Set("Content-Type", "application/problem+json")
+	if r.Method == http.MethodHead {
+		w.WriteHeader(details.Status)
+	} else {
+		enc := json.NewEncoder(w)
+		_ = enc.Encode(details)
+	}
+}

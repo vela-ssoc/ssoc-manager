@@ -22,7 +22,7 @@ export function ConfigSection({
 }: {
   title: string
   enabled: boolean
-  inherit: string
+  inherit: React.ReactNode
   onToggle: (enabled: boolean) => void
   children: React.ReactNode
 }) {
@@ -48,7 +48,7 @@ export function ConfigSection({
       {enabled ? (
         children
       ) : (
-        <p className="text-muted-foreground text-xs">{inherit}</p>
+        <div className="text-muted-foreground text-xs">{inherit}</div>
       )}
     </div>
   )
@@ -70,7 +70,7 @@ export function ConfigEditor({
     onChange({ ...config, logger: on ? emptyLoggerConfig() : null })
 
   const toggleDatabase = (on: boolean) =>
-    onChange({ ...config, database: on ? { uri: "" } : null })
+    onChange({ ...config, database: on ? { uri: "", dsn: "" } : null })
 
   const updateLogger = (patch: Partial<LoggerConfig>) =>
     onChange({
@@ -85,9 +85,14 @@ export function ConfigEditor({
         enabled={Boolean(config.server)}
         onToggle={toggleServer}
         inherit={
-          managerConfig?.server?.addr
-            ? `继承中心端配置：${managerConfig.server.addr}`
-            : "继承中心端配置"
+          managerConfig?.server?.addr ? (
+            <div className="space-y-0.5">
+              <div>继承中心端配置</div>
+              <div>监听地址 {managerConfig.server.addr}</div>
+            </div>
+          ) : (
+            "继承中心端配置"
+          )
         }
       >
         <div className="grid gap-1.5">
@@ -108,19 +113,44 @@ export function ConfigEditor({
         enabled={Boolean(config.database)}
         onToggle={toggleDatabase}
         inherit={
-          managerConfig?.database?.uri
-            ? `继承中心端配置：${managerConfig.database.uri}`
-            : "继承中心端配置"
+          managerConfig?.database ? (
+            <div className="space-y-0.5">
+              <div>继承中心端配置</div>
+              {managerConfig.database.uri && (
+                <div>MongoDB 地址 {managerConfig.database.uri}</div>
+              )}
+              {managerConfig.database.dsn && (
+                <div>关系数据库地址 {managerConfig.database.dsn}</div>
+              )}
+            </div>
+          ) : (
+            "继承中心端配置"
+          )
         }
       >
         <div className="grid gap-1.5">
-          <Label htmlFor="broker-database-uri">连接地址</Label>
+          <Label htmlFor="broker-database-uri">MongoDB 地址</Label>
           <Input
             id="broker-database-uri"
             value={config.database?.uri ?? ""}
             placeholder="留空使用中心端默认"
             onChange={(event) =>
-              onChange({ ...config, database: { uri: event.target.value } })
+              onChange({
+                ...config,
+                database: { uri: event.target.value, dsn: config.database?.dsn ?? "" },
+              })
+            }
+          />
+          <Label htmlFor="broker-database-dsn">关系数据库地址</Label>
+          <Input
+            id="broker-database-dsn"
+            value={config.database?.dsn ?? ""}
+            placeholder="MySQL 或 openGauss，留空使用中心端默认"
+            onChange={(event) =>
+              onChange({
+                ...config,
+                database: { uri: config.database?.uri ?? "", dsn: event.target.value },
+              })
             }
           />
           <div className="border-destructive/30 bg-destructive/5 flex gap-2 rounded-md border p-2.5 text-xs">
@@ -141,9 +171,18 @@ export function ConfigEditor({
         enabled={Boolean(config.logger)}
         onToggle={toggleLogger}
         inherit={
-          managerConfig?.logger
-            ? `继承中心端配置：级别 ${managerConfig.logger.level || "INFO"}，控制台 ${managerConfig.logger.console ? "开" : "关"}`
-            : "继承中心端配置"
+          managerConfig?.logger ? (
+            <div className="space-y-0.5">
+              <div>继承中心端配置</div>
+              <div>级别 {managerConfig.logger.level || "INFO"}</div>
+              <div>控制台输出 {managerConfig.logger.console ? "开" : "关"}</div>
+              {managerConfig.logger.filename && (
+                <div>日志输出文件 {managerConfig.logger.filename}</div>
+              )}
+            </div>
+          ) : (
+            "继承中心端配置"
+          )
         }
       >
         <div className="grid gap-3">

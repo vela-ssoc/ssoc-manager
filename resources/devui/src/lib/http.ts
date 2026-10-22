@@ -167,6 +167,62 @@ async function request<T>(
   return (await response.text()) as unknown as T
 }
 
+export interface RawResponse {
+  status: number
+  body: string
+  contentType: string
+  headers: Record<string, string>
+  imageUrl?: string
+}
+
+export async function rawRequest(
+  path: string,
+  init: RequestOptions = {}
+): Promise<RawResponse> {
+  const { query, body, headers, ...rest } = init
+  const url = buildUrl(path, query)
+
+  const finalHeaders = new Headers(headers)
+  const token = getToken()
+  if (token) {
+    finalHeaders.set("Authorization", token)
+  }
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) {
+    finalHeaders.set("Content-Type", "application/json")
+  }
+
+  const response = await fetchResponse(url, {
+    ...rest,
+    headers: finalHeaders,
+    body:
+      body === undefined
+        ? undefined
+        : isForm
+          ? (body as FormData)
+          : JSON.stringify(body),
+  })
+
+  if (response.status === 401) redirectToLogin()
+
+  const contentType = response.headers.get("content-type") ?? ""
+  const respHeaders: Record<string, string> = {}
+  response.headers.forEach((value, key) => {
+    respHeaders[key] = value
+  })
+
+  let imageUrl: string | undefined
+  let text = ""
+  if (contentType.startsWith("image/")) {
+    const blob = await response.blob()
+    imageUrl = URL.createObjectURL(blob)
+  } else {
+    text = await response.text()
+  }
+
+  return { status: response.status, body: text, contentType, headers: respHeaders, imageUrl }
+}
+
 export const http = {
   get: <T>(path: string, query?: Record<string, unknown>) =>
     request<T>(path, { method: "GET", query }),
