@@ -140,135 +140,137 @@ export function LoginPage() {
           </button>
         </div>
 
-        {mode === "qrcode" ? (
-          <OAuthQrLogin onCode={submitOauth} />
-        ) : step === "credentials" ? (
-          <form className="grid gap-4" onSubmit={validateCredentials}>
-            <div className="grid gap-2">
-              <Label htmlFor="login-username">用户名</Label>
-              <Input
-                id="login-username"
-                autoComplete="username"
-                autoFocus
-                value={username}
-                placeholder="请输入用户名"
-                onChange={(event) => setUsername(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="login-password">密码</Label>
-              <div className="relative">
+        <div className="flex min-h-[176px] flex-col justify-center">
+          {mode === "qrcode" ? (
+            <OAuthQrLogin onCode={submitOauth} />
+          ) : step === "credentials" ? (
+            <form className="grid gap-4" onSubmit={validateCredentials}>
+              <div className="grid gap-2">
+                <Label htmlFor="login-username">用户名</Label>
                 <Input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  placeholder="请输入密码"
-                  className="pr-10"
-                  onChange={(event) => setPassword(event.target.value)}
+                  id="login-username"
+                  autoComplete="username"
+                  autoFocus
+                  value={username}
+                  placeholder="请输入用户名"
+                  onChange={(event) => setUsername(event.target.value)}
                 />
-                <TooltipHint content={showPassword ? "隐藏密码" : "显示密码"}>
-                  <button
-                    type="button"
-                    aria-label={showPassword ? "隐藏密码" : "显示密码"}
-                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                  >
-                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </TooltipHint>
               </div>
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !username.trim() || !password}
-            >
-              {loading && <LoaderCircle className="animate-spin" />}
-              登录
-            </Button>
-          </form>
-        ) : (
-          <form className="grid gap-4" onSubmit={submitCode}>
-            {needsBinding && totpUrl && (
-              <div className="grid w-full min-w-0 justify-items-center gap-3 overflow-hidden rounded-md bg-muted/30 p-3">
-                <QRCodeSVG
-                  value={totpUrl}
-                  size={160}
-                  level="H"
-                  includeMargin
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                  className="block h-auto max-w-full"
-                />
-                <p className="text-muted-foreground text-center text-xs">
-                    请使用身份验证器扫描二维码，输入 6 位验证码验证通过后自动完成绑定。
-                </p>
-                {totpSecret && (
-                  <div className="w-full min-w-0 rounded-md border bg-card p-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-xs">密钥</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0"
-                        aria-label="复制密钥"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(totpSecret)
-                            toast.success("密钥已复制")
-                          } catch {
-                            toast.error("复制失败，请手动复制密钥")
-                          }
-                        }}
-                      >
-                        <Copy className="size-3.5" />
-                      </Button>
-                    </div>
-                    <code className="mt-1 block w-full truncate text-xs leading-relaxed">
-                      {totpSecret}
-                    </code>
-                  </div>
-                )}
+              <div className="grid gap-2">
+                <Label htmlFor="login-password">密码</Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    placeholder="请输入密码"
+                    className="pr-10"
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                  <TooltipHint content={showPassword ? "隐藏密码" : "显示密码"}>
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "隐藏密码" : "显示密码"}
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                    >
+                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                  </TooltipHint>
+                </div>
               </div>
-            )}
-            {!needsBinding && (
-              <p className="text-muted-foreground text-sm">
-                请输入身份验证器生成的 6 位验证码
-              </p>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="login-totp">验证码</Label>
-              <InputOTP
-                id="login-totp"
-                aria-label="6 位验证码"
-                value={code}
-                onChange={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
-              />
-            </div>
-            <div className="grid grid-cols-[auto_1fr] gap-2">
               <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                onClick={() => {
-                  setStep("credentials")
-                  setUid("")
-                  setTotpUrl("")
-                  setTotpSecret("")
-                  setCode("")
-                }}
+                type="submit"
+                className="w-full"
+                disabled={loading || !username.trim() || !password}
               >
-                <ArrowLeft /> 返回
-              </Button>
-              <Button type="submit" disabled={loading || code.length !== 6}>
                 {loading && <LoaderCircle className="animate-spin" />}
-                {needsBinding ? "绑定并登录" : "登录"}
+              登录
               </Button>
-            </div>
-          </form>
-        )}
+            </form>
+          ) : (
+            <form className="grid gap-4" onSubmit={submitCode}>
+              {needsBinding && totpUrl && (
+                <div className="grid w-full min-w-0 justify-items-center gap-3 overflow-hidden rounded-md bg-muted/30 p-3">
+                  <QRCodeSVG
+                    value={totpUrl}
+                    size={160}
+                    level="H"
+                    includeMargin
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    className="block h-auto max-w-full"
+                  />
+                  <p className="text-muted-foreground text-center text-xs">
+                    请使用身份验证器扫描二维码，输入 6 位验证码验证通过后自动完成绑定。
+                  </p>
+                  {totpSecret && (
+                    <div className="w-full min-w-0 rounded-md border bg-card p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-xs">密钥</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 shrink-0"
+                          aria-label="复制密钥"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(totpSecret)
+                              toast.success("密钥已复制")
+                            } catch {
+                              toast.error("复制失败，请手动复制密钥")
+                            }
+                          }}
+                        >
+                          <Copy className="size-3.5" />
+                        </Button>
+                      </div>
+                      <code className="mt-1 block w-full truncate text-xs leading-relaxed">
+                        {totpSecret}
+                      </code>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!needsBinding && (
+                <p className="text-muted-foreground text-sm">
+                请输入身份验证器生成的 6 位验证码
+                </p>
+              )}
+              <div className="grid gap-2">
+                <Label htmlFor="login-totp">验证码</Label>
+                <InputOTP
+                  id="login-totp"
+                  aria-label="6 位验证码"
+                  value={code}
+                  onChange={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
+                />
+              </div>
+              <div className="grid grid-cols-[auto_1fr] gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => {
+                    setStep("credentials")
+                    setUid("")
+                    setTotpUrl("")
+                    setTotpSecret("")
+                    setCode("")
+                  }}
+                >
+                  <ArrowLeft /> 返回
+                </Button>
+                <Button type="submit" disabled={loading || code.length !== 6}>
+                  {loading && <LoaderCircle className="animate-spin" />}
+                  {needsBinding ? "绑定并登录" : "登录"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </main>
   )

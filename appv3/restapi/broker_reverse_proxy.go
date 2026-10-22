@@ -27,8 +27,13 @@ func NewBrokerReverseProxy(rt http.RoundTripper) *BrokerReverseProxy {
 }
 
 func (brp *BrokerReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3.Route("/br/:slug").Any(brp.handle)
-	g.APIV3.Route("/br/:slug/*path").Any(brp.handle)
+	methods := []string{
+		http.MethodOptions, http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete,
+		"QUERY", "LOCK", "UNLOCK", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE",
+	}
+
+	g.APIV3.Route("/br/:slug").Method(brp.handle, methods...)
+	g.APIV3.Route("/br/:slug/*path").Method(brp.handle, methods...)
 
 	return nil
 }
