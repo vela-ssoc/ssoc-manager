@@ -7,6 +7,7 @@ import type {
   BrokerForm,
   BrokerRecords,
   BrokerRoutes,
+  BrokerSubstreams,
   ManagerConfig,
 } from "./types"
 
@@ -49,6 +50,18 @@ export const brokerApi = {
       page,
       size,
     })
+  },
+
+  substreams(slug: string) {
+    return http.get<BrokerSubstreams>("/broker/substreams", { slug })
+  },
+
+  closeStream(slug: string) {
+    return http.delete<unknown>("/broker/stream", { slug })
+  },
+
+  killSubstream(slug: string, id: string) {
+    return http.delete<unknown>("/broker/substream", { slug, id })
   },
 
   create(data: BrokerForm) {

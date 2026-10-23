@@ -11,6 +11,9 @@ import { BrokersPage } from "@/pages/brokers"
 import { BrokerDetailPage } from "@/pages/broker-detail"
 import { MinionsPage } from "@/pages/minions"
 import { LegacyPage } from "@/pages/legacy"
+import { HoneDashboardPage } from "@/pages/hone-dashboard"
+import { RiskDashboardPage } from "@/pages/risk-dashboard"
+import { Oas3Page } from "@/pages/oas3"
 
 function RequireAuth() {
   const location = useLocation()
@@ -34,6 +37,9 @@ export default function App() {
           <Route path="/brokers/:slug" element={<BrokerDetailPage />} />
           <Route path="/minions" element={<MinionsPage />} />
           <Route path="/legacy" element={<LegacyPage />} />
+          <Route path="/hone" element={<HoneDashboardPage />} />
+          <Route path="/ssoc" element={<RiskDashboardPage />} />
+          <Route path="/oas3" element={<Oas3Page />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

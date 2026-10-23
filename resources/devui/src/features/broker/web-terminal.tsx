@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { Terminal } from "@xterm/xterm"
+import { Terminal, type ITheme } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes"
 import { toast } from "@/lib/toast"
@@ -7,9 +7,32 @@ import { toast } from "@/lib/toast"
 import "@xterm/xterm/css/xterm.css"
 
 import { getToken } from "@/lib/http"
+import { useIsDark } from "@/features/zip-file/file-icon"
+
+const DARK_THEME: ITheme = {
+  background: "#000000",
+  foreground: "#e0e0e0",
+  cursor: "#e0e0e0",
+  selectionBackground: "#3a3a3a",
+}
+
+const LIGHT_THEME: ITheme = {
+  background: "#f9f7f5",
+  foreground: "#1f1f1f",
+  cursor: "#1f1f1f",
+  selectionBackground: "#c8d6e5",
+}
 
 export function WebTerminal({ slug }: { slug: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const termRef = useRef<Terminal | null>(null)
+  const dark = useIsDark()
+
+  useEffect(() => {
+    if (termRef.current) {
+      termRef.current.options.theme = dark ? DARK_THEME : LIGHT_THEME
+    }
+  }, [dark])
 
   useEffect(() => {
     const container = containerRef.current
@@ -21,12 +44,11 @@ export function WebTerminal({ slug }: { slug: string }) {
       fontFamily:
         'SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
       fontSize: 13,
-      theme: {
-        background: "#000000",
-        foreground: "#e0e0e0",
-        cursor: "#e0e0e0",
-      },
+      theme: document.documentElement.classList.contains("dark")
+        ? DARK_THEME
+        : LIGHT_THEME,
     })
+    termRef.current = term
     const fit = new FitAddon()
     const graphemes = new UnicodeGraphemesAddon()
     term.loadAddon(fit)
@@ -127,11 +149,12 @@ export function WebTerminal({ slug }: { slug: string }) {
         ws.close()
       }
       term.dispose()
+      termRef.current = null
     }
   }, [slug])
 
   return (
-    <div className="h-full w-full overflow-hidden rounded-md border bg-black p-2">
+    <div className="h-full w-full overflow-hidden rounded-md border bg-background p-2">
       <div ref={containerRef} className="h-full w-full" />
     </div>
   )

@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, Plus, Search } from "lucide-react"
 import { TooltipHint } from "@/components/tooltip-hint"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { brokerApi } from "@/features/broker/api"
 import { BrokerDialog } from "@/features/broker/broker-dialog"
@@ -21,6 +21,12 @@ export function BrokersPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -143,7 +149,7 @@ export function BrokersPage() {
                 </div>
 
                 <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
-                  <BrokerField label="主机" value={broker.execute_stat?.hostname || "—"} />
+                  <BrokerField label="主机名" value={broker.execute_stat?.hostname || "—"} />
                   <BrokerField
                     label="平台"
                     value={
@@ -152,14 +158,10 @@ export function BrokersPage() {
                         .join("/") || "—"
                     }
                   />
-                  <BrokerField label="版本" value={broker.execute_stat?.version || "—"} mono />
-                  <BrokerField label="网络" value={broker.tunnel_stat?.inet || "—"} />
+                  <BrokerField label="版本号" value={broker.execute_stat?.version || "—"} mono />
+                  <BrokerField label="隧道类型" value={broker.tunnel_stat?.library || "—"} />
                   <BrokerField
-                    label="模块"
-                    value={broker.tunnel_stat?.module || "—"}
-                  />
-                  <BrokerField
-                    label="活跃子流数"
+                    label="活跃子流"
                     value={String(broker.active_streams ?? 0)}
                   />
                   <BrokerField
@@ -167,10 +169,24 @@ export function BrokersPage() {
                     value={String(broker.tunnel_stat?.cumulative ?? 0)}
                   />
                   <BrokerField
-                    label="远端地址"
+                    label="本地地址"
+                    value={broker.tunnel_stat?.local_addr || "—"}
+                    mono
+                  />
+                  <BrokerField
+                    label="中心端地址"
                     value={broker.tunnel_stat?.remote_addr || "—"}
                     mono
                   />
+                  <BrokerField
+                    label="连接时间"
+                    value={
+                      broker.tunnel_stat?.connected_at
+                        ? formatDateTime(broker.tunnel_stat.connected_at)
+                        : "—"
+                    }
+                  />
+                  <BrokerField label="持续时长" value={duration(broker.tunnel_stat?.connected_at, now)} />
                   <BrokerField
                     label="最近心跳"
                     value={
@@ -193,6 +209,13 @@ export function BrokersPage() {
       />
     </div>
   )
+}
+
+function duration(connectedAt: string | undefined, now: number): string {
+  if (!connectedAt) return "—"
+  const started = new Date(connectedAt).getTime()
+  if (Number.isNaN(started)) return "—"
+  return formatDuration((now - started) / 1000)
 }
 
 function BrokerField({

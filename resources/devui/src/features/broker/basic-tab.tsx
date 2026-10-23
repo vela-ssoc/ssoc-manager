@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { Plus, Power, Trash2, TriangleAlert } from "lucide-react"
+import { Info, Plus, Power, RefreshCw, Trash2, TriangleAlert } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 import { TooltipHint } from "@/components/tooltip-hint"
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { formatDateTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { brokerApi } from "@/features/broker/api"
+import { useConfirmCountdown } from "@/features/broker/use-confirm-countdown"
 import { formatBytes } from "@/features/broker/types"
 import type { Broker, ExposeAddress } from "@/features/broker/types"
 
@@ -94,12 +95,9 @@ export function BasicTab({
         )}
         <div className="flex items-center justify-between">
           <StatusDot online={broker.status} />
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs">
-              最近心跳 {broker.heartbeat_at ? formatDateTime(broker.heartbeat_at) : "—"}
-            </span>
-            <RestartButton slug={slug} online={broker.status} />
-          </div>
+          <span className="text-muted-foreground text-xs">
+            最近心跳 {broker.heartbeat_at ? formatDateTime(broker.heartbeat_at) : "—"}
+          </span>
         </div>
       </section>
 
@@ -131,6 +129,14 @@ export function BasicTab({
         onChange={onChangeExposes}
         onUpdate={onUpdateExpose}
       />
+
+      <section className="grid gap-3">
+        <h3 className="text-sm font-semibold">运维操作</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <ReconnectButton slug={slug} online={broker.status} />
+          <RestartButton slug={slug} online={broker.status} />
+        </div>
+      </section>
     </div>
   )
 }
@@ -232,12 +238,67 @@ const EXIT_PRESETS = [
   { label: "1 小时后", seconds: 3600 },
 ]
 
+
+
+function ReconnectButton({ slug, online }: { slug: string; online: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const remaining = useConfirmCountdown(open)
+
+  const exec = async () => {
+    setLoading(true)
+    try {
+      await brokerApi.closeStream(slug)
+      toast.success("已断开主连接，中继节点将自动重连")
+      setOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "重连失败")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!online}
+        onClick={() => setOpen(true)}
+      >
+        <RefreshCw /> 重连
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>重连</DialogTitle>
+          </DialogHeader>
+          <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-center gap-2 rounded-md border p-2.5 text-xs">
+            <TriangleAlert className="size-4 shrink-0" />
+            重连操作会断开中继节点与中心端的网络连接，可能导致正在进行中的业务异常，请谨慎操作。
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" disabled={loading} onClick={() => setOpen(false)}>
+              取消
+            </Button>
+            <Button disabled={loading || remaining > 0} onClick={() => void exec()}>
+              {loading ? "处理中…" : remaining > 0 ? `确定 (${remaining})` : "确定"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 function RestartButton({ slug, online }: { slug: string; online: boolean }) {
   const [open, setOpen] = useState(false)
   const [deadline, setDeadline] = useState("")
   const [seconds, setSeconds] = useState(10)
   const [loading, setLoading] = useState(false)
   const [countdown, setCountdown] = useState("")
+  const remaining = useConfirmCountdown(open)
 
   const loadDeadline = useCallback(async () => {
     if (!online) {
@@ -337,6 +398,12 @@ function RestartButton({ slug, online }: { slug: string; online: boolean }) {
           <DialogHeader>
             <DialogTitle>重启中继节点</DialogTitle>
           </DialogHeader>
+          <div className="text-muted-foreground flex items-start gap-2 rounded-md border p-2.5 text-xs leading-relaxed">
+            <Info className="mt-px size-4 shrink-0" />
+            <span>
+              此处重启的是<strong className="text-primary font-semibold">中继节点程序本体</strong>，并非操作系统，程序退出后需要操作系统的服务管理器拉起（需要先将中继节点程序注册为系统服务）。
+            </span>
+          </div>
 
           {deadline ? (
             <div className="grid gap-3">
@@ -377,8 +444,8 @@ function RestartButton({ slug, online }: { slug: string; online: boolean }) {
                 >
                   取消
                 </Button>
-                <Button disabled={loading} onClick={() => void exec()}>
-                  {loading ? "处理中…" : "确定"}
+                <Button disabled={loading || remaining > 0} onClick={() => void exec()}>
+                  {loading ? "处理中…" : remaining > 0 ? `确定 (${remaining})` : "确定"}
                 </Button>
               </div>
             </div>

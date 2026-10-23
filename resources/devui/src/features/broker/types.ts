@@ -85,6 +85,7 @@ export interface BrokerConnectHistory {
   broker_id: string
   execute_stat: BrokerExecuteStat
   tunnel_stat: BrokerTunnelStat
+  seconds: number
   disconnected_at: string
 }
 
@@ -102,6 +103,17 @@ export interface BrokerRouteInfo {
 
 export interface BrokerRoutes {
   records: BrokerRouteInfo[]
+}
+
+export interface BrokerSubstream {
+  id: string
+  rx: number
+  tx: number
+  established_at: string
+}
+
+export interface BrokerSubstreams {
+  records: BrokerSubstream[]
 }
 
 export interface BrokerForm {

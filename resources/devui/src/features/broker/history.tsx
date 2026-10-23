@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { formatBytes } from "@/features/broker/types"
 import type { BrokerConnectHistory } from "@/features/broker/types"
@@ -39,22 +39,22 @@ export function HistorySection({
         <table className="w-full table-fixed text-xs">
           <thead>
             <tr className="bg-muted/40 text-muted-foreground border-b">
-              <th className="w-40 px-2 py-1.5 text-left font-medium">主机</th>
-              <th className="w-28 px-2 py-1.5 text-left font-medium">平台</th>
+              <th className="w-20 px-2 py-1.5 text-left font-medium">主机名</th>
+              <th className="w-14 px-1.5 py-1.5 text-left font-medium">隧道类型</th>
+              <th className="w-[72px] px-1.5 py-1.5 text-right font-medium">子流数</th>
               <th className="w-24 px-2 py-1.5 text-left font-medium">版本</th>
-              <th className="w-16 px-2 py-1.5 text-left font-medium">网络</th>
+              <th className="w-36 px-2 py-1.5 text-left font-medium">出口 IP</th>
               <th className="w-36 px-2 py-1.5 text-left font-medium">本地地址</th>
               <th className="w-36 px-2 py-1.5 text-left font-medium">远端地址</th>
               <th className="w-20 px-2 py-1.5 text-right font-medium">接收</th>
               <th className="w-20 px-2 py-1.5 text-right font-medium">发送</th>
+              <th className="w-40 px-2 py-1.5 text-left font-medium">连接时间</th>
               <th className="w-40 px-2 py-1.5 text-left font-medium">断开时间</th>
+              <th className="w-24 px-2 py-1.5 text-right font-medium">连接时长</th>
             </tr>
           </thead>
           <tbody>
             {history.map((item) => {
-              const plat = [item.execute_stat?.goos, item.execute_stat?.goarch]
-                .filter(Boolean)
-                .join("/")
               return (
                 <tr
                   key={item.id}
@@ -67,7 +67,12 @@ export function HistorySection({
                     </TooltipHint>
                   </td>
                   <td className="px-2 py-1.5">
-                    <div className="truncate">{plat || "—"}</div>
+                    <TooltipHint content={item.tunnel_stat?.library || "—"}>
+                      <div className="truncate">{item.tunnel_stat?.library || "—"}</div>
+                    </TooltipHint>
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {item.tunnel_stat?.cumulative ?? 0}
                   </td>
                   <td className="px-2 py-1.5">
                     <TooltipHint content={item.execute_stat?.version || "—"}>
@@ -75,7 +80,9 @@ export function HistorySection({
                     </TooltipHint>
                   </td>
                   <td className="px-2 py-1.5">
-                    <div className="truncate">{item.tunnel_stat?.inet || "—"}</div>
+                    <TooltipHint content={item.tunnel_stat?.inet || "—"}>
+                      <div className="truncate font-mono">{item.tunnel_stat?.inet || "—"}</div>
+                    </TooltipHint>
                   </td>
                   <td className="px-2 py-1.5">
                     <TooltipHint content={item.tunnel_stat?.local_addr || "—"}>
@@ -95,15 +102,25 @@ export function HistorySection({
                   </td>
                   <td className="px-2 py-1.5">
                     <div className="truncate">
+                      {item.tunnel_stat?.connected_at
+                        ? formatDateTime(item.tunnel_stat.connected_at)
+                        : "—"}
+                    </div>
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <div className="truncate">
                       {item.disconnected_at ? formatDateTime(item.disconnected_at) : "—"}
                     </div>
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {formatDuration(item.seconds ?? 0)}
                   </td>
                 </tr>
               )
             })}
             {history.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-muted-foreground px-2 py-4 text-center">
+                <td colSpan={12} className="text-muted-foreground px-2 py-4 text-center">
                   {historyLoading ? "加载中…" : "暂无连接历史"}
                 </td>
               </tr>

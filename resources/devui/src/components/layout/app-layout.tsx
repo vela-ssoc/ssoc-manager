@@ -1,6 +1,20 @@
 import { useState } from "react"
-import { NavLink, Outlet, useNavigate } from "react-router-dom"
-import { Archive, Home, LogOut, Network, Radar, RadioTower, Settings, UserRound, type LucideIcon } from "lucide-react"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
+import {
+  Archive,
+  BookText,
+  ChevronDown,
+  ExternalLink,
+  Home,
+  LogOut,
+  MonitorPlay,
+  Network,
+  Radar,
+  RadioTower,
+  Settings,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react"
 
 import { Logo, SSOCText } from "@/components/logo"
 import { TooltipHint } from "@/components/tooltip-hint"
@@ -30,6 +44,8 @@ interface NavItem {
   title: string
   href: string
   icon: LucideIcon
+  external?: string
+  children?: NavItem[]
 }
 
 const navItems: NavItem[] = [
@@ -37,6 +53,7 @@ const navItems: NavItem[] = [
     title: "旧版界面",
     href: "/legacy",
     icon: Home,
+    external: "/",
   },
   {
     title: "探针节点",
@@ -58,13 +75,47 @@ const navItems: NavItem[] = [
     href: "/reverse-proxies",
     icon: Network,
   },
+  {
+    title: "大屏展示",
+    href: "/dashboards",
+    icon: MonitorPlay,
+    children: [
+      { title: "风险大屏", href: "/ssoc", icon: MonitorPlay, external: "/ssoc/" },
+      { title: "蜜罐大屏", href: "/hone", icon: MonitorPlay, external: "/hone/" },
+    ],
+  },
+  {
+    title: "接口文档",
+    href: "/oas3",
+    icon: BookText,
+    external: "/oas3/",
+  },
 ]
 
 export function AppLayout() {
   const navigate = useNavigate()
+  const location = useLocation()
   const profile = getAuthProfile()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    for (const item of navItems) {
+      if (item.children?.some((child) => child.href === location.pathname)) {
+        initial.add(item.href)
+      }
+    }
+    return initial
+  })
+
+  const toggleGroup = (href: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(href)) next.delete(href)
+      else next.add(href)
+      return next
+    })
+  }
 
   const logout = async () => {
     setLoggingOut(true)
@@ -91,22 +142,93 @@ export function AppLayout() {
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
           {navItems.map((item) => {
             const Icon = item.icon
-            return (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
+
+            if (!item.children?.length) {
+              return (
+                <div
+                  key={item.href}
+                  className={cn(
+                    "group/item flex items-center rounded-md transition-colors",
+                    location.pathname === item.href
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                  )
-                }
-              >
-                <Icon className="size-4 shrink-0" />
-                <span className="truncate">{item.title}</span>
-              </NavLink>
+                  )}
+                >
+                  <NavLink
+                    to={item.href}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2 text-sm font-medium"
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span className="truncate">{item.title}</span>
+                  </NavLink>
+                  {item.external && (
+                    <ExternalLinkButton
+                      href={item.external}
+                      revealClass="group-hover/item:opacity-100"
+                    />
+                  )}
+                </div>
+              )
+            }
+
+            const open = openGroups.has(item.href)
+            const active = item.children.some(
+              (child) => child.href === location.pathname
+            )
+
+            return (
+              <div key={item.href}>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                  )}
+                  onClick={() => toggleGroup(item.href)}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span className="truncate">{item.title}</span>
+                  <ChevronDown
+                    className={cn(
+                      "ml-auto size-4 shrink-0 transition-transform",
+                      open && "rotate-180"
+                    )}
+                  />
+                </button>
+                {open && (
+                  <div className="mt-1 space-y-1 pl-4">
+                    {item.children.map((child) => {
+                      const childActive = child.href === location.pathname
+                      return (
+                        <div
+                          key={child.href}
+                          className={cn(
+                            "group/child flex items-center rounded-md transition-colors",
+                            childActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <NavLink
+                            to={child.href}
+                            className="flex min-w-0 flex-1 items-center px-3 py-2 text-sm"
+                          >
+                            <span className="truncate">{child.title}</span>
+                          </NavLink>
+                          {child.external && (
+                            <ExternalLinkButton
+                              href={child.external}
+                              revealClass="group-hover/child:opacity-100"
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </nav>
@@ -195,5 +317,30 @@ export function AppLayout() {
         </main>
       </div>
     </div>
+  )
+}
+
+function ExternalLinkButton({
+  href,
+  revealClass,
+}: {
+  href: string
+  revealClass: string
+}) {
+  return (
+    <TooltipHint content="新标签打开">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="新标签打开"
+        className={cn(
+          "mr-1 flex size-6 shrink-0 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-foreground/15 active:bg-foreground/25",
+          revealClass
+        )}
+      >
+        <ExternalLink className="size-3.5" />
+      </a>
+    </TooltipHint>
   )
 }

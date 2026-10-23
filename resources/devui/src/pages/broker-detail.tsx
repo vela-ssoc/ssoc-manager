@@ -12,6 +12,7 @@ import { ConfigDiff } from "@/features/broker/config-diff"
 import { BasicTab } from "@/features/broker/basic-tab"
 import { HistorySection } from "@/features/broker/history"
 import { RouteApiSection } from "@/features/broker/route-api"
+import { SubstreamsSection } from "@/features/broker/substreams"
 import { WebDavExplorer } from "@/features/broker/webdav-explorer"
 import { WebTerminal } from "@/features/broker/web-terminal"
 import { emptyConfig } from "@/features/broker/types"
@@ -24,12 +25,13 @@ import type {
   ManagerConfig,
 } from "@/features/broker/types"
 
-type Tab = "basic" | "config" | "files" | "terminal" | "history" | "brokerRoutes" | "agentRoutes" | "exposeRoutes"
+type Tab = "basic" | "config" | "history" | "substreams" | "files" | "terminal" | "brokerRoutes" | "agentRoutes" | "exposeRoutes"
 
 const TABS: { key: Tab; label: string; onlineOnly?: boolean }[] = [
   { key: "basic", label: "基本信息" },
   { key: "config", label: "配置信息" },
   { key: "history", label: "连接历史" },
+  { key: "substreams", label: "活跃子流", onlineOnly: true },
   { key: "files", label: "文件管理", onlineOnly: true },
   { key: "terminal", label: "虚拟终端", onlineOnly: true },
   { key: "brokerRoutes", label: "中心端侧接口", onlineOnly: true },
@@ -261,6 +263,10 @@ export function BrokerDetailPage() {
               onHistoryPageChange={changeHistoryPage}
               onHistorySizeChange={changeHistorySize}
             />
+          )}
+
+          {tab === "substreams" && (
+            <SubstreamsSection slug={slug} />
           )}
 
           {tab === "brokerRoutes" && (
