@@ -3,21 +3,23 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/ssoc-common-mb/profile"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
+	"github.com/vela-ssoc/ssoc-manager/config"
 	"github.com/xgfone/ship/v5"
 )
 
 type Config struct {
-	cfg *profile.ManagerConfig
+	boot config.Config
+	cfg  *model.ManagerConfig
 }
 
-func NewConfig(cfg *profile.ManagerConfig) *Config {
-	return &Config{cfg: cfg}
+func NewConfig(boot config.Config, cfg *model.ManagerConfig) *Config {
+	return &Config{boot: boot, cfg: cfg}
 }
 
-func (cf *Config) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3.Route("/config").GET(cf.get) // 中继节点列表
+func (cf *Config) RegisterHTTP(g shipx.RouteGroup3) error {
+	g.ExposeV3.Group.Route("/config").GET(cf.get) // 中继节点列表
 	return nil
 }
 

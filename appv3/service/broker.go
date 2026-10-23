@@ -9,6 +9,7 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
+	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -75,6 +76,18 @@ func (bk *Broker) Delete(ctx context.Context, slug string) error {
 
 	coll := bk.db.MDB().Broker()
 	_, err := coll.DeleteOne(ctx, filter)
+
+	return err
+}
+
+func (bk *Broker) Ping(ctx context.Context, peer muxproto.Node) error {
+	now := time.Now()
+	slug := peer.Host()
+	filter := bson.M{"slug": slug, "status": true}
+	update := bson.M{"$set": bson.M{"heartbeat_at": now}}
+
+	coll := bk.db.MDB().Broker()
+	_, err := coll.UpdateOne(ctx, filter, update)
 
 	return err
 }

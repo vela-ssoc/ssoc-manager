@@ -14,6 +14,7 @@ import { LegacyPage } from "@/pages/legacy"
 import { HoneDashboardPage } from "@/pages/hone-dashboard"
 import { RiskDashboardPage } from "@/pages/risk-dashboard"
 import { Oas3Page } from "@/pages/oas3"
+import { CentralPage } from "@/pages/central"
 
 function RequireAuth() {
   const location = useLocation()
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/reverse-proxies" element={<ReverseProxiesPage />} />
           <Route path="/brokers" element={<BrokersPage />} />
           <Route path="/brokers/:slug" element={<BrokerDetailPage />} />
+          <Route path="/central" element={<CentralPage />} />
           <Route path="/minions" element={<MinionsPage />} />
           <Route path="/legacy" element={<LegacyPage />} />
           <Route path="/hone" element={<HoneDashboardPage />} />

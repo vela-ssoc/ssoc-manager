@@ -20,12 +20,12 @@ func NewZipArchive(svc *service.ZipArchive) *ZipArchive {
 	return &ZipArchive{svc: svc}
 }
 
-func (za *ZipArchive) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3.Route("/zip-archives").GET(za.page)
-	g.APIV3.Route("/zip-archive").POST(za.create)
-	g.APIV3.Route("/zip-archive").PUT(za.update)
-	g.APIV3.Route("/zip-archive/info").GET(za.info)
-	g.APIV3.Route("/zip-archive/download").GET(za.download)
+func (za *ZipArchive) RegisterHTTP(g shipx.RouteGroup3) error {
+	g.ExposeV3.Group.Route("/zip-archives").GET(za.page)
+	g.ExposeV3.Group.Route("/zip-archive").POST(za.create)
+	g.ExposeV3.Group.Route("/zip-archive").PUT(za.update)
+	g.ExposeV3.Group.Route("/zip-archive/info").GET(za.info)
+	g.ExposeV3.Group.Route("/zip-archive/download").GET(za.download)
 
 	return nil
 }

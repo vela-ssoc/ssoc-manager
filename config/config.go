@@ -4,9 +4,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type Config struct {
-}
-
 type Logger struct {
 	*lumberjack.Logger
 	Console bool   `json:"console"`
@@ -19,4 +16,15 @@ func (l Logger) Lumber() *lumberjack.Logger {
 	}
 
 	return nil
+}
+
+const DefaultLogFilename = "resources/log/application.jsonl"
+
+type Config struct {
+	Database Database `json:"database"`
+}
+
+type Database struct {
+	URI string `json:"uri" validate:"required"`
+	DSN string `json:"dsn" validate:"required"`
 }

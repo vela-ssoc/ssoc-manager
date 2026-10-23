@@ -28,8 +28,8 @@ func NewTunnel(han muxproto.MUXServer) *Tunnel {
 	}
 }
 
-func (tnl *Tunnel) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3NoAuth.Route("/tunnel").GET(tnl.handle) // 中继节点连接端点
+func (tnl *Tunnel) RegisterHTTP(g shipx.RouteGroup3) error {
+	g.ExposeV3.Group.Route("/tunnel").GET(tnl.handle) // 中继节点连接端点
 
 	return nil
 }

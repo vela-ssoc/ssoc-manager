@@ -18,15 +18,15 @@ func NewReverseProxy(svc *service.ReverseProxy) *ReverseProxy {
 	return &ReverseProxy{svc: svc}
 }
 
-func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3.Route("/reverse-proxies").GET(rp.list)    // 列表显示
-	g.APIV3.Route("/reverse-proxy").GET(rp.create)    // 单个信息
-	g.APIV3.Route("/reverse-proxy").POST(rp.create)   // 新增
-	g.APIV3.Route("/reverse-proxy").PUT(rp.update)    // 修改
-	g.APIV3.Route("/reverse-proxy").DELETE(rp.delete) // 删除
+func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup3) error {
+	g.ExposeV3.Group.Route("/reverse-proxies").GET(rp.list)    // 列表显示
+	g.ExposeV3.Group.Route("/reverse-proxy").GET(rp.create)    // 单个信息
+	g.ExposeV3.Group.Route("/reverse-proxy").POST(rp.create)   // 新增
+	g.ExposeV3.Group.Route("/reverse-proxy").PUT(rp.update)    // 修改
+	g.ExposeV3.Group.Route("/reverse-proxy").DELETE(rp.delete) // 删除
 
-	g.APIV3NoAuth.Route("/reverse/:location").Any(rp.handle)
-	g.APIV3NoAuth.Route("/reverse/:location/*path").Any(rp.handle)
+	g.ExposeV3.Group.Route("/reverse/:location").Any(rp.handle)
+	g.ExposeV3.Group.Route("/reverse/:location/*path").Any(rp.handle)
 
 	return nil
 }

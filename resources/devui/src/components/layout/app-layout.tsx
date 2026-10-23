@@ -11,6 +11,7 @@ import {
   Network,
   Radar,
   RadioTower,
+  ServerCog,
   Settings,
   UserRound,
   type LucideIcon,
@@ -64,6 +65,11 @@ const navItems: NavItem[] = [
     title: "中继节点",
     href: "/brokers",
     icon: RadioTower,
+  },
+  {
+    title: "中心端",
+    href: "/central",
+    icon: ServerCog,
   },
   {
     title: "虚拟文件",

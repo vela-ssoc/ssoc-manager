@@ -9,7 +9,6 @@ import (
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
-	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/profile"
 	"github.com/vela-ssoc/ssoc-manager/appv3/restapi"
@@ -31,9 +30,9 @@ func runV3(ctx context.Context, cfg *profile.ManagerConfig, route shipx.RouteGro
 		gontainer.NewService(cli.Transport),
 		gontainer.NewService(db),
 		gontainer.NewService(log),
-		gontainer.NewService(dbconn.MongoDBConfig{URI: cfg.Database.URI}),
-
-		gontainer.NewFactory(dbconn.OpenMongoDB),
+		//gontainer.NewService(dbconn.MongoDBConfig{URI: cfg.Database.URI}),
+		//
+		//gontainer.NewFactory(dbconn.OpenMongoDB),
 		gontainer.NewFactory(repository.NewBaseDB),
 		gontainer.NewFactory(polydb.NewSource),
 		gontainer.NewEntrypoint(component.CreateIndex),

@@ -23,7 +23,7 @@ const LIGHT_THEME: ITheme = {
   selectionBackground: "#c8d6e5",
 }
 
-export function WebTerminal({ slug }: { slug: string }) {
+export function WebTerminal({ path }: { path: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const termRef = useRef<Terminal | null>(null)
   const dark = useIsDark()
@@ -58,7 +58,7 @@ export function WebTerminal({ slug }: { slug: string }) {
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
     const token = getToken() ?? ""
-    const url = `${protocol}//${window.location.host}/api/v3/br/${slug}/api/v3/system/pty?authorization=${encodeURIComponent(token)}`
+    const url = `${protocol}//${window.location.host}${path}?authorization=${encodeURIComponent(token)}`
     let ws: WebSocket | null = null
     let disposed = false
 
@@ -100,8 +100,11 @@ export function WebTerminal({ slug }: { slug: string }) {
       if (disposed) return
       try {
         const msg = JSON.parse(event.data as string) as { type?: string; data?: string }
+        const data = typeof msg.data === "string" ? msg.data : ""
         if (msg.type === "stdout") {
-          term.write(typeof msg.data === "string" ? msg.data : "")
+          term.write(data)
+        } else if (msg.type === "error" && data) {
+          term.write(`\r\n\x1b[31m[错误] ${data}\x1b[0m\r\n`)
         }
       } catch {
         // ignore non-JSON frames
@@ -151,7 +154,7 @@ export function WebTerminal({ slug }: { slug: string }) {
       term.dispose()
       termRef.current = null
     }
-  }, [slug])
+  }, [path])
 
   return (
     <div className="h-full w-full overflow-hidden rounded-md border bg-background p-2">

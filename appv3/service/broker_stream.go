@@ -28,6 +28,6 @@ func (bs *BrokerStream) Substreams(slug string) ([]muxconn.Streamer, bool) {
 	return streams, true
 }
 
-func (bs *BrokerStream) Peer(slug string) muxproto.Peer {
+func (bs *BrokerStream) Peer(slug string) muxproto.Node {
 	return bs.hub.Get(slug)
 }

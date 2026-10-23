@@ -12,7 +12,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
-	"github.com/vela-ssoc/ssoc-common-mb/profile"
+	"github.com/vela-ssoc/ssoc-manager/config"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -28,14 +28,16 @@ type Options struct {
 type server struct {
 	db   polydb.Sourcer
 	hub  muxproto.Huber
-	cfg  *profile.ManagerConfig
+	boot config.Config
+	cfg  *model.ManagerConfig
 	opts Options
 }
 
-func NewServer(db polydb.Sourcer, hub muxproto.Huber, cfg *profile.ManagerConfig, opts Options) muxproto.MUXServer {
+func NewServer(db polydb.Sourcer, hub muxproto.Huber, boot config.Config, cfg *model.ManagerConfig, opts Options) muxproto.MUXServer {
 	return &server{
 		db:   db,
 		hub:  hub,
+		boot: boot,
 		cfg:  cfg,
 		opts: opts,
 	}
@@ -87,7 +89,7 @@ func (s *server) perContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), d)
 }
 
-func (s *server) serveHTTP(p muxproto.Peer) error {
+func (s *server) serveHTTP(p muxproto.Node) error {
 	h := s.opts.Handler
 	if h == nil {
 		h = http.NotFoundHandler()
@@ -112,7 +114,7 @@ func (s *server) log() *slog.Logger {
 }
 
 //goland:noinspection GoUnhandledErrorResult
-func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer, *sessionData, error) {
+func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node, *sessionData, error) {
 	timeout := s.perTimeout()
 	oncec := muxproto.NewOnceCloser(mux)
 	timer := time.AfterFunc(timeout, oncec.Close) // 防止客户端建立连接后，但是不发起认证。
@@ -190,7 +192,7 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Peer
 	return peer, sess, nil
 }
 
-func (s *server) disconnected(p muxproto.Peer, data *sessionData) {
+func (s *server) disconnected(p muxproto.Node, data *sessionData) {
 	slug, disconnAt := data.Model.Slug, time.Now()
 
 	mux := p.MUX()
@@ -259,9 +261,9 @@ func (s *server) findBrokerBySecret(secret string) (*model.Broker, error) {
 	return brok, nil
 }
 
-func (s *server) updateBrokerOnline(p muxproto.Peer, sess *sessionData) error {
+func (s *server) updateBrokerOnline(p muxproto.Node, sess *sessionData) error {
 	auth := sess.Request
-	slug, mux := p.Slug(), p.MUX()
+	slug, mux := p.Host(), p.MUX()
 	library, module := mux.Library()
 	tunstat := model.TunnelStat{
 		Library:     library,
@@ -343,14 +345,14 @@ func (s *server) buildBrokerConfig(brok *model.Broker) model.BrokerConfig {
 		cfg.Database = new(model.BrokerDatabaseConfig)
 	}
 	if cfg.Database.URI == "" {
-		cfg.Database.URI = sc.Database.URI
+		cfg.Database.URI = s.boot.Database.URI
 	}
 	if cfg.Database.DSN == "" {
-		cfg.Database.DSN = sc.Database.DSN
+		cfg.Database.DSN = s.boot.Database.DSN
 	}
 	if cfg.Logger == nil {
 		l := sc.Logger
-		cfg.Logger = &model.BrokerLoggerConfig{
+		cfg.Logger = &model.LoggerConfig{
 			Level:      l.Level,
 			Console:    l.Console,
 			Filename:   l.Filename,

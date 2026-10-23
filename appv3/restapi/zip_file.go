@@ -21,13 +21,13 @@ func NewZipFile(svc *service.ZipFile) *ZipFile {
 	return &ZipFile{svc: svc}
 }
 
-func (zf *ZipFile) RegisterHTTP(g shipx.RouteGroup) error {
-	g.APIV3.Route("/zip-file/readdir").GET(zf.readdir)   // 获取 zip 下的文件列表（所有文件）。
-	g.APIV3.Route("/zip-file/content").GET(zf.read)      // 下载文件（预览文件）。
-	g.APIV3.Route("/zip-file/unzip").POST(zf.unzip)      // 上传一个 zip 文件，读取映射成虚拟 zip 文件。
-	g.APIV3.Route("/zip-file/mkdir").POST(zf.mkdir)      // 创建目录。
-	g.APIV3.Route("/zip-file/content").POST(zf.update)   // 更新文件内容（全量更新，不支持部分更新）
-	g.APIV3.Route("/zip-file/content").DELETE(zf.delete) // 删除 zip 内的某个文件/目录（删除目录时会删除下面的子目录和文件）。
+func (zf *ZipFile) RegisterHTTP(g shipx.RouteGroup3) error {
+	g.ExposeV3.Group.Route("/zip-file/readdir").GET(zf.readdir)   // 获取 zip 下的文件列表（所有文件）。
+	g.ExposeV3.Group.Route("/zip-file/content").GET(zf.read)      // 下载文件（预览文件）。
+	g.ExposeV3.Group.Route("/zip-file/unzip").POST(zf.unzip)      // 上传一个 zip 文件，读取映射成虚拟 zip 文件。
+	g.ExposeV3.Group.Route("/zip-file/mkdir").POST(zf.mkdir)      // 创建目录。
+	g.ExposeV3.Group.Route("/zip-file/content").POST(zf.update)   // 更新文件内容（全量更新，不支持部分更新）
+	g.ExposeV3.Group.Route("/zip-file/content").DELETE(zf.delete) // 删除 zip 内的某个文件/目录（删除目录时会删除下面的子目录和文件）。
 
 	return nil
 }

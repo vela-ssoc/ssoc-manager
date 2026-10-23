@@ -34,7 +34,7 @@ func main() {
 	defer cancel()
 
 	slog.Info("按 Ctrl+C 停止运行")
-	err := launch.Run(ctx, *c)
+	err := launch.RunV3(ctx, *c)
 	cause := context.Cause(ctx)
 	slog.Warn("程序停止运行", "error", err, "cause", cause)
 }

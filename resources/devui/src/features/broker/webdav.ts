@@ -10,22 +10,40 @@ export interface DavEntry {
   lastmod: string
 }
 
-const BROKER_WEBDAV_BASE_PATH = "/api/v3/webdav"
-
-function baseUrl(slug: string): string {
-  return `/api/v3/br/${slug}/api/v3/webdav`
+export interface DavEndpoint {
+  clientUrl: string
+  apiPath: string
 }
 
-export function createDavClient(slug: string): WebDAVClient {
-  return createClient(baseUrl(slug), {
+const DAV_BASE_PATH = "/api/v3/webdav"
+
+export function brokerDavEndpoint(slug: string): DavEndpoint {
+  return {
+    clientUrl: `/api/v3/br/${slug}/api/v3/webdav`,
+    apiPath: `/br/${slug}/api/v3/webdav`,
+  }
+}
+
+export function centralDavEndpoint(): DavEndpoint {
+  return {
+    clientUrl: "/api/v3/webdav",
+    apiPath: "/webdav",
+  }
+}
+
+export function createDavClient(endpoint: DavEndpoint): WebDAVClient {
+  return createClient(endpoint.clientUrl, {
     headers: { Authorization: getToken() ?? "" },
-    remoteBasePath: BROKER_WEBDAV_BASE_PATH,
+    remoteBasePath: DAV_BASE_PATH,
   })
 }
 
-export async function davList(slug: string, dir: string): Promise<DavEntry[]> {
+export async function davList(
+  endpoint: DavEndpoint,
+  dir: string
+): Promise<DavEntry[]> {
   const self = dir.replace(/^\/+|\/+$/g, "")
-  const list = await createDavClient(slug).getDirectoryContents(self)
+  const list = await createDavClient(endpoint).getDirectoryContents(self)
 
   const selfName = self.split("/").filter(Boolean).pop() ?? ""
   const result: DavEntry[] = []
@@ -46,22 +64,13 @@ export async function davList(slug: string, dir: string): Promise<DavEntry[]> {
   return result
 }
 
-export function davDownloadUrl(slug: string, fullPath: string): string {
+export function davDownloadUrl(endpoint: DavEndpoint, fullPath: string): string {
   const encoded = fullPath
     .split("/")
     .filter(Boolean)
     .map((segment) => encodeURIComponent(segment))
     .join("/")
-  return buildAuthUrl(`/br/${slug}/api/v3/webdav/${encoded}`)
-}
-
-export function davRawUrl(slug: string, fullPath: string): string {
-  const encoded = fullPath
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/")
-  return `/api/v3/br/${slug}/api/v3/webdav/${encoded}`
+  return buildAuthUrl(`${endpoint.apiPath}/${encoded}`)
 }
 
 export function splitPath(path: string): Array<{ name: string; path: string }> {

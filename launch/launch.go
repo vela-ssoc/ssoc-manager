@@ -506,6 +506,8 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 			Ship:        sh,
 			APIV3:       v3auth,
 			APIV3NoAuth: v3noauth,
+			Broker:      brkmux,
+			BrokerV3:    brkmux.Group("/api/v3"),
 		}
 		if err = runV3(ctx, cfg, routeV3, huber, hubv3, httpcli, db, log); err != nil {
 			return err

@@ -14,7 +14,8 @@ import { HistorySection } from "@/features/broker/history"
 import { RouteApiSection } from "@/features/broker/route-api"
 import { SubstreamsSection } from "@/features/broker/substreams"
 import { WebDavExplorer } from "@/features/broker/webdav-explorer"
-import { WebTerminal } from "@/features/broker/web-terminal"
+import { brokerDavEndpoint } from "@/features/broker/webdav"
+import { WebTerminal } from "@/components/web-terminal"
 import { emptyConfig } from "@/features/broker/types"
 import type {
   Broker,
@@ -246,11 +247,11 @@ export function BrokerDetailPage() {
           )}
 
           {tab === "files" && (
-            <WebDavExplorer slug={slug} />
+            <WebDavExplorer {...brokerDavEndpoint(slug)} />
           )}
 
           {tab === "terminal" && (
-            <WebTerminal slug={slug} />
+            <WebTerminal path={`/api/v3/br/${slug}/api/v3/system/pty`} />
           )}
 
           {tab === "history" && (

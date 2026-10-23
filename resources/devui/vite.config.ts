@@ -21,9 +21,10 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8081",
-        changeOrigin: true,
+        target: "https://127.0.0.1:8081",
+        changeOrigin: false,
         ws: true,
+        secure: false,
       },
     },
   },

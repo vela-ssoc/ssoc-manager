@@ -32,6 +32,7 @@ import {
   davDownloadUrl,
   davList,
   splitPath,
+  type DavEndpoint,
   type DavEntry,
 } from "./webdav"
 
@@ -55,7 +56,14 @@ const LANGUAGE_BY_EXT: Record<string, string> = {
   proto: "proto", graphql: "graphql", gql: "graphql",
 }
 
-export function WebDavExplorer({ slug }: { slug: string }) {
+export function WebDavExplorer({
+  clientUrl,
+  apiPath,
+}: {
+  clientUrl: string
+  apiPath: string
+}) {
+  const endpoint: DavEndpoint = { clientUrl, apiPath }
   const [path, setPath] = useState("")
   const [backStack, setBackStack] = useState<string[]>([])
   const [forwardStack, setForwardStack] = useState<string[]>([])
@@ -67,7 +75,7 @@ export function WebDavExplorer({ slug }: { slug: string }) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    davList(slug, path)
+    davList(endpoint, path)
       .then((list) => {
         if (!cancelled) setEntries(list)
       })
@@ -80,7 +88,8 @@ export function WebDavExplorer({ slug }: { slug: string }) {
     return () => {
       cancelled = true
     }
-  }, [slug, path, refreshKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientUrl, apiPath, path, refreshKey])
 
   const navigate = (dir: string) => {
     if (dir === path) return
@@ -219,7 +228,7 @@ export function WebDavExplorer({ slug }: { slug: string }) {
                   <ListRow
                     key={stat.path}
                     stat={stat}
-                    slug={slug}
+                    endpoint={endpoint}
                     onClick={() => openItem(stat)}
                   />
                 ))}
@@ -229,7 +238,7 @@ export function WebDavExplorer({ slug }: { slug: string }) {
         </div>
 
         <div className="min-w-0 flex-[2] border-l">
-          <PreviewPane slug={slug} preview={preview} />
+          <PreviewPane endpoint={endpoint} preview={preview} />
         </div>
       </div>
     </div>
@@ -248,11 +257,11 @@ function ListHeader() {
 
 function ListRow({
   stat,
-  slug,
+  endpoint,
   onClick,
 }: {
   stat: DavEntry
-  slug: string
+  endpoint: DavEndpoint
   onClick: () => void
 }) {
   return (
@@ -281,7 +290,7 @@ function ListRow({
         {!stat.isDir && (
           <TooltipHint content="下载">
             <a
-              href={davDownloadUrl(slug, stat.path)}
+              href={davDownloadUrl(endpoint, stat.path)}
               download={stat.name}
               aria-label="下载"
               className="hover:bg-accent hover:text-accent-foreground flex size-6 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
@@ -297,10 +306,10 @@ function ListRow({
 }
 
 function PreviewPane({
-  slug,
+  endpoint,
   preview,
 }: {
-  slug: string
+  endpoint: DavEndpoint
   preview: { stat: DavEntry; path: string } | null
 }) {
   if (!preview) {
@@ -323,7 +332,7 @@ function PreviewPane({
           {name} · {formatFileSize(stat.size)}
         </span>
         <a
-          href={davDownloadUrl(slug, path)}
+          href={davDownloadUrl(endpoint, path)}
           download={name}
           className="hover:bg-accent hover:text-accent-foreground flex size-6 items-center justify-center rounded"
           aria-label="下载"
@@ -345,14 +354,14 @@ function PreviewPane({
             ? (
               <div className="flex h-full items-center justify-center overflow-auto p-4">
                 <img
-                  src={davDownloadUrl(slug, path)}
+                  src={davDownloadUrl(endpoint, path)}
                   alt={name}
                   className="max-h-full max-w-full object-contain"
                 />
               </div>
             )
             : text
-              ? <TextEditor slug={slug} path={path} name={name} />
+              ? <TextEditor endpoint={endpoint} path={path} name={name} />
               : (
                 <Placeholder
                   icon={FileWarning}
@@ -383,7 +392,15 @@ function Placeholder({
   )
 }
 
-function TextEditor({ slug, path, name }: { slug: string; path: string; name: string }) {
+function TextEditor({
+  endpoint,
+  path,
+  name,
+}: {
+  endpoint: DavEndpoint
+  path: string
+  name: string
+}) {
   const dark = useIsDark()
   const { font } = useTheme()
   const [content, setContent] = useState("")
@@ -392,7 +409,7 @@ function TextEditor({ slug, path, name }: { slug: string; path: string; name: st
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    fetch(davDownloadUrl(slug, path))
+    fetch(davDownloadUrl(endpoint, path))
       .then((res) => {
         if (!res.ok) throw new Error(`请求失败（${res.status}）`)
         return res.text()
@@ -409,7 +426,8 @@ function TextEditor({ slug, path, name }: { slug: string; path: string; name: st
     return () => {
       cancelled = true
     }
-  }, [slug, path])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint.clientUrl, endpoint.apiPath, path])
 
   if (loading) {
     return (
