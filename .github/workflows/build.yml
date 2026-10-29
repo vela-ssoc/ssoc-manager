@@ -52,7 +52,7 @@ jobs:
           ./build.sh
 
       - name: Build Frontend
-        working-directory: resources/frontend
+        working-directory: resources/devui
         run: |
           npm ci
           npm run build
