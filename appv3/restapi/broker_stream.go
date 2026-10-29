@@ -74,13 +74,7 @@ func (bs *BrokerStream) close(c *ship.Context) error {
 	if err := c.BindQuery(&param); err != nil {
 		return err
 	}
+	ctx := c.Request().Context()
 
-	var err error
-	peer := bs.svc.Peer(param.Slug)
-	if peer != nil {
-		mux := peer.MUX()
-		err = mux.Close()
-	}
-
-	return err
+	return bs.svc.Close(ctx, param.Slug)
 }

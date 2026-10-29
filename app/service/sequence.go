@@ -9,7 +9,7 @@ type SequenceService interface {
 	Generate() int64
 }
 
-func Sequence() SequenceService {
+func NewSequence() SequenceService {
 	return &sequenceService{}
 }
 

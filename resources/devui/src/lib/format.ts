@@ -18,3 +18,15 @@ export function formatDuration(totalSeconds: number): string {
   if (m > 0) return `${m} 分 ${s} 秒`
   return `${s} 秒`
 }
+
+export function formatTimeout(ns: number): string {
+  if (!ns || ns <= 0) return "不限时"
+  const ms = ns / 1e6
+  if (ms < 1000) return `${ms.toFixed(0)} 毫秒`
+  const s = ms / 1000
+  if (s < 60) return `${s.toFixed(1)} 秒`
+  const m = s / 60
+  if (m < 60) return `${m.toFixed(1)} 分钟`
+  const h = m / 60
+  return `${h.toFixed(1)} 小时`
+}

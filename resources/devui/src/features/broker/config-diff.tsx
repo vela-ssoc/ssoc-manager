@@ -108,7 +108,7 @@ export function ConfigDiff({
     brokerApi
       .runningConfig(slug)
       .then((data) => {
-        if (!cancelled) setRunning(data)
+        if (!cancelled) setRunning(data.config)
       })
       .catch(() => {
         if (!cancelled) setRunning(null)

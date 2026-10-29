@@ -38,7 +38,7 @@ export function BasicTab({
   onUpdateExpose: (index: number, patch: Partial<ExposeAddress>) => void
 }) {
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <section className="grid gap-3">
         <h3 className="text-sm font-semibold">当前连接</h3>
         {broker.status ? (

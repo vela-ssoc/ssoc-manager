@@ -1,32 +1,24 @@
 import { useEffect, useMemo, useState } from "react"
-import Editor from "@monaco-editor/react"
+import { createPortal } from "react-dom"
 import { toast } from "@/lib/toast"
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   ChevronRight,
-  Download,
-  FileText,
-  FileWarning,
-  Folder,
   Loader2,
+  PictureInPicture2,
   RefreshCw,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { TooltipHint } from "@/components/tooltip-hint"
 import { formatDateTime } from "@/lib/format"
-import { getMonacoFontFamily } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
-import { useIsDark } from "@/features/zip-file/file-icon"
-import { useTheme } from "@/providers/theme-provider"
-import {
-  fileExtension,
-  formatFileSize,
-  isImageFile,
-  isTextFile,
-} from "@/features/zip-file/types"
+import { usePortalPictureInPicture } from "@/lib/use-picture-in-picture"
+import { ContentPreview, type PreviewFile } from "@/features/zip-file/content-preview"
+import { FileIcon } from "@/features/zip-file/file-icon"
+import { formatFileSize } from "@/features/zip-file/types"
 
 import {
   davDownloadUrl,
@@ -36,32 +28,14 @@ import {
   type DavEntry,
 } from "./webdav"
 
-const MAX_PREVIEW_SIZE = 1024 * 1024
-
-const LANGUAGE_BY_EXT: Record<string, string> = {
-  js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "javascript",
-  ts: "typescript", tsx: "typescript",
-  json: "json", jsonc: "json", json5: "json",
-  html: "html", htm: "html", vue: "html", svelte: "html",
-  css: "css", scss: "scss", less: "less",
-  md: "markdown", markdown: "markdown",
-  yaml: "yaml", yml: "yaml",
-  xml: "xml", svg: "xml",
-  sh: "shell", bash: "shell", zsh: "shell",
-  py: "python", rb: "ruby", php: "php",
-  sql: "sql", java: "java", c: "c", h: "c", cpp: "cpp", hpp: "cpp",
-  cs: "csharp", rs: "rust", go: "go", kt: "kotlin", kts: "kotlin",
-  swift: "swift", scala: "scala", lua: "lua", r: "r", dart: "dart",
-  toml: "ini", ini: "ini", conf: "ini", properties: "ini",
-  proto: "proto", graphql: "graphql", gql: "graphql",
-}
-
 export function WebDavExplorer({
   clientUrl,
   apiPath,
+  title,
 }: {
   clientUrl: string
   apiPath: string
+  title?: string
 }) {
   const endpoint: DavEndpoint = { clientUrl, apiPath }
   const [path, setPath] = useState("")
@@ -71,6 +45,8 @@ export function WebDavExplorer({
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState<{ stat: DavEntry; path: string } | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+
+  const pip = usePortalPictureInPicture()
 
   useEffect(() => {
     let cancelled = false
@@ -135,173 +111,174 @@ export function WebDavExplorer({
     setPreview({ stat, path: stat.path })
   }
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-center gap-1">
-        <TooltipHint content="后退">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label="后退"
-            disabled={backStack.length === 0}
-            onClick={goBack}
-          >
-            <ArrowLeft className="size-3.5" />
-          </Button>
-        </TooltipHint>
-        <TooltipHint content="前进">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label="前进"
-            disabled={forwardStack.length === 0}
-            onClick={goForward}
-          >
-            <ArrowRight className="size-3.5" />
-          </Button>
-        </TooltipHint>
-        <TooltipHint content="上级目录">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label="上级目录"
-            disabled={!path}
-            onClick={goUp}
-          >
-            <ArrowUp className="size-3.5" />
-          </Button>
-        </TooltipHint>
-        <TooltipHint content="刷新">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label="刷新"
-            disabled={loading}
-            onClick={() => setRefreshKey((key) => key + 1)}
-          >
-            <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
-          </Button>
-        </TooltipHint>
+  if (pip.active && pip.container) {
+    return createPortal(content(), pip.container)
+  }
 
-        <nav className="text-muted-foreground ml-1 flex min-w-0 items-center gap-1 text-xs">
-          <button
-            type="button"
-            className="hover:text-foreground shrink-0 rounded px-1 py-0.5"
-            onClick={() => navigate("")}
-          >
-            根目录
-          </button>
-          {crumbs.map((crumb) => (
-            <span key={crumb.path} className="flex min-w-0 items-center gap-1">
-              <ChevronRight className="size-3 shrink-0" />
-              <button
-                type="button"
-                className="hover:text-foreground truncate rounded px-1 py-0.5"
-                onClick={() => navigate(crumb.path)}
+  return content()
+
+  function content() {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-2">
+        <div className="flex items-center gap-1">
+          <TooltipHint content="后退">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="后退"
+              disabled={backStack.length === 0}
+              onClick={goBack}
+            >
+              <ArrowLeft className="size-3.5" />
+            </Button>
+          </TooltipHint>
+          <TooltipHint content="前进">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="前进"
+              disabled={forwardStack.length === 0}
+              onClick={goForward}
+            >
+              <ArrowRight className="size-3.5" />
+            </Button>
+          </TooltipHint>
+          <TooltipHint content="上级目录">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="上级目录"
+              disabled={!path}
+              onClick={goUp}
+            >
+              <ArrowUp className="size-3.5" />
+            </Button>
+          </TooltipHint>
+          <TooltipHint content="刷新">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label="刷新"
+              disabled={loading}
+              onClick={() => setRefreshKey((key) => key + 1)}
+            >
+              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+            </Button>
+          </TooltipHint>
+          {pip.supported && !pip.active && (
+            <TooltipHint content="画中画打开">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                aria-label="画中画打开"
+                onClick={() => void pip.open(title)}
               >
-                {crumb.name}
-              </button>
-            </span>
-          ))}
-        </nav>
-      </div>
+                <PictureInPicture2 className="size-3.5" />
+              </Button>
+            </TooltipHint>
+          )}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-md border">
-        <div className="flex min-w-0 flex-[3] flex-col">
-          <ListHeader />
-          <div className="min-h-0 flex-1 overflow-auto">
-            {loading && sorted.length === 0 ? (
-              <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                <Loader2 className="size-4 animate-spin" />
-              </div>
-            ) : sorted.length === 0 ? (
-              <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-                空目录
-              </div>
-            ) : (
-              <div className="grid auto-rows-min">
-                {sorted.map((stat) => (
-                  <ListRow
-                    key={stat.path}
-                    stat={stat}
-                    endpoint={endpoint}
-                    onClick={() => openItem(stat)}
-                  />
-                ))}
-              </div>
-            )}
+          <nav className="text-muted-foreground ml-1 flex min-w-0 items-center gap-1 text-xs">
+            <button
+              type="button"
+              className="hover:text-foreground shrink-0 rounded px-1 py-0.5"
+              onClick={() => navigate("")}
+            >
+              根目录
+            </button>
+            {crumbs.map((crumb) => (
+              <span key={crumb.path} className="flex min-w-0 items-center gap-1">
+                <ChevronRight className="size-3 shrink-0" />
+                <button
+                  type="button"
+                  className="hover:text-foreground truncate rounded px-1 py-0.5"
+                  onClick={() => navigate(crumb.path)}
+                >
+                  {crumb.name}
+                </button>
+              </span>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-md border bg-card">
+          <div className="flex min-w-0 flex-[3] flex-col">
+            <div className="min-h-0 flex-1 overflow-auto">
+              {loading && sorted.length === 0 ? (
+                <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                </div>
+              ) : sorted.length === 0 ? (
+                <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+                  空目录
+                </div>
+              ) : (
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start gap-2 p-2">
+                  {sorted.map((stat) => (
+                    <FileTile
+                      key={stat.path}
+                      stat={stat}
+                      selected={preview?.path === stat.path}
+                      onClick={() => openItem(stat)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-[2] border-l">
+            <PreviewPane endpoint={endpoint} preview={preview} />
           </div>
         </div>
-
-        <div className="min-w-0 flex-[2] border-l">
-          <PreviewPane endpoint={endpoint} preview={preview} />
-        </div>
       </div>
-    </div>
-  )
+    )
+  }
 }
 
-function ListHeader() {
-  return (
-    <div className="bg-muted/40 text-muted-foreground flex items-center gap-2 border-b px-3 py-1.5 text-xs font-medium">
-      <span className="min-w-0 flex-1">名称</span>
-      <span className="w-20 shrink-0 text-right">大小</span>
-      <span className="w-36 shrink-0 text-right">修改时间</span>
-    </div>
-  )
-}
-
-function ListRow({
+function FileTile({
   stat,
-  endpoint,
+  selected,
   onClick,
 }: {
   stat: DavEntry
-  endpoint: DavEndpoint
+  selected: boolean
   onClick: () => void
 }) {
+  const sizeText = formatFileSize(stat.size)
+  const timeText = stat.lastmod ? ` · ${formatDateTime(stat.lastmod)}` : ""
+  const detail = stat.isDir ? stat.name : `${stat.name}\n${sizeText}${timeText}`
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="hover:bg-accent/40 group flex cursor-pointer items-center gap-2 border-b px-3 py-1.5 text-xs last:border-b-0"
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onClick()
-      }}
-    >
-      {stat.isDir ? (
-        <Folder className="text-primary size-4 shrink-0" />
-      ) : (
-        <FileText className="text-muted-foreground size-4 shrink-0" />
-      )}
-      <span className="min-w-0 flex-1 truncate">{stat.name}</span>
-      <span className="text-muted-foreground w-20 shrink-0 text-right font-mono">
-        {stat.isDir ? "—" : formatFileSize(stat.size)}
-      </span>
-      <span className="text-muted-foreground w-36 shrink-0 text-right">
-        {stat.lastmod ? formatDateTime(stat.lastmod) : "—"}
-      </span>
-      <span className="flex w-6 shrink-0 justify-end">
-        {!stat.isDir && (
-          <TooltipHint content="下载">
-            <a
-              href={davDownloadUrl(endpoint, stat.path)}
-              download={stat.name}
-              aria-label="下载"
-              className="hover:bg-accent hover:text-accent-foreground flex size-6 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Download className="size-3.5" />
-            </a>
-          </TooltipHint>
+    <TooltipHint content={detail}>
+      <div
+        role="button"
+        tabIndex={0}
+        className={cn(
+          "flex min-h-24 min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md border border-transparent px-1.5 py-2 text-center transition-colors hover:bg-accent/40",
+          selected && "border-primary/30 bg-accent/60"
         )}
-      </span>
-    </div>
+        onClick={onClick}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault()
+            onClick()
+          }
+        }}
+      >
+        <span className="flex h-12 shrink-0 items-center justify-center">
+          <FileIcon name={stat.name} isDir={stat.isDir} className="size-11" />
+        </span>
+        <span className="line-clamp-2 w-full break-all text-xs leading-tight">
+          {stat.name}
+        </span>
+      </div>
+    </TooltipHint>
   )
 }
 
@@ -321,152 +298,29 @@ function PreviewPane({
   }
 
   const { stat, path } = preview
-  const name = stat.name
-  const image = isImageFile(name)
-  const text = isTextFile(name)
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b px-2 py-1">
-        <span className="text-muted-foreground min-w-0 truncate text-xs">
-          {name} · {formatFileSize(stat.size)}
-        </span>
-        <a
-          href={davDownloadUrl(endpoint, path)}
-          download={name}
-          className="hover:bg-accent hover:text-accent-foreground flex size-6 items-center justify-center rounded"
-          aria-label="下载"
-        >
-          <Download className="size-3.5" />
-        </a>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-hidden">
-        {stat.size > MAX_PREVIEW_SIZE
-          ? (
-            <Placeholder
-              icon={FileWarning}
-              title="文件过大，暂不支持在线预览"
-              detail={`${formatFileSize(stat.size)}（上限 1 MB）`}
-            />
-          )
-          : image
-            ? (
-              <div className="flex h-full items-center justify-center overflow-auto p-4">
-                <img
-                  src={davDownloadUrl(endpoint, path)}
-                  alt={name}
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-            )
-            : text
-              ? <TextEditor endpoint={endpoint} path={path} name={name} />
-              : (
-                <Placeholder
-                  icon={FileWarning}
-                  title="该类型文件不支持预览"
-                  detail={formatFileSize(stat.size)}
-                />
-              )}
-      </div>
-    </div>
-  )
-}
-
-function Placeholder({
-  icon: Icon,
-  title,
-  detail,
-}: {
-  icon: typeof FileWarning
-  title: string
-  detail?: string
-}) {
-  return (
-    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-      <Icon className="size-8 opacity-40" />
-      <span className="text-sm">{title}</span>
-      {detail && <span className="text-xs">{detail}</span>}
-    </div>
-  )
-}
-
-function TextEditor({
-  endpoint,
-  path,
-  name,
-}: {
-  endpoint: DavEndpoint
-  path: string
-  name: string
-}) {
-  const dark = useIsDark()
-  const { font } = useTheme()
-  const [content, setContent] = useState("")
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    fetch(davDownloadUrl(endpoint, path))
-      .then((res) => {
-        if (!res.ok) throw new Error(`请求失败（${res.status}）`)
-        return res.text()
-      })
-      .then((text) => {
-        if (!cancelled) setContent(text)
-      })
-      .catch((err) => {
-        if (!cancelled) toast.error(err instanceof Error ? err.message : "加载文件失败")
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint.clientUrl, endpoint.apiPath, path])
-
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="text-muted-foreground size-4 animate-spin" />
-      </div>
-    )
+  const file: PreviewFile = {
+    id: path,
+    file_name: stat.name,
+    full_name: path,
+    file_size: stat.size,
+    mime_type: "",
+    is_directory: stat.isDir,
   }
 
-  const ext = fileExtension(name)
-  const language = LANGUAGE_BY_EXT[ext] ?? "plaintext"
-
   return (
-    <Editor
-      path={name}
-      language={language}
-      value={content}
-      theme={dark ? "near-black" : "light"}
-      beforeMount={(monaco) => {
-        monaco.editor.defineTheme("near-black", {
-          base: "vs-dark",
-          inherit: true,
-          rules: [],
-          colors: {
-            "editor.background": "#000000",
-          },
-        })
+    <ContentPreview
+      key={path}
+      file={file}
+      source={{
+        load: async () => {
+          const response = await fetch(davDownloadUrl(endpoint, path))
+          if (!response.ok) {
+            throw new Error(`请求失败（${response.status}）`)
+          }
+          return response.blob()
+        },
+        downloadUrl: davDownloadUrl(endpoint, path),
       }}
-      options={{
-        readOnly: true,
-        minimap: { enabled: false },
-        fontSize: 13,
-        fontFamily: getMonacoFontFamily(font),
-        scrollBeyondLastLine: false,
-        automaticLayout: true,
-        wordWrap: "on",
-        domReadOnly: true,
-      }}
-      height="100%"
     />
   )
 }

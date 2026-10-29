@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { InfoTooltip } from "@/components/info-tooltip"
 import { TooltipHint } from "@/components/tooltip-hint"
 import { cn } from "@/lib/utils"
@@ -282,10 +283,10 @@ export function ReverseProxyDialog({
                   <tr className="border-b last:border-b-0">
                     <td className="px-3 py-2">中心端</td>
                     <td className="px-3 py-2">
-                      <SwitchControl
+                      <Switch
                         label="启用 Manager 节点"
                         checked={form.manager}
-                        onChange={(manager) => update({ manager })}
+                        onCheckedChange={(manager) => update({ manager })}
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -318,10 +319,10 @@ export function ReverseProxyDialog({
                   <tr>
                     <td className="px-3 py-2">中继节点</td>
                     <td className="px-3 py-2">
-                      <SwitchControl
+                      <Switch
                         label="启用 Broker 节点"
                         checked={form.broker}
-                        onChange={(broker) => update({ broker })}
+                        onCheckedChange={(broker) => update({ broker })}
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -404,32 +405,5 @@ export function ReverseProxyDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function SwitchControl({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-label={label}
-      aria-checked={checked}
-      data-state={checked ? "checked" : "unchecked"}
-      className="border-input data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:ring-ring inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-      onClick={() => onChange(!checked)}
-    >
-      <span
-        className="bg-background pointer-events-none block size-4 rounded-full shadow-sm transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
-        data-state={checked ? "checked" : "unchecked"}
-      />
-    </button>
   )
 }

@@ -1,12 +1,15 @@
-import { useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { Terminal, type ITheme } from "@xterm/xterm"
 import { FitAddon } from "@xterm/addon-fit"
 import { UnicodeGraphemesAddon } from "@xterm/addon-unicode-graphemes"
+import { PictureInPicture2 } from "lucide-react"
 import { toast } from "@/lib/toast"
 
 import "@xterm/xterm/css/xterm.css"
 
+import { TooltipHint } from "@/components/tooltip-hint"
 import { getToken } from "@/lib/http"
+import { usePictureInPicture } from "@/lib/use-picture-in-picture"
 import { useIsDark } from "@/features/zip-file/file-icon"
 
 const DARK_THEME: ITheme = {
@@ -23,10 +26,27 @@ const LIGHT_THEME: ITheme = {
   selectionBackground: "#c8d6e5",
 }
 
-export function WebTerminal({ path }: { path: string }) {
+export function WebTerminal({ path, title }: { path: string; title?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const termRef = useRef<Terminal | null>(null)
+  const fitRef = useRef<FitAddon | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
   const dark = useIsDark()
+
+  const sendResize = useCallback(() => {
+    const term = termRef.current
+    const ws = wsRef.current
+    if (!term || !ws || ws.readyState !== WebSocket.OPEN) return
+    ws.send(JSON.stringify({ type: "resize", data: { cols: term.cols, rows: term.rows } }))
+  }, [])
+
+  const pip = usePictureInPicture({
+    containerRef,
+    onResize: () => {
+      fitRef.current?.fit()
+      sendResize()
+    },
+  })
 
   useEffect(() => {
     if (termRef.current) {
@@ -50,6 +70,7 @@ export function WebTerminal({ path }: { path: string }) {
     })
     termRef.current = term
     const fit = new FitAddon()
+    fitRef.current = fit
     const graphemes = new UnicodeGraphemesAddon()
     term.loadAddon(fit)
     term.loadAddon(graphemes)
@@ -64,6 +85,7 @@ export function WebTerminal({ path }: { path: string }) {
 
     try {
       ws = new WebSocket(url)
+      wsRef.current = ws
     } catch {
       if (!disposed) toast.error("终端连接失败")
       term.dispose()
@@ -77,11 +99,6 @@ export function WebTerminal({ path }: { path: string }) {
         clearInterval(heartbeat)
         heartbeat = null
       }
-    }
-    const sendResize = () => {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return
-      const { cols, rows } = term
-      ws.send(JSON.stringify({ type: "resize", data: { cols, rows } }))
     }
 
     ws.onopen = () => {
@@ -128,6 +145,94 @@ export function WebTerminal({ path }: { path: string }) {
       }
     })
 
+    const activeDocument = () => containerRef.current?.ownerDocument ?? document
+
+    const notify = (message: string) => {
+      if (activeDocument() !== document) {
+        term.write(`\r\n\x1b[31m[${message}]\x1b[0m\r\n`)
+      } else {
+        toast.error(message)
+      }
+    }
+
+    const fallbackCopy = (text: string, doc: Document) => {
+      const area = doc.createElement("textarea")
+      area.value = text
+      area.style.position = "fixed"
+      area.style.left = "-9999px"
+      doc.body.appendChild(area)
+      area.select()
+      const copied = doc.execCommand("copy")
+      area.remove()
+      term.focus()
+      if (!copied) throw new Error("copy failed")
+    }
+
+    const copySelection = async () => {
+      const text = term.getSelection()
+      if (!text) return
+      const doc = activeDocument()
+      const win = doc.defaultView ?? window
+      const clipboard = win.navigator.clipboard ?? navigator.clipboard
+      try {
+        if (clipboard?.writeText) {
+          await clipboard.writeText(text)
+        } else {
+          fallbackCopy(text, doc)
+        }
+        term.clearSelection()
+        return
+      } catch {
+        try {
+          fallbackCopy(text, doc)
+          term.clearSelection()
+        } catch {
+          notify("复制失败，请手动复制")
+        }
+      }
+    }
+
+    const pasteFromClipboard = async () => {
+      const doc = activeDocument()
+      const win = doc.defaultView ?? window
+      const clipboard = win.navigator.clipboard ?? navigator.clipboard
+      if (!clipboard?.readText) {
+        notify("当前浏览器不支持读取剪贴板")
+        return
+      }
+      try {
+        const text = await clipboard.readText()
+        if (text) term.paste(text)
+      } catch {
+        notify("无法读取剪贴板")
+      }
+    }
+
+    term.attachCustomKeyEventHandler((event) => {
+      if (
+        event.type !== "keydown" ||
+        event.altKey ||
+        !(event.ctrlKey || event.metaKey)
+      ) {
+        return true
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === "c") {
+        if (!term.hasSelection()) return true
+        event.preventDefault()
+        void copySelection()
+        return false
+      }
+      if (key === "v") {
+        event.preventDefault()
+        if (!event.repeat) void pasteFromClipboard()
+        return false
+      }
+
+      return true
+    })
+
     const resizeSub = term.onResize(() => {
       if (resized) sendResize()
     })
@@ -150,14 +255,28 @@ export function WebTerminal({ path }: { path: string }) {
         ws.onerror = null
         ws.onclose = null
         ws.close()
+        wsRef.current = null
       }
       term.dispose()
       termRef.current = null
+      fitRef.current = null
     }
-  }, [path])
+  }, [path, sendResize])
 
   return (
-    <div className="h-full w-full overflow-hidden rounded-md border bg-background p-2">
+    <div className="relative h-full w-full overflow-hidden rounded-md border bg-background p-2">
+      {pip.supported && !pip.active && (
+        <TooltipHint content="画中画打开">
+          <button
+            type="button"
+            aria-label="画中画打开"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground absolute top-3 right-3 z-10 flex size-6 items-center justify-center rounded transition-colors"
+            onClick={() => void pip.open(title)}
+          >
+            <PictureInPicture2 className="size-3.5" />
+          </button>
+        </TooltipHint>
+      )}
       <div ref={containerRef} className="h-full w-full" />
     </div>
   )

@@ -3,11 +3,9 @@ import { LoaderCircle } from "lucide-react"
 
 import { useIsDark } from "@/features/zip-file/file-icon"
 import { toast } from "@/lib/toast"
+import { cn } from "@/lib/utils"
 
-const OAUTH_URL =
-  import.meta.env.VITE_OAUTH_URL ??
-  "https://dongdong-auth.eastmoney.com/dongdong-auth/login/"
-const OAUTH_CLIENT_ID = "vela-ssoc"
+import type { OAuthProvider } from "./api"
 
 const QR_SIZE = 150
 
@@ -27,8 +25,6 @@ interface DongDongMessage {
   data?: string
 }
 
-const OAUTH_REDIRECT_URI = "https://vela-ssoc.eastmoney.com"
-
 function extractCode(redirectUri: string): string | null {
   try {
     const url = new URL(redirectUri, window.location.href)
@@ -38,34 +34,78 @@ function extractCode(redirectUri: string): string | null {
   }
 }
 
+function buildAuthorizeUrl(provider: OAuthProvider): URL | null {
+  if (
+    !provider.authorization_endpoint ||
+    !provider.client_id ||
+    !provider.redirect_uri
+  ) {
+    return null
+  }
+  try {
+    const url = new URL(provider.authorization_endpoint)
+    url.searchParams.set("client_id", provider.client_id)
+    url.searchParams.set("redirect_uri", provider.redirect_uri)
+    return url
+  } catch {
+    return null
+  }
+}
+
+export function OAuthQrLoading() {
+  return (
+    <div className="grid justify-items-center gap-3">
+      <div
+        className="relative flex items-center justify-center overflow-hidden rounded-md border bg-white"
+        style={{ width: QR_SIZE + PAD * 2, height: QR_SIZE + PAD * 2 }}
+      >
+        <QrCorner className="top-3 left-3" delay="0ms" />
+        <QrCorner className="top-3 right-3" delay="150ms" />
+        <QrCorner className="bottom-3 left-3" delay="300ms" />
+        <QrLoadingContent />
+      </div>
+    </div>
+  )
+}
+
 export function OAuthQrLogin({
+  provider,
   onCode,
 }: {
+  provider: OAuthProvider
   onCode: (code: string) => Promise<void>
 }) {
   const [frameUrl, setFrameUrl] = useState("")
+  const [authUrl, setAuthUrl] = useState("")
   const [loading, setLoading] = useState(true)
+  const [iframeLoading, setIframeLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const dark = useIsDark()
+  const {
+    authorization_endpoint,
+    client_id: clientId,
+    redirect_uri: redirectUri,
+  } = provider
 
-  const loadFrame = () => {
-    if (!OAUTH_URL || !OAUTH_CLIENT_ID) {
+  useEffect(() => {
+    const url = buildAuthorizeUrl({
+      authorization_endpoint,
+      client_id: clientId,
+      redirect_uri: redirectUri,
+    })
+    if (!url) {
+      setAuthUrl("")
+      setFrameUrl("")
       setLoading(false)
       return
     }
-    const url = new URL(OAUTH_URL)
-    url.searchParams.set("client_id", OAUTH_CLIENT_ID)
-    url.searchParams.set("redirect_uri", OAUTH_REDIRECT_URI)
+    setAuthUrl(url.toString())
     url.searchParams.set("qr", "1")
     url.searchParams.set("img_size", String(QR_SIZE))
+    setIframeLoading(true)
     setFrameUrl(url.toString())
     setLoading(false)
-  }
-
-  useEffect(() => {
-    loadFrame()
-     
-  }, [])
+  }, [authorization_endpoint, clientId, redirectUri])
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -112,12 +152,18 @@ export function OAuthQrLogin({
               marginTop: PAD - TITLE_CROP,
               marginLeft: PAD - (FRAME_WIDTH - QR_SIZE) / 2 - 1,
             }}
+            onLoad={() => setIframeLoading(false)}
           />
           {dark && (
             <div className="pointer-events-none absolute -inset-px bg-black/50" />
           )}
+          {iframeLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/85 backdrop-blur-[1px]">
+              <QrLoadingContent compact />
+            </div>
+          )}
           {submitting && (
-            <div className="absolute -inset-px flex items-center justify-center bg-background/70">
+            <div className="absolute -inset-px z-20 flex items-center justify-center bg-background/70">
               <div className="flex items-center gap-2 text-sm">
                 <LoaderCircle className="animate-spin" />
                 正在登录…
@@ -127,11 +173,11 @@ export function OAuthQrLogin({
         </div>
       ) : (
         <div
-          className="flex items-center justify-center rounded-md border border-dashed"
+          className="flex items-center justify-center rounded-md border bg-white"
           style={{ width: QR_SIZE + PAD * 2, height: QR_SIZE + PAD * 2 }}
         >
           {loading ? (
-            <LoaderCircle className="text-muted-foreground animate-spin" />
+            <QrLoadingContent compact />
           ) : (
             <span className="text-muted-foreground max-w-48 text-center text-xs">
               未配置扫码登录入口，请先完成 OAuth 配置
@@ -139,6 +185,55 @@ export function OAuthQrLogin({
           )}
         </div>
       )}
+      {authUrl && (
+        <a
+          href={authUrl}
+          className="text-muted-foreground hover:text-primary text-xs underline underline-offset-2"
+        >
+          咚咚统一登录认证
+        </a>
+      )}
     </div>
+  )
+}
+
+function QrLoadingContent({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span
+        className={cn(
+          "animate-spin rounded-full border-2 border-neutral-200 border-t-primary",
+          compact ? "size-6" : "size-7"
+        )}
+      />
+      <span
+        className={cn(
+          "text-neutral-500",
+          compact ? "text-[10px]" : "text-[11px]"
+        )}
+      >
+        正在加载二维码…
+      </span>
+    </div>
+  )
+}
+
+function QrCorner({
+  className,
+  delay,
+}: {
+  className?: string
+  delay?: string
+}) {
+  return (
+    <span
+      className={cn(
+        "absolute flex size-6 animate-pulse items-center justify-center rounded-sm border-[3px] border-neutral-200",
+        className
+      )}
+      style={{ animationDelay: delay }}
+    >
+      <span className="size-1.5 rounded-[1px] bg-neutral-300" />
+    </span>
   )
 }

@@ -6,6 +6,8 @@ import { LoginPage } from "@/pages/login"
 import { ZipArchivePage } from "@/pages/zip-archive"
 import { ZipArchiveDetailPage } from "@/pages/zip-archive-detail"
 import { ReverseProxiesPage } from "@/pages/reverse-proxies"
+import { OAuthConfigPage } from "@/pages/oauth-config"
+import { VictoriaMetricsPage } from "@/pages/victoria-metrics"
 import { SettingsPage } from "@/pages/settings"
 import { BrokersPage } from "@/pages/brokers"
 import { BrokerDetailPage } from "@/pages/broker-detail"
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="/zip-archives" element={<ZipArchivePage />} />
           <Route path="/zip-archives/:name" element={<ZipArchiveDetailPage />} />
           <Route path="/reverse-proxies" element={<ReverseProxiesPage />} />
+          <Route path="/configs/oauth" element={<OAuthConfigPage />} />
+          <Route path="/configs/victoria-metrics" element={<VictoriaMetricsPage />} />
           <Route path="/brokers" element={<BrokersPage />} />
           <Route path="/brokers/:slug" element={<BrokerDetailPage />} />
           <Route path="/central" element={<CentralPage />} />

@@ -1,14 +1,16 @@
 import { http } from "@/lib/http"
 
+import type { BuildInfo } from "@/features/buildinfo/types"
 import type {
   Broker,
-  BrokerConfig,
   BrokerConnectHistoryPages,
   BrokerForm,
   BrokerRecords,
   BrokerRoutes,
   BrokerSubstreams,
-  ManagerConfig,
+  BrokerItselfConfig,
+  CronJobRecords,
+  ItselfConfig,
 } from "./types"
 
 export const brokerApi = {
@@ -20,28 +22,32 @@ export const brokerApi = {
     return http.get<Broker>("/broker", { slug })
   },
 
-  config() {
-    return http.get<ManagerConfig>("/config")
+  effectConfig() {
+    return http.get<ItselfConfig>("/itself/config/effect")
   },
 
   runningConfig(slug: string) {
-    return http.get<BrokerConfig>(`/br/${slug}/api/v3/config/boot`)
+    return http.get<BrokerItselfConfig>(`/br/${slug}/api/v3/itself/config`)
   },
 
-  routes(slug: string, kind: "brokers" | "agents" | "exposes" = "brokers") {
-    return http.get<BrokerRoutes>(`/br/${slug}/api/v3/route/${kind}`)
+  buildInfo(slug: string) {
+    return http.get<BuildInfo>(`/br/${slug}/api/v3/itself/buildinfo`)
+  },
+
+  routes(slug: string, kind: "managers" | "agents" | "exposes" = "managers") {
+    return http.get<BrokerRoutes>(`/br/${slug}/api/v3/itself/route/${kind}`)
   },
 
   softExitDeadline(slug: string) {
-    return http.get<string | { data?: string }>(`/br/${slug}/api/v3/soft/exit`)
+    return http.get<string | { data?: string }>(`/br/${slug}/api/v3/itself/exit`)
   },
 
   softExit(slug: string, seconds: number) {
-    return http.post<unknown>(`/br/${slug}/api/v3/soft/exit`, { seconds })
+    return http.post<unknown>(`/br/${slug}/api/v3/itself/exit`, { seconds })
   },
 
   softExitCancel(slug: string) {
-    return http.delete<unknown>(`/br/${slug}/api/v3/soft/exit`)
+    return http.delete<unknown>(`/br/${slug}/api/v3/itself/exit`)
   },
 
   connectHistories(slug: string, page: number, size: number) {
@@ -62,6 +68,14 @@ export const brokerApi = {
 
   killSubstream(slug: string, id: string) {
     return http.delete<unknown>("/broker/substream", { slug, id })
+  },
+
+  crontabJobs(slug: string) {
+    return http.get<CronJobRecords>(`/br/${slug}/api/v3/itself/crontab/jobs`)
+  },
+
+  crontabRemove(slug: string, id: string) {
+    return http.delete<unknown>(`/br/${slug}/api/v3/itself/crontab/job`, { id })
   },
 
   create(data: BrokerForm) {

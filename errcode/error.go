@@ -8,7 +8,7 @@ var (
 
 	ErrUnsupportedWebSocket = ship.ErrBadRequest.Newf("该接口接口不支持 websocket 请求")
 	ErrRequiredWebSocket    = ship.ErrBadRequest.Newf("该接口必须是 websocket 协议的请求")
-	ErrNodeNotExist         = ship.ErrBadRequest.Newf("节点不存在或已经离线")
+	ErrNodeNotExist         = ship.ErrBadRequest.Newf("节点不存在")
 	ErrTagNotExist          = ship.ErrBadRequest.Newf("标签不存在")
 	ErrSubstanceNotExist    = ship.ErrBadRequest.Newf("配置不存在")
 	ErrSubstanceEffected    = ship.ErrBadRequest.Newf("配置已经发布")
@@ -43,6 +43,15 @@ var (
 	ErrAlreadyExist         = ship.ErrBadRequest.Newf("数据已存在")
 	ErrNotExist             = ship.ErrBadRequest.Newf("数据不存在")
 	ErrEditRunningTask      = ship.ErrBadRequest.Newf("任务运行中不允许修改")
+
+	ErrMissingAgentNodeIdentify = ship.ErrBadRequest.Newf("缺少探针节点身份标识")
+	ErrInvalidAgentNodeIdentify = ship.ErrBadRequest.Newf("探针节点身份标识错误")
+	ErrAgentNodeOffline         = ship.ErrBadRequest.Newf("探针节点已离线")
+	ErrBrokerNodeOffline        = ship.ErrBadRequest.Newf("中继节点已离线")
+	ErrVictoriaNotConfigured    = ship.ErrBadRequest.Newf("没有配置 VictoriaMetrics 地址")
+	ErrVictoriaDisabled         = ship.ErrBadRequest.Newf("VictoriaMetrics 未启用")
+	ErrForbiddenOAuth           = ship.ErrForbidden.Newf("当前认证方式已暂停使用")
+	ErrAuthFailed               = ship.ErrBadRequest.Newf("认证失败")
 )
 
 type Errorf interface {

@@ -102,9 +102,11 @@ func (svc *Shared) Update(ctx context.Context, req *param.SharedUpdate) error {
 		return errcode.ErrNotExist
 	}
 
-	_, err := tbl.WithContext(ctx).
-		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
-		UpdateSimple(tbl.Value.Value(req.Value))
+	//_, err := tbl.WithContext(ctx).
+	//	Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
+	//	UpdateSimple(tbl.Value.Value(req.Value))
 
-	return err
+	//return err
+
+	return nil
 }

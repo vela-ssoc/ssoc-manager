@@ -14,3 +14,13 @@ type sessionData struct {
 	ExecuteStat model.ExecuteStat
 	ConnectedAt time.Time
 }
+
+type EventData struct {
+	Slug           string    `json:"slug"`
+	Name           string    `json:"name"`
+	Inet           string    `json:"inet"`
+	Version        string    `json:"version"`
+	Text           string    `json:"text,omitzero"`
+	ConnectedAt    time.Time `json:"connected_at,omitzero"`
+	DisconnectedAt time.Time `json:"disconnected_at,omitzero"`
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "@/lib/toast"
 import { ArrowDown, ArrowUp, Plus, Search } from "lucide-react"
@@ -10,8 +10,16 @@ import { formatDateTime, formatDuration } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { brokerApi } from "@/features/broker/api"
 import { BrokerDialog } from "@/features/broker/broker-dialog"
+import {
+  brokerMetricWindow,
+  fetchBrokerMetrics,
+  type BrokerMetricData,
+} from "@/features/broker/broker-metrics"
+import { BrokerMetricsPanel } from "@/features/broker/broker-metrics-panel"
 import type { Broker, BrokerForm, ManagerConfig } from "@/features/broker/types"
-import { formatBytes } from "@/features/broker/types"
+import { formatBytes, toManagerConfig } from "@/features/broker/types"
+import type { MonitorWindow } from "@/features/central/monitoring"
+import { useServerEvent } from "@/features/server-events/use-server-events"
 
 export function BrokersPage() {
   const navigate = useNavigate()
@@ -22,6 +30,10 @@ export function BrokersPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  const [metricWindow] = useState<MonitorWindow>(() => brokerMetricWindow())
+  const [metrics, setMetrics] = useState<Record<string, BrokerMetricData>>({})
+  const [metricsLoading, setMetricsLoading] = useState(true)
+  const [metricsError, setMetricsError] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -44,11 +56,60 @@ export function BrokersPage() {
     void load()
   }, [load])
 
+  const refresh = useCallback(async () => {
+    try {
+      const result = await brokerApi.list()
+      setRecords(result.records ?? [])
+    } catch {
+      return
+    }
+  }, [])
+
+  const refreshTimer = useRef<number | null>(null)
+  useServerEvent(["broker.online", "broker.offline"], () => {
+    if (refreshTimer.current !== null) window.clearTimeout(refreshTimer.current)
+    refreshTimer.current = window.setTimeout(() => {
+      refreshTimer.current = null
+      void refresh()
+    }, 400)
+  })
+
   useEffect(() => {
-    void brokerApi
-      .config()
-      .then(setManagerConfig)
-      .catch(() => setManagerConfig(null))
+    return () => {
+      if (refreshTimer.current !== null) window.clearTimeout(refreshTimer.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setMetricsLoading(true)
+    setMetricsError(false)
+    fetchBrokerMetrics(metricWindow)
+      .then((data) => {
+        if (!cancelled) setMetrics(data)
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setMetricsError(true)
+        toast.error(err instanceof Error ? err.message : "加载中继节点指标失败")
+      })
+      .finally(() => {
+        if (!cancelled) setMetricsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [metricWindow])
+
+  const openDialog = useCallback(async () => {
+    setDialogOpen(true)
+    try {
+      const cfg = await brokerApi.effectConfig()
+      setManagerConfig(toManagerConfig(cfg))
+    } catch {
+      setManagerConfig(null)
+    }
   }, [])
 
   const filtered = useMemo(() => {
@@ -87,7 +148,7 @@ export function BrokersPage() {
             onChange={(event) => setKeyword(event.target.value)}
           />
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" onClick={() => void openDialog()}>
           <Plus /> 新建
         </Button>
       </div>
@@ -102,7 +163,7 @@ export function BrokersPage() {
             {records.length === 0 ? "暂无中继节点" : "没有匹配项"}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3">
             {filtered.map((broker) => (
               <div
                 key={broker.id}
@@ -110,88 +171,105 @@ export function BrokersPage() {
                 tabIndex={0}
                 onClick={() => navigate(`/brokers/${broker.slug}`)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") navigate(`/brokers/${broker.slug}`)
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    navigate(`/brokers/${broker.slug}`)
+                  }
                 }}
-                className="flex cursor-pointer flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20"
+                className="grid cursor-pointer grid-cols-1 gap-4 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <TooltipHint content={broker.name || broker.slug}>
-                    <h2 className="min-w-0 truncate text-sm font-semibold">
-                      {broker.name || broker.slug}
-                    </h2>
-                  </TooltipHint>
-                  <TooltipHint content={broker.status ? "在线" : "离线"}>
-                    <span
-                      role="status"
-                      aria-label={broker.status ? "在线" : "离线"}
-                      className="inline-flex shrink-0 cursor-help items-center"
-                    >
+                <div className="flex min-w-0 flex-col gap-3 lg:border-r lg:pr-4">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <TooltipHint content={brokerTitle(broker)}>
+                      <h2 className="min-w-0 truncate text-sm font-semibold">
+                        {brokerTitle(broker)}
+                      </h2>
+                    </TooltipHint>
+                    <TooltipHint content={broker.status ? "在线" : "离线"}>
                       <span
-                        className={cn(
-                          "size-2 rounded-full",
-                          broker.status
-                            ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]"
-                            : "bg-muted-foreground/50"
-                        )}
+                        role="status"
+                        aria-label={broker.status ? "在线" : "离线"}
+                        className="inline-flex shrink-0 cursor-help items-center"
+                      >
+                        <span
+                          className={cn(
+                            "size-2 rounded-full",
+                            broker.status
+                              ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]"
+                              : "bg-muted-foreground/50"
+                          )}
+                        />
+                      </span>
+                    </TooltipHint>
+                    <div className="ml-auto flex shrink-0 items-center gap-2 text-[11px]">
+                      <TrafficField
+                        direction="up"
+                        value={formatBytes(broker.tunnel_stat?.transmit_bytes ?? 0)}
                       />
-                    </span>
-                  </TooltipHint>
-                  <div className="ml-auto flex shrink-0 items-center gap-2 text-[11px]">
-                    <TrafficField
-                      direction="up"
-                      value={formatBytes(broker.tunnel_stat?.transmit_bytes ?? 0)}
+                      <TrafficField
+                        direction="down"
+                        value={formatBytes(broker.tunnel_stat?.receive_bytes ?? 0)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+                    <BrokerField label="主机名" value={broker.execute_stat?.hostname || "—"} />
+                    <BrokerField
+                      label="平台"
+                      value={
+                        [broker.execute_stat?.goos, broker.execute_stat?.goarch]
+                          .filter(Boolean)
+                          .join("/") || "—"
+                      }
                     />
-                    <TrafficField
-                      direction="down"
-                      value={formatBytes(broker.tunnel_stat?.receive_bytes ?? 0)}
+                    <BrokerField label="版本号" value={broker.execute_stat?.version || "—"} mono />
+                    <BrokerField label="隧道类型" value={broker.tunnel_stat?.library || "—"} />
+                    <BrokerField
+                      label="活跃子流"
+                      value={String(broker.active_streams ?? 0)}
+                    />
+                    <BrokerField
+                      label="累计子流"
+                      value={String(broker.tunnel_stat?.cumulative ?? 0)}
+                    />
+                    <BrokerField
+                      label="本地地址"
+                      value={broker.tunnel_stat?.local_addr || "—"}
+                      mono
+                    />
+                    <BrokerField
+                      label="中心端地址"
+                      value={broker.tunnel_stat?.remote_addr || "—"}
+                      mono
+                    />
+                    <BrokerField
+                      label="连接时间"
+                      value={
+                        broker.tunnel_stat?.connected_at
+                          ? formatDateTime(broker.tunnel_stat.connected_at)
+                          : "—"
+                      }
+                    />
+                    <BrokerField label="持续时长" value={duration(broker.tunnel_stat?.connected_at, now)} />
+                    <BrokerField
+                      label="最近心跳"
+                      value={
+                        broker.heartbeat_at ? formatDateTime(broker.heartbeat_at) : "—"
+                      }
                     />
                   </div>
                 </div>
 
-                <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
-                  <BrokerField label="主机名" value={broker.execute_stat?.hostname || "—"} />
-                  <BrokerField
-                    label="平台"
-                    value={
-                      [broker.execute_stat?.goos, broker.execute_stat?.goarch]
-                        .filter(Boolean)
-                        .join("/") || "—"
-                    }
-                  />
-                  <BrokerField label="版本号" value={broker.execute_stat?.version || "—"} mono />
-                  <BrokerField label="隧道类型" value={broker.tunnel_stat?.library || "—"} />
-                  <BrokerField
-                    label="活跃子流"
-                    value={String(broker.active_streams ?? 0)}
-                  />
-                  <BrokerField
-                    label="累计子流"
-                    value={String(broker.tunnel_stat?.cumulative ?? 0)}
-                  />
-                  <BrokerField
-                    label="本地地址"
-                    value={broker.tunnel_stat?.local_addr || "—"}
-                    mono
-                  />
-                  <BrokerField
-                    label="中心端地址"
-                    value={broker.tunnel_stat?.remote_addr || "—"}
-                    mono
-                  />
-                  <BrokerField
-                    label="连接时间"
-                    value={
-                      broker.tunnel_stat?.connected_at
-                        ? formatDateTime(broker.tunnel_stat.connected_at)
-                        : "—"
-                    }
-                  />
-                  <BrokerField label="持续时长" value={duration(broker.tunnel_stat?.connected_at, now)} />
-                  <BrokerField
-                    label="最近心跳"
-                    value={
-                      broker.heartbeat_at ? formatDateTime(broker.heartbeat_at) : "—"
-                    }
+                <div
+                  className="min-w-0"
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <BrokerMetricsPanel
+                    data={metrics[broker.slug]}
+                    window={metricWindow}
+                    loading={metricsLoading}
+                    error={metricsError}
                   />
                 </div>
               </div>
@@ -216,6 +294,10 @@ function duration(connectedAt: string | undefined, now: number): string {
   const started = new Date(connectedAt).getTime()
   if (Number.isNaN(started)) return "—"
   return formatDuration((now - started) / 1000)
+}
+
+function brokerTitle(broker: Broker): string {
+  return [broker.slug, broker.name].filter(Boolean).join(" · ") || "—"
 }
 
 function BrokerField({

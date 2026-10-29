@@ -10,6 +10,8 @@ export type AuthProfile = Omit<AuthSession, "token">
 
 const PROFILE_KEY = "auth-profile"
 
+export const AUTH_PROFILE_KEY = PROFILE_KEY
+
 export function saveAuthSession(session: AuthSession) {
   try {
     localStorage.setItem("token", session.token)

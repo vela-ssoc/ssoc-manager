@@ -12,6 +12,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
+	"github.com/vela-ssoc/ssoc-common-mb/pubsub"
 	"github.com/vela-ssoc/ssoc-manager/config"
 	"github.com/vela-ssoc/vela-tunnel/muxconn"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -30,15 +31,17 @@ type server struct {
 	hub  muxproto.Huber
 	boot config.Config
 	cfg  *model.ManagerConfig
+	pub  pubsub.Publisher
 	opts Options
 }
 
-func NewServer(db polydb.Sourcer, hub muxproto.Huber, boot config.Config, cfg *model.ManagerConfig, opts Options) muxproto.MUXServer {
+func NewServer(db polydb.Sourcer, hub muxproto.Huber, boot config.Config, cfg *model.ManagerConfig, pub pubsub.Publisher, opts Options) muxproto.MUXServer {
 	return &server{
 		db:   db,
 		hub:  hub,
 		boot: boot,
 		cfg:  cfg,
+		pub:  pub,
 		opts: opts,
 	}
 }
@@ -54,9 +57,24 @@ func (s *server) ServeMUX(mux muxconn.Muxer) error {
 	}
 
 	s.log().Debug("开始服务节点业务", "session", sess)
+
+	evtdata := EventData{
+		Slug:        sess.Model.Slug,
+		Name:        sess.Model.Name,
+		Inet:        sess.Request.Inet,
+		Version:     sess.Request.Version,
+		ConnectedAt: now,
+	}
+	s.pub.Publish("broker.online", evtdata)
+
 	err = s.serveHTTP(peer)
+	disAt := time.Now()
+
 	s.log().Debug("节点下线", "session", sess, "err", err)
-	s.disconnected(peer, sess)
+	s.disconnected(peer, sess, disAt)
+
+	evtdata.DisconnectedAt = disAt
+	s.pub.Publish("broker.offline", evtdata)
 
 	return nil
 }
@@ -68,9 +86,9 @@ func (s *server) responseError(conn net.Conn, err *muxproto.AuthError) error {
 	return muxconn.WriteAuth(conn, err)
 }
 
-func (s *server) responseConfig(conn net.Conn, cfg any) error {
+func (s *server) responseConfig(conn net.Conn, cfg model.BrokerConfig) error {
 	timeout := s.perTimeout()
-	resp := &muxproto.BrokerAuthResponse{Code: http.StatusAccepted, Config: cfg}
+	resp := muxproto.NewAcceptedBrokerAuthResponse(cfg)
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
 
 	return muxconn.WriteAuth(conn, resp)
@@ -153,10 +171,22 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node
 		return nil, nil, ae
 	}
 	sess.Model = brok
+	event := EventData{
+		Slug:        brok.Slug,
+		Name:        brok.Name,
+		Inet:        auth.Inet,
+		Version:     auth.Version,
+		ConnectedAt: now,
+	}
+
 	if brok.Status {
-		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（数据库校验）"}
+		msg := "节点已经在线（数据库校验）"
+		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: msg}
 		s.log().Warn("预检节点在线状态", "request", auth, "err", ae)
 		s.responseError(conn, ae)
+
+		event.Text = msg
+		s.pub.Publish("broker.conflict", event)
 
 		return nil, nil, ae
 	}
@@ -164,9 +194,14 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node
 	slug := brok.Slug
 	peer := s.hub.Put(slug, mux, nil)
 	if peer == nil {
-		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: "节点已经在线（连接池检查）"}
+		msg := "节点已经在线（连接池检查）"
+		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: msg}
 		s.log().Warn("预检节点在线状态", "request", auth, "err", ae)
 		s.responseError(conn, ae)
+
+		event.Text = msg
+		s.pub.Publish("broker.conflict", event)
+
 		return nil, nil, ae
 	}
 
@@ -186,16 +221,16 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node
 		ae := &muxproto.AuthError{Code: http.StatusInternalServerError, Text: err.Error()}
 		s.log().Error("修改数据库上线状态出错", "request", auth, "err", ae)
 		s.responseError(conn, ae)
+
 		return nil, nil, ae
 	}
 
 	return peer, sess, nil
 }
 
-func (s *server) disconnected(p muxproto.Node, data *sessionData) {
-	slug, disconnAt := data.Model.Slug, time.Now()
+func (s *server) disconnected(p muxproto.Node, data *sessionData, disconnAt time.Time) {
+	slug, mux := data.Model.Slug, p.MUX()
 
-	mux := p.MUX()
 	tx, rx := mux.Traffic() // 中心端侧 RX/TX 互换
 	{
 		filter := bson.D{{Key: "slug", Value: slug}, {Key: "status", Value: true}}

@@ -9,7 +9,7 @@ func NewRecords[T any](ts []T) Records[T] {
 }
 
 type Data[T any] struct {
-	Data T `json:"data"`
+	Data T `json:"data,omitzero"`
 }
 
 func NewData[T any](t T) Data[T] {

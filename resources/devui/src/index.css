@@ -582,3 +582,24 @@ input[type="number"] {
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.event-toast-enter {
+  animation: event-toast-enter 0.18s ease-out;
+}
+
+@keyframes event-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-toast-enter {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-package launch
+package launch_test
 
 import (
 	"context"
@@ -235,7 +235,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	store := storage.NewStore(qry)
 
 	digestService := service.NewDigest()
-	sequenceService := service.Sequence()
+	sequenceService := service.NewSequence()
 
 	userService := service.NewUser(qry, digestService, casClient, log)
 	userREST := mgtapi.NewUser(userService)
@@ -413,7 +413,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	thirdCustomizedREST.Route(anon, bearer, basic)
 
 	brokerService := service.NewBroker(qry)
-	brokerREST := mgtapi.Broker(brokerService)
+	brokerREST := mgtapi.NewBroker(brokerService)
 	brokerREST.Route(anon, bearer, basic)
 
 	brokerBinaryService := service.NewBrokerBinary(qry, gfs, store)
@@ -495,15 +495,12 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	zombieConnectSvc := exposesvc.NewZombieConnect(qry, log)
 	exposeapi.NewZombieConnect(zombieConnectSvc).BindRoute(bearer)
 
-	davREST := mgtapi.NewDavFS(baseV1)
-	davREST.Route(anon, bearer, basic)
-
 	{
 		baseV3 := "/api/v3"
 		v3noauth := sh.Group(baseV3).Use(recordMid)
 		v3auth := v3noauth.Clone().Use(auth.Bearer)
 		routeV3 := shipx.RouteGroup{
-			Ship:        sh,
+			// Ship:        sh,
 			APIV3:       v3auth,
 			APIV3NoAuth: v3noauth,
 			Broker:      brkmux,

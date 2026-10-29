@@ -333,8 +333,19 @@ export function ZipArchiveDetailPage() {
           {selected ? (
             <ContentPreview
               key={selected.id}
-              archiveName={name}
               file={selected}
+              source={{
+                load: () => zipFileApi.content(name, selected.full_name),
+                downloadUrl: zipFileApi.contentUrl(name, selected.full_name),
+                save: async (content) => {
+                  await zipFileApi.update(
+                    name,
+                    selected.full_name,
+                    content,
+                    selected.file_name
+                  )
+                },
+              }}
               onChanged={() => {
                 void load()
               }}

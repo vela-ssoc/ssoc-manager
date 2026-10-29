@@ -21,7 +21,7 @@ import { useTheme } from "@/providers/theme-provider"
 import { brokerApi } from "@/features/broker/api"
 import type { BrokerRouteInfo } from "@/features/broker/types"
 
-type RouteKind = "brokers" | "agents" | "exposes"
+type RouteKind = "managers" | "agents" | "exposes"
 
 export function RouteApiSection({
   slug,

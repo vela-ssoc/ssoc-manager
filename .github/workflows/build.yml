@@ -6,43 +6,66 @@ name: 编译
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches:
+      - v3
 #  pull_request:
 #    branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: 拉取代码
-        uses: actions/checkout@v6
+    env:
+      CGO_ENABLED: 0
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - os: linux
+            arch: amd64
+          - os: android
+            arch: arm64
+          - os: windows
+            arch: amd64
 
-      - name: 安装 Go SDK
-        uses: actions/setup-go@v6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           check-latest: true
 
-      - name: 编译 linux-amd64
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v7
+        with:
+          cache: npm
+          cache-dependency-path: resources/devui/package-lock.json
+
+      - name: Build Backend ${{ matrix.target.os }}-${{ matrix.target.arch }}
         env:
-          GOOS: linux
-          GOARCH: amd64
-        run: sh build.sh
+          GOOS: ${{ matrix.target.os }}
+          GOARCH: ${{ matrix.target.arch }}
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
 
-      - name: 编译 windows-amd64
-        env:
-          GOOS: windows
-          GOARCH: amd64
-        run: sh build.sh
+      - name: Build Frontend
+        working-directory: resources/frontend
+        run: |
+          npm ci
+          npm run build
 
-      - name: 获取短哈希
-        id: vars
-        run: echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Set Artifact name
+        id: artifact
+        run: echo "name=ssoc-manager-${{ matrix.target.os }}-${{ matrix.target.arch }}-$(date -u '+%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
 
-      - name: 上传产物
+      - name: Upload a Build Artifact
         uses: actions/upload-artifact@v7
         with:
-          retention-days: 30
-          name: ssoc-manager_${{ env.GIT_SHORT_SHA }}
-          path: ssoc-manager_*
+          name: ${{ steps.artifact.outputs.name }}
+          path: |
+            ssoc-manager-${{ matrix.target.os }}-${{ matrix.target.arch }}-*
+            resources/static
+            VERSION

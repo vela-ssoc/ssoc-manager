@@ -18,7 +18,6 @@ import { getMonacoFontFamily } from "@/lib/fonts"
 import { useIsDark } from "@/features/zip-file/file-icon"
 import { useTheme } from "@/providers/theme-provider"
 
-import { zipFileApi } from "./api"
 import { CsvTable, MarkdownPreview } from "./renderers"
 import {
   fileExtension,
@@ -26,8 +25,22 @@ import {
   isImageFile,
   isTextFile,
   MAX_EDITABLE_SIZE,
-  type ZipFile,
 } from "./types"
+
+export interface PreviewFile {
+  id: string
+  file_name: string
+  full_name: string
+  file_size: number
+  mime_type: string
+  is_directory: boolean
+}
+
+export interface ContentPreviewSource {
+  load: () => Promise<Blob>
+  downloadUrl: string
+  save?: (content: string) => Promise<void>
+}
 
 const EDITABLE_LANGUAGES: Record<string, string> = {
   js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
@@ -51,12 +64,12 @@ const EDITABLE_LANGUAGES: Record<string, string> = {
 }
 
 export function ContentPreview({
-  archiveName,
   file,
+  source,
   onChanged,
 }: {
-  archiveName: string
-  file: ZipFile
+  file: PreviewFile
+  source: ContentPreviewSource
   onChanged?: () => void
 }) {
   const isDir = file.is_directory
@@ -67,13 +80,14 @@ export function ContentPreview({
   const isSvg = ext === "svg"
   const isMarkdown = ext === "md" || ext === "markdown"
   const isCsv = ext === "csv" || ext === "tsv"
+  const readOnly = !source.save
 
   const [content, setContent] = useState<string>("")
   const [imageUrl, setImageUrl] = useState<string>("")
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
-  const [split, setSplit] = useState(true)
+  const [split, setSplit] = useState(false)
   const [csvEdit, setCsvEdit] = useState(false)
   const originalContentRef = useRef("")
   const previewRef = useRef<HTMLDivElement | null>(null)
@@ -89,9 +103,8 @@ export function ContentPreview({
     setImageUrl("")
     setDirty(false)
 
-    const full = file.full_name
-    zipFileApi
-      .content(archiveName, full)
+    source
+      .load()
       .then((blob) => {
         if (cancelled) return
         if (isSvg) {
@@ -127,7 +140,7 @@ export function ContentPreview({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [archiveName, file.id, isDir, edited])
+  }, [file.id, file.full_name, isDir, edited])
 
   useEffect(() => {
     return () => {
@@ -162,10 +175,25 @@ export function ContentPreview({
     )
   }
 
+  if (edited) {
+    return (
+      <div className="flex h-full flex-col">
+        <PreviewHeader file={file} downloadUrl={source.downloadUrl} />
+        <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+          <FileWarning className="size-10 opacity-40" />
+          <span className="text-sm">文件过大，暂不支持预览</span>
+          <span className="text-xs">
+            {formatFileSize(file.file_size)}（上限 1 MB）
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   if (isImage) {
     return (
       <div className="flex h-full flex-col">
-        <PreviewHeader archiveName={archiveName} file={file} />
+        <PreviewHeader file={file} downloadUrl={source.downloadUrl} />
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-auto p-4">
           {imageUrl ? (
             <img
@@ -185,26 +213,11 @@ export function ContentPreview({
   if (!isText) {
     return (
       <div className="flex h-full flex-col">
-        <PreviewHeader archiveName={archiveName} file={file} />
+        <PreviewHeader file={file} downloadUrl={source.downloadUrl} />
         <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
           <FileWarning className="size-10 opacity-40" />
           <span className="text-sm">该类型文件不支持预览</span>
           <span className="text-xs">{formatFileSize(file.file_size)}</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (edited) {
-    return (
-      <div className="flex h-full flex-col">
-        <PreviewHeader archiveName={archiveName} file={file} />
-        <div className="text-muted-foreground flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
-          <FileWarning className="size-10 opacity-40" />
-          <span className="text-sm">文件过大，暂不支持在线编辑</span>
-          <span className="text-xs">
-            {formatFileSize(file.file_size)}（上限 1 MB）
-          </span>
         </div>
       </div>
     )
@@ -219,7 +232,7 @@ export function ContentPreview({
         <div className="flex items-center gap-1">
           <TooltipHint content="下载">
             <a
-              href={zipFileApi.contentUrl(archiveName, file.full_name)}
+              href={source.downloadUrl}
               aria-label="下载"
               className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
             >
@@ -252,26 +265,29 @@ export function ContentPreview({
               </Button>
             </TooltipHint>
           )}
-          <Button
-            size="sm"
-            disabled={!dirty || saving}
-            onClick={async () => {
-              setSaving(true)
-              try {
-                await zipFileApi.update(archiveName, file.full_name, content, file.file_name)
-                toast.success("保存成功")
-                originalContentRef.current = content
-                setDirty(false)
-                onChanged?.()
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "保存失败")
-              } finally {
-                setSaving(false)
-              }
-            }}
-          >
-            <Save /> {saving ? "保存中…" : "保存"}
-          </Button>
+          {source.save && (
+            <Button
+              size="sm"
+              disabled={!dirty || saving}
+              onClick={async () => {
+                if (!source.save) return
+                setSaving(true)
+                try {
+                  await source.save(content)
+                  toast.success("保存成功")
+                  originalContentRef.current = content
+                  setDirty(false)
+                  onChanged?.()
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "保存失败")
+                } finally {
+                  setSaving(false)
+                }
+              }}
+            >
+              <Save /> {saving ? "保存中…" : "保存"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -286,6 +302,7 @@ export function ContentPreview({
               path={file.full_name}
               language={language}
               value={content}
+              readOnly={readOnly}
               onMount={(editor) => {
                 editorRef.current = editor
                 editor.onDidScrollChange(() => {
@@ -317,6 +334,7 @@ export function ContentPreview({
             path={file.full_name}
             language={language}
             value={content}
+            readOnly={readOnly}
             onChange={(value) => {
               handleEditorChange(value)
             }}
@@ -328,11 +346,11 @@ export function ContentPreview({
 }
 
 function PreviewHeader({
-  archiveName,
   file,
+  downloadUrl,
 }: {
-  archiveName: string
-  file: ZipFile
+  file: PreviewFile
+  downloadUrl: string
 }) {
   return (
     <div className="flex items-center justify-between gap-2 border-b px-3 py-1">
@@ -341,7 +359,7 @@ function PreviewHeader({
       </div>
       <TooltipHint content="下载">
         <a
-          href={zipFileApi.contentUrl(archiveName, file.full_name)}
+          href={downloadUrl}
           aria-label="下载"
           className="hover:bg-accent hover:text-accent-foreground flex size-7 items-center justify-center rounded-md"
         >
@@ -356,12 +374,14 @@ function CodeEditor({
   path,
   language,
   value,
+  readOnly = false,
   onChange,
   onMount,
 }: {
   path: string
   language: string
   value: string
+  readOnly?: boolean
   onChange: (value: string) => void
   onMount?: (editor: editor.IStandaloneCodeEditor) => void
 }) {
@@ -397,6 +417,7 @@ function CodeEditor({
         automaticLayout: true,
         wordWrap: "on",
         tabSize: 4,
+        readOnly,
       }}
       onChange={(value) => onChange(value ?? "")}
     />

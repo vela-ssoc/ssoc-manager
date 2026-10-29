@@ -10,7 +10,6 @@ type HTTPRegister interface {
 }
 
 type RouteGroup struct {
-	Ship        *ship.Ship
 	APIV3       *ship.RouteGroupBuilder
 	APIV3NoAuth *ship.RouteGroupBuilder
 	Broker      *ship.Ship

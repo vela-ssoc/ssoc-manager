@@ -12,7 +12,7 @@ import (
 
 	"github.com/vela-public/onekit/lua/parse"
 	"github.com/vela-ssoc/luatemplate"
-	"github.com/vela-ssoc/ssoc-common-mb/cronv3"
+	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
@@ -26,19 +26,19 @@ import (
 	"gorm.io/gen/field"
 )
 
-func NewTaskExtension(qry *query.Query, hub linkhub.Huber, flt *minionfilter.Filter, crontab *cronv3.Crontab) *TaskExtension {
+func NewTaskExtension(qry *query.Query, hub linkhub.Huber, flt *minionfilter.Filter, crond *crontab.Table) *TaskExtension {
 	exec := taskexec.New(qry, hub, flt)
 	return &TaskExtension{
-		qry:     qry,
-		crontab: crontab,
-		exec:    exec,
+		qry:   qry,
+		crond: crond,
+		exec:  exec,
 	}
 }
 
 type TaskExtension struct {
-	qry     *query.Query
-	crontab *cronv3.Crontab // 定时器
-	exec    *taskexec.TaskExec
+	qry   *query.Query
+	crond *crontab.Table
+	exec  *taskexec.TaskExec
 }
 
 func (tim *TaskExtension) Init(ctx context.Context) {
@@ -49,14 +49,8 @@ func (tim *TaskExtension) Init(ctx context.Context) {
 	tasks, _ := dao.Where(tbl.Enabled.Is(true), ors).Find()
 
 	for _, task := range tasks {
-		cronName := tim.taskName(task.ID)
-		cronFunc := tim.execute(task.ID)
-		if len(task.SpecificTimes) != 0 {
-			times := cronv3.NewSpecificTimes(task.SpecificTimes)
-			tim.crontab.Schedule(cronName, times, cronFunc)
-		} else if task.Cron != "" {
-			tim.crontab.AddFunc(cronName, task.Cron, cronFunc)
-		}
+		job := tim.newTaskExtensionExprJob(task.ID, task.Name, task.SpecificTimes, task.Cron)
+		_ = tim.crond.AddJob(job)
 	}
 }
 
@@ -398,12 +392,12 @@ func (tim *TaskExtension) CreatePublish(ctx context.Context, req *mrequest.TaskE
 		return err
 	}
 
-	cronName := tim.taskName(data.ID)
 	if cron := req.Cron; cron != "" {
-		tim.crontab.AddFunc(cronName, cron, tim.execute(data.ID))
+		job := tim.newTaskExtensionExprJob(data.ID, data.Name, nil, cron)
+		_ = tim.crond.AddJob(job)
 	} else if sts := req.SpecificTimes; len(sts) != 0 {
-		times := cronv3.NewSpecificTimes(sts)
-		tim.crontab.Schedule(cronName, times, tim.execute(data.ID))
+		job := tim.newTaskExtensionExprJob(data.ID, data.Name, sts, "")
+		_ = tim.crond.AddJob(job)
 	} else {
 		go tim.execute(data.ID)()
 	}
@@ -505,12 +499,12 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 		return err
 	}
 
-	cronName := tim.taskName(req.ID)
 	if cron := req.Cron; cron != "" {
-		tim.crontab.AddFunc(cronName, cron, tim.execute(req.ID))
+		job := tim.newTaskExtensionExprJob(req.ID, old.Name, nil, cron)
+		_ = tim.crond.AddJob(job)
 	} else if sts := req.SpecificTimes; len(sts) != 0 {
-		times := cronv3.NewSpecificTimes(sts)
-		tim.crontab.Schedule(cronName, times, tim.execute(req.ID))
+		job := tim.newTaskExtensionExprJob(req.ID, old.Name, sts, "")
+		_ = tim.crond.AddJob(job)
 	} else {
 		go tim.execute(req.ID)()
 	}
@@ -518,12 +512,40 @@ func (tim *TaskExtension) UpdatePublish(ctx context.Context, req *mrequest.TaskE
 	return nil
 }
 
-func (tim *TaskExtension) taskName(id int64) string {
-	return "task-extension:" + strconv.FormatInt(id, 10)
-}
-
 func (tim *TaskExtension) execute(id int64) func() {
 	return func() {
 		_ = tim.exec.Exec(context.Background(), id)
 	}
+}
+
+func (tim *TaskExtension) newTaskExtensionExprJob(id int64, name string, times []time.Time, expr string) *taskExtensionJob {
+	sid := "task-extension:" + strconv.FormatInt(id, 10)
+	opt := crontab.JobOptions{ID: sid, Name: name}
+	if len(times) != 0 {
+		opt.Sched = crontab.NewFixedTime(times)
+	} else {
+		opt.Expr = expr
+	}
+
+	return &taskExtensionJob{
+		id:   id,
+		name: name,
+		opt:  opt,
+		tim:  tim,
+	}
+}
+
+type taskExtensionJob struct {
+	id   int64
+	name string
+	opt  crontab.JobOptions
+	tim  *TaskExtension
+}
+
+func (t *taskExtensionJob) Options() crontab.JobOptions {
+	return t.opt
+}
+
+func (t *taskExtensionJob) Execute(ctx context.Context) error {
+	return t.tim.exec.Exec(ctx, t.id)
 }

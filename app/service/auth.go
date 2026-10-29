@@ -9,25 +9,24 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
-	"github.com/vela-ssoc/ssoc-manager/integration/oauth"
 	"github.com/vela-ssoc/ssoc-manager/library/totp"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 )
 
-func NewAuth(qry *query.Query, lock *LoginLock, user *User, oauth oauth.Client) *Auth {
+func NewAuth(qry *query.Query, lock *LoginLock, user *User /*, oauth oauth.Client*/) *Auth {
 	return &Auth{
-		qry:   qry,
-		lock:  lock,
-		user:  user,
-		oauth: oauth,
+		qry:  qry,
+		lock: lock,
+		user: user,
+		//oauth: oauth,
 	}
 }
 
 type Auth struct {
-	qry   *query.Query
-	lock  *LoginLock
-	user  *User
-	oauth oauth.Client
+	qry  *query.Query
+	lock *LoginLock
+	user *User
+	//oauth oauth.Client
 }
 
 func (svc *Auth) Valid(ctx context.Context, uname, passwd string) (string, bool, error) {
@@ -121,17 +120,19 @@ func (svc *Auth) Submit(ctx context.Context, uid, code string) (*model.User, err
 }
 
 func (svc *Auth) Oauth(ctx context.Context, req *mrequest.AuthOauth) (*model.User, error) {
-	userinfo, err := svc.oauth.Exchange(ctx, req.Code)
-	if err != nil {
-		return nil, err
-	}
+	//userinfo, err := svc.oauth.Exchange(ctx, req.Code)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//jobNumber := userinfo.SUB
+	//tbl := svc.qry.User
+	//user, err := tbl.WithContext(ctx).Where(tbl.Dong.Eq(jobNumber)).First()
+	//if err != nil || !user.Enable {
+	//	return nil, errcode.ErrUnauthorized
+	//}
+	//
+	//return user, nil
 
-	jobNumber := userinfo.SUB
-	tbl := svc.qry.User
-	user, err := tbl.WithContext(ctx).Where(tbl.Dong.Eq(jobNumber)).First()
-	if err != nil || !user.Enable {
-		return nil, errcode.ErrUnauthorized
-	}
-
-	return user, nil
+	return nil, errcode.ErrForbiddenOAuth
 }

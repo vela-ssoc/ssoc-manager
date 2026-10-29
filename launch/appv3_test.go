@@ -1,4 +1,4 @@
-package launch
+package launch_test
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func runV3(ctx context.Context, cfg *profile.ManagerConfig, route shipx.RouteGro
 		gontainer.NewEntrypoint(component.CreateIndex),
 
 		gontainer.NewService(muxcentral.Options{
-			Validate:   route.Ship.Validator.Validate,
+			// Validate:   route.Ship.Validator.Validate,
 			Handler:    http.NewServeMux(),
 			Logger:     log,
 			PerTimeout: 10 * time.Second,
@@ -55,7 +55,8 @@ func runV3(ctx context.Context, cfg *profile.ManagerConfig, route shipx.RouteGro
 		gontainer.NewFactory(restapi.NewBrokerConnectHistory),
 		gontainer.NewFactory(restapi.NewBrokerReverseProxy),
 		gontainer.NewFactory(restapi.NewBrokerStream),
-		gontainer.NewFactory(restapi.NewConfig),
+		gontainer.NewFactory(restapi.NewItself),
+		gontainer.NewFactory(restapi.NewItselfConfig),
 		gontainer.NewFactory(restapi.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewZipArchive),
 		gontainer.NewFactory(restapi.NewTunnel),

@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"runtime/debug"
 
-	"github.com/vela-ssoc/ssoc-common/banner"
+	"github.com/vela-ssoc/ssoc-common-mb/bininfo"
 	"github.com/vela-ssoc/ssoc-manager/launch"
 )
 
@@ -17,7 +17,7 @@ func main() {
 	v := set.Bool("v", false, "打印版本")
 	c := set.String("c", "resources/config/application.jsonc", "配置文件")
 	_ = set.Parse(os.Args[1:])
-	if _, _ = banner.ANSI(os.Stdout); *v {
+	if _, _ = bininfo.ANSI(os.Stdout); *v {
 		return
 	}
 

@@ -12,17 +12,17 @@ import (
 	"github.com/xgfone/ship/v5"
 )
 
-func Broker(svc *service.Broker) route.Router {
-	return &brokerREST{
+func NewBroker(svc *service.Broker) *Broker {
+	return &Broker{
 		svc: svc,
 	}
 }
 
-type brokerREST struct {
+type Broker struct {
 	svc *service.Broker
 }
 
-func (rest *brokerREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
+func (rest *Broker) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 	bearer.Route("/brokers").Data(route.Ignore()).GET(rest.Page)
 	anon.Route("/broker/goos").Data(route.Ignore()).GET(rest.Goos)
 	anon.Route("/broker/stats").Data(route.Ignore()).GET(rest.Stats)
@@ -33,7 +33,7 @@ func (rest *brokerREST) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("删除代理节点")).DELETE(rest.Delete)
 }
 
-func (rest *brokerREST) Page(c *ship.Context) error {
+func (rest *Broker) Page(c *ship.Context) error {
 	var req param.Page
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -47,7 +47,7 @@ func (rest *brokerREST) Page(c *ship.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (rest *brokerREST) Indices(c *ship.Context) error {
+func (rest *Broker) Indices(c *ship.Context) error {
 	var req param.Index
 	if err := c.BindQuery(&req); err != nil {
 		return err
@@ -59,7 +59,7 @@ func (rest *brokerREST) Indices(c *ship.Context) error {
 	return c.JSON(http.StatusOK, dats)
 }
 
-func (rest *brokerREST) Create(c *ship.Context) error {
+func (rest *Broker) Create(c *ship.Context) error {
 	var req mrequest.BrokerCreate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (rest *brokerREST) Create(c *ship.Context) error {
 	return rest.svc.Create(ctx, &req)
 }
 
-func (rest *brokerREST) Update(c *ship.Context) error {
+func (rest *Broker) Update(c *ship.Context) error {
 	var req mrequest.BrokerUpdate
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -87,7 +87,7 @@ func (rest *brokerREST) Update(c *ship.Context) error {
 	return rest.svc.Update(ctx, &req)
 }
 
-func (rest *brokerREST) Delete(c *ship.Context) error {
+func (rest *Broker) Delete(c *ship.Context) error {
 	var req request.Int64ID
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -98,13 +98,13 @@ func (rest *brokerREST) Delete(c *ship.Context) error {
 	return rest.svc.Delete(ctx, req.ID)
 }
 
-func (rest *brokerREST) Goos(c *ship.Context) error {
+func (rest *Broker) Goos(c *ship.Context) error {
 	ctx := c.Request().Context()
 	ret := rest.svc.Goos(ctx)
 	return c.JSON(http.StatusOK, ret)
 }
 
-func (rest *brokerREST) Stats(c *ship.Context) error {
+func (rest *Broker) Stats(c *ship.Context) error {
 	ctx := c.Request().Context()
 	res, err := rest.svc.Stats(ctx)
 	if err != nil {

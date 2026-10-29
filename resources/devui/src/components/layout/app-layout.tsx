@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import {
+  Activity,
   Archive,
   BookText,
   ChevronDown,
@@ -13,6 +14,7 @@ import {
   RadioTower,
   ServerCog,
   Settings,
+  ShieldCheck,
   UserRound,
   type LucideIcon,
 } from "lucide-react"
@@ -40,6 +42,10 @@ import { clearToken } from "@/lib/http"
 import { cn } from "@/lib/utils"
 import { getAuthProfile } from "@/lib/auth-session"
 import { legacyAuthApi } from "@/features/auth/api"
+import { EventNotifications } from "@/features/server-events/event-notifier"
+import { clearServerEventHistory } from "@/features/server-events/history"
+import { NotificationCenter } from "@/features/server-events/notification-center"
+import { useServerEvents } from "@/features/server-events/use-server-events"
 
 interface NavItem {
   title: string
@@ -82,6 +88,15 @@ const navItems: NavItem[] = [
     icon: Network,
   },
   {
+    title: "配置管理",
+    href: "/configs",
+    icon: Settings,
+    children: [
+      { title: "身份验证", href: "/configs/oauth", icon: ShieldCheck },
+      { title: "VictoriaMetrics", href: "/configs/victoria-metrics", icon: Activity },
+    ],
+  },
+  {
     title: "大屏展示",
     href: "/dashboards",
     icon: MonitorPlay,
@@ -102,6 +117,7 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const profile = getAuthProfile()
+  useServerEvents()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
@@ -126,6 +142,7 @@ export function AppLayout() {
   const logout = async () => {
     setLoggingOut(true)
     await legacyAuthApi.logout().catch(() => undefined)
+    clearServerEventHistory()
     clearToken()
     navigate("/login", { replace: true })
   }
@@ -134,7 +151,7 @@ export function AppLayout() {
     <div className="flex h-svh w-full overflow-hidden bg-background">
       <aside className="flex h-full w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="flex h-12 items-center justify-between gap-2 border-b border-sidebar-border px-3">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Logo className="size-5 shrink-0" />
             <div className="brand-font flex min-w-0 flex-col justify-center">
               <SSOCText className="truncate text-lg font-bold leading-none" />
@@ -143,6 +160,7 @@ export function AppLayout() {
               </span>
             </div>
           </div>
+          <NotificationCenter />
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
@@ -322,6 +340,8 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <EventNotifications />
     </div>
   )
 }

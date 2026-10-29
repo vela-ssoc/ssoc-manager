@@ -13,25 +13,24 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
-	"github.com/vela-ssoc/ssoc-manager/integration/casauth"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"gorm.io/gen/field"
 )
 
-func NewUser(qry *query.Query, digest DigestService, sso casauth.Client, log *slog.Logger) *User {
+func NewUser(qry *query.Query, digest DigestService /*sso casauth.Client,*/, log *slog.Logger) *User {
 	return &User{
 		qry:    qry,
 		digest: digest,
-		sso:    sso,
-		log:    log,
+		//sso:    sso,
+		log: log,
 	}
 }
 
 type User struct {
 	qry    *query.Query
 	digest DigestService
-	sso    casauth.Client
-	log    *slog.Logger
+	//sso    casauth.Client
+	log *slog.Logger
 }
 
 func (biz *User) Page(ctx context.Context, page param.Pager) (int64, mrequest.UserSummaries) {
@@ -84,11 +83,13 @@ func (biz *User) Authenticate(ctx context.Context, uname, passwd string) (*model
 	}
 
 	// sso 认证的账户
-	if err = biz.sso.Auth(ctx, uname, passwd); err != nil {
-		return nil, err
-	}
+	//if err = biz.sso.Auth(ctx, uname, passwd); err != nil {
+	//	return nil, err
+	//}
 
-	return user, nil
+	//return user, nil
+
+	return nil, errcode.ErrForbiddenOAuth
 }
 
 func (biz *User) Delete(ctx context.Context, id int64) error {

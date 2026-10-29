@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { ArrowLeft, Copy, Eye, EyeOff, LoaderCircle } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label"
 import { TooltipHint } from "@/components/tooltip-hint"
 import { toast } from "@/lib/toast"
 import { saveAuthSession } from "@/lib/auth-session"
-import { legacyAuthApi } from "@/features/auth/api"
-import { OAuthQrLogin } from "@/features/auth/oauth-login"
+import { legacyAuthApi, oauthApi, oauthProviderApi, type OAuthProvider } from "@/features/auth/api"
+import { OAuthQrLoading, OAuthQrLogin } from "@/features/auth/oauth-login"
 
 type LoginMode = "password" | "qrcode"
 
@@ -26,6 +26,8 @@ type LoginStep = "credentials" | "totp"
 
 export function LoginPage() {
   const [mode, setMode] = useState<LoginMode>("qrcode")
+  const [oauthState, setOauthState] = useState<"loading" | "ready" | "unavailable">("loading")
+  const [provider, setProvider] = useState<OAuthProvider | null>(null)
   const [step, setStep] = useState<LoginStep>("credentials")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -38,6 +40,32 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    let cancelled = false
+    oauthProviderApi
+      .get(window.location.origin)
+      .then((data) => {
+        if (cancelled) return
+        if (!data || !data.client_id || !data.redirect_uri || !data.authorization_endpoint) {
+          setProvider(null)
+          setOauthState("unavailable")
+          setMode((current) => (current === "qrcode" ? "password" : current))
+          return
+        }
+        setProvider(data)
+        setOauthState("ready")
+      })
+      .catch(() => {
+        if (cancelled) return
+        setProvider(null)
+        setOauthState("unavailable")
+        setMode((current) => (current === "qrcode" ? "password" : current))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const validateCredentials = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -91,7 +119,8 @@ export function LoginPage() {
   }
 
   const submitOauth = async (code: string) => {
-    const session = await legacyAuthApi.oauth(code)
+    if (!provider) throw new Error("当前暂未开启扫码登录")
+    const session = await oauthApi.dong(code, provider.redirect_uri)
     if (!session.token) throw new Error("登录响应中没有 Token")
 
     saveAuthSession(session)
@@ -100,6 +129,14 @@ export function LoginPage() {
       ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
       : "/legacy"
     navigate(destination, { replace: true })
+  }
+
+  const selectQr = () => {
+    if (oauthState === "unavailable") {
+      toast.error("当前暂未开启扫码登录")
+      return
+    }
+    setMode("qrcode")
   }
 
   return (
@@ -122,8 +159,8 @@ export function LoginPage() {
               mode === "qrcode"
                 ? "bg-card shadow-sm"
                 : "text-muted-foreground"
-            }`}
-            onClick={() => setMode("qrcode")}
+            } ${oauthState === "unavailable" ? "opacity-60" : ""}`}
+            onClick={selectQr}
           >
             咚咚扫码
           </button>
@@ -140,9 +177,17 @@ export function LoginPage() {
           </button>
         </div>
 
-        <div className="flex min-h-[176px] flex-col justify-center">
+        <div className="flex min-h-[186px] flex-col justify-center">
           {mode === "qrcode" ? (
-            <OAuthQrLogin onCode={submitOauth} />
+            oauthState === "loading" ? (
+              <OAuthQrLoading />
+            ) : provider ? (
+              <OAuthQrLogin provider={provider} onCode={submitOauth} />
+            ) : (
+              <div className="text-muted-foreground flex h-44 items-center justify-center px-4 text-center text-sm">
+                当前暂未开启扫码登录
+              </div>
+            )
           ) : step === "credentials" ? (
             <form className="grid gap-4" onSubmit={validateCredentials}>
               <div className="grid gap-2">

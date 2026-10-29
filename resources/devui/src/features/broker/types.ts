@@ -31,8 +31,37 @@ export interface BrokerConfig {
 
 export interface ManagerConfig {
   server: { addr: string }
-  database: { uri: string; dsn: string; level: string }
+  database: { uri: string; dsn: string }
   logger: LoggerConfig
+}
+
+export interface ItselfConfig {
+  boot: {
+    database: { uri: string; dsn: string }
+  }
+  config: {
+    server: { addr: string } | null
+    logger: LoggerConfig | null
+  } | null
+}
+
+export interface BrokerItselfConfig {
+  boot: {
+    secret?: string
+    addresses?: string[]
+  }
+  config: BrokerConfig
+}
+
+export function toManagerConfig(cfg: ItselfConfig): ManagerConfig {
+  return {
+    server: { addr: cfg.config?.server?.addr ?? "" },
+    database: {
+      uri: cfg.boot?.database?.uri ?? "",
+      dsn: cfg.boot?.database?.dsn ?? "",
+    },
+    logger: cfg.config?.logger ?? emptyLoggerConfig(),
+  }
 }
 
 export interface BrokerExecuteStat {
@@ -123,13 +152,32 @@ export interface BrokerForm {
   config: BrokerConfig
 }
 
+export interface CronJobInfo {
+  id: string
+  name: string
+  expr: string
+  timeout: number
+  immediate: boolean
+  next?: string
+  entry_id: number
+}
+
+export interface CronJobRecords {
+  records: CronJobInfo[]
+}
+
 export const LOGGER_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"] as const
 
 export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
+  if (!Number.isFinite(bytes)) return "0 B"
+  if (bytes < 1024) return `${trimNumber(bytes)} B`
+  if (bytes < 1024 * 1024) return `${trimNumber(bytes / 1024)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${trimNumber(bytes / 1024 / 1024)} MB`
+  return `${trimNumber(bytes / 1024 / 1024 / 1024)} GB`
+}
+
+function trimNumber(value: number): string {
+  return Number(value.toFixed(2)).toString()
 }
 
 export function emptyLoggerConfig(): LoggerConfig {

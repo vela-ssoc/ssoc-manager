@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 
 import type { BrokerConfig, LoggerConfig, ManagerConfig } from "./types"
 import { emptyLoggerConfig, LOGGER_LEVELS } from "./types"
@@ -30,20 +31,11 @@ export function ConfigSection({
     <div className="grid gap-2 rounded-md border p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm">{title}</span>
-        <button
-          type="button"
-          role="switch"
-          aria-label={`覆写${title}`}
-          aria-checked={enabled}
-          data-state={enabled ? "checked" : "unchecked"}
-          className="border-input data-[state=checked]:bg-primary data-[state=unchecked]:bg-input inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors"
-          onClick={() => onToggle(!enabled)}
-        >
-          <span
-            className="bg-background pointer-events-none block size-4 rounded-full shadow-sm transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
-            data-state={enabled ? "checked" : "unchecked"}
-          />
-        </button>
+        <Switch
+          checked={enabled}
+          label={`覆写${title}`}
+          onCheckedChange={onToggle}
+        />
       </div>
       {enabled ? (
         children
