@@ -6,7 +6,7 @@ readonly BASE_NAME="ssoc-manager"
 
 GIT_SHORT_SHA=$(git rev-parse --short=7 HEAD)
 GIT_COMMIT_EPOCH=$(git log -1 --format=%ct)
-TIME_VERSION=$(date -u -d "@${GIT_COMMIT_EPOCH}" +'%Y.%-m.%-d')
+TIME_VERSION=$(date -u -d "@${GIT_COMMIT_EPOCH}" +'%-Y.%-m.%-d')
 [[ -n "${TIME_VERSION}" ]] || { echo "无法解析版本号" >&2; exit 1; }
 VERSION="v${TIME_VERSION}+${GIT_SHORT_SHA}"
 
