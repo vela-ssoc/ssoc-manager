@@ -2,16 +2,19 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"time"
 
-	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-manager/appv3/response"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/oauth2"
 )
 
@@ -62,26 +65,47 @@ func (oat *OAuth) Provider(ctx context.Context, origin string) (*response.OAuthP
 	return ret, nil
 }
 
-func (oat *OAuth) Dong(ctx context.Context, code, redirectURI string) (*model2.User, error) {
+func (oat *OAuth) Dong(ctx context.Context, code, redirectURI string) (*model.User, error) {
+	now := time.Now()
 	info, err := oat.exchangeDong(ctx, code, redirectURI)
 	if err != nil {
 		oat.log.Warn("咚咚 OAuth 认证失败", "err", err)
 		return nil, err
 	}
 
-	rdb := oat.pdb.RDB()
-	tbl := rdb.User
-	dao := tbl.WithContext(ctx)
-
-	user, err := dao.Where(tbl.Username.Eq(info.SUB)).First()
+	mdb := oat.pdb.MDB()
+	coll := mdb.User()
+	filter := bson.M{"username": info.SUB, "company": info.CompanyCode}
+	user, err := coll.FindOne(ctx, filter)
 	if err != nil {
 		oat.log.Warn("用户尚未注册本系统", "userinfo", info)
 		return nil, errcode.ErrAuthFailed
 	}
-	if !user.Enable {
-		oat.log.Warn("用户已被禁止登录该系统", "userinfo", info)
+	if !user.OAuth {
+		oat.log.Warn("用户不可使用 OAuth 认证", "userinfo", info)
 		return nil, errcode.ErrAuthFailed
 	}
+	if !user.Enabled {
+		oat.log.Warn("用户已禁用")
+		return nil, errcode.ErrAuthFailed
+	}
+	if !user.ExpiresAt.IsZero() && user.ExpiresAt.Before(now) {
+		oat.log.Warn("用户已过期")
+		return nil, errcode.ErrAuthFailed
+	}
+
+	buf := make([]byte, 50)
+	_, _ = rand.Read(buf)
+	token := "session." + hex.EncodeToString(buf)
+
+	sess := model.UserSession{Token: token, IssuedAt: now, LastedAt: now}
+	update := bson.M{"$set": bson.M{"avatar_url": info.Picture, "session": sess}}
+	if _, err = coll.UpdateByID(ctx, user.ID, update); err != nil {
+		return nil, err
+	}
+
+	user.AvatarURL = info.Picture
+	user.Session = sess
 
 	return user, nil
 }

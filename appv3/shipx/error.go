@@ -21,6 +21,10 @@ func NotFound(_ *ship.Context) error {
 }
 
 func HandleError(c *ship.Context, e error) {
+	if w := c.Response(); !w.Wrote {
+		HandleResponseError(w, c.Request(), e)
+	}
+
 	statusCode, title, detail := UnwrapError(e)
 	pd := &problem.Details{
 		Host:     c.Host(),

@@ -10,3 +10,17 @@ type RouteBinder interface {
 type RouteRegister interface {
 	RegisterRoute(*ship.RouteGroupBuilder) error
 }
+
+type MetaRouter interface {
+	Permission(c *ship.Context) (anonymous, logon, mfa bool)
+}
+
+type anonymous struct{}
+
+func NewAnonymous() MetaRouter {
+	return anonymous{}
+}
+
+func (a anonymous) Permission(*ship.Context) (bool, bool, bool) {
+	return true, false, false
+}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"gorm.io/gen"
 )
 
 type Size struct {
@@ -38,8 +39,24 @@ type PageSize struct {
 	Size
 }
 
-func (p PageSize) PSN() (int64, int64) {
+func (p PageSize) PSN() (page, size int64) {
 	return p.PN(), p.SN()
+}
+
+// Scope gorm 分页插件。
+//
+// Deprecated: 数据源将迁移至 MongoDB。
+func (p PageSize) Scope(cnt int64) func(gen.Dao) gen.Dao {
+	return func(db gen.Dao) gen.Dao {
+		page, size := p.PSN()
+		curr := (cnt + size - 1) / size
+		if curr < page {
+			page = curr
+		}
+		offset := int((page - 1) * size)
+
+		return db.Offset(offset).Limit(int(size))
+	}
 }
 
 type PageSizeKeyword struct {

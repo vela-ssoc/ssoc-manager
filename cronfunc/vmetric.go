@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/NVIDIA/gontainer/v2"
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-common-mb/crontab"
@@ -16,7 +17,7 @@ type VMetric struct {
 	writes []vmexport.MetricWriter
 }
 
-func NewVMetric(cfg vmexport.VictoriaPushConfigLoader, writes []vmexport.MetricWriter) *VMetric {
+func NewVMetric(cfg vmexport.VictoriaPushConfigLoader, writes gontainer.Multiple[vmexport.MetricWriter]) *VMetric {
 	return &VMetric{cfg: cfg, writes: writes}
 }
 

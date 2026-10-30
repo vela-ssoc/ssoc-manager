@@ -12,10 +12,11 @@ type RouteEndpoint struct {
 }
 
 type RouteGroup3 struct {
-	ExposeV1 RouteEndpoint
-	ExposeV3 RouteEndpoint
-	BrokerV1 RouteEndpoint
-	BrokerV3 RouteEndpoint
+	ExposeV1       RouteEndpoint
+	ExposeV3       RouteEndpoint
+	BrokerV1       RouteEndpoint
+	BrokerV3       RouteEndpoint
+	ExposeV1NoAuth RouteEndpoint
 }
 
 func (g RouteGroup3) RegisterRoutes(hs []HTTPRegistrar) error {
@@ -29,9 +30,9 @@ func (g RouteGroup3) RegisterRoutes(hs []HTTPRegistrar) error {
 }
 
 func (g RouteGroup3) RegisterV1Routes(v1s []V1HTTPRegistrar) {
-	grp := g.ExposeV1.Group
+	anon, bearer := g.ExposeV1NoAuth.Group, g.ExposeV1.Group
 	for _, v1 := range v1s {
-		v1.Route(grp, grp, grp)
+		v1.Route(anon, bearer, bearer)
 	}
 }
 

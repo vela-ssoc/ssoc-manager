@@ -12,7 +12,7 @@ require (
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v1.0.1
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261029091236-b178b33dee12
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261030120326-953687945f87
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
 	github.com/vela-ssoc/vela-tunnel v0.0.0-20261019030035-bfbba79164f6
 	github.com/xgfone/ship/v5 v5.3.2

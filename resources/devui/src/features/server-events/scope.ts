@@ -14,7 +14,7 @@ if (typeof window !== "undefined") {
 
 function scope(): string {
   const profile = getAuthProfile()
-  if (profile && Number.isFinite(profile.id)) {
+  if (profile?.id) {
     return String(profile.id)
   }
   return "anonymous"

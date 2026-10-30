@@ -59,6 +59,8 @@ src/
     broker/              # 中继节点（列表、详情各 Tab、配置编辑、WebDAV、接口调试）
     buildinfo/           # 编译信息展示（中心端与中继节点复用）
     central/             # 中心端（监控、配置、定时任务、路由、buildinfo）
+    cmdb/                # CMDB 数据浏览（api + types，部门树 + 资产分页）
+    cmdb-config/         # CMDB 配置（api + types）
     minion/              # 探针节点类型与旧版 API 封装
     oauth-config/        # 身份验证（OAuth 配置 api + types）
     reverse-proxy/       # 反向代理（列表 + 创建/编辑/删除）
@@ -78,6 +80,8 @@ src/
     zip-archive-detail.tsx # 归档文件树 + 预览编辑
     reverse-proxies.tsx  # 反向代理
     oauth-config.tsx     # 身份验证（OAuth 配置）
+    cmdb-config.tsx      # CMDB 配置
+    cmdb-browse.tsx      # CMDB 数据浏览（部门树 + 资产表格）
     victoria-metrics.tsx # VictoriaMetrics 推送配置
     hone-dashboard.tsx   # 蜜罐大屏 iframe
     risk-dashboard.tsx   # 风险大屏 iframe
@@ -100,7 +104,7 @@ src/
 |-----------------------------|--------------------------------|-----------------------------------------------------------------------------------|
 | `/login`                    | `pages/login.tsx`              | 默认扫码登录，可切换账密 + TOTP                                                   |
 | `/legacy`                   | `pages/legacy.tsx`             | 旧版 `/` iframe，暗色下整体反色                                                   |
-| `/minions`                  | `pages/minions.tsx`            | 探针节点卡片 + 分页 + 逻辑删除                                                    |
+| `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除         |
 | `/brokers`                  | `pages/brokers.tsx`            | 中继节点行卡片：左侧信息，右侧最近 6 小时 CPU/内存/网络指标（一次拉全量，无分页） |
 | `/brokers/:slug`            | `pages/broker-detail.tsx`      | 中继节点详情（多 Tab）                                                            |
 | `/central`                  | `pages/central.tsx`            | 中心端（多 Tab）                                                                  |
@@ -108,6 +112,8 @@ src/
 | `/zip-archives/:name`       | `pages/zip-archive-detail.tsx` | 文件树 + Monaco 预览编辑                                                          |
 | `/reverse-proxies`          | `pages/reverse-proxies.tsx`    | 反向代理表格 CRUD                                                                 |
 | `/configs/oauth`            | `pages/oauth-config.tsx`       | 身份验证（OAuth 登录配置）                                                        |
+| `/configs/cmdb`             | `pages/cmdb-config.tsx`        | CMDB 服务地址与访问凭证                                                           |
+| `/configs/cmdb/browse`      | `pages/cmdb-browse.tsx`       | CMDB 数据浏览（左侧部门树 + 右侧资产分页表格）                                    |
 | `/configs/victoria-metrics` | `pages/victoria-metrics.tsx`   | VictoriaMetrics 推送配置                                                          |
 | `/ssoc`                     | `pages/risk-dashboard.tsx`     | 风险大屏 iframe（overlay）                                                        |
 | `/hone`                     | `pages/hone-dashboard.tsx`     | 蜜罐大屏 iframe（overlay）                                                        |
@@ -115,8 +121,9 @@ src/
 | `/settings`                 | `pages/settings.tsx`           | 主题 / 强调色 / 字体                                                              |
 
 Sidebar 导航项定义在 `components/layout/app-layout.tsx`：旧版界面、探针节点、中继节点、中心端、
-虚拟文件、反向代理、配置管理（可折叠：身份验证 / VictoriaMetrics）、大屏展示（可折叠：风险大屏 / 蜜罐大屏）、
-接口文档；底部为设置入口与用户菜单。
+虚拟文件、反向代理、配置管理（可折叠：身份验证）、数据源（可折叠：CMDB / VictoriaMetrics）、
+大屏展示（可折叠：风险大屏 / 蜜罐大屏）、
+接口文档；底部为用户菜单（含头像、昵称、公司标签、个人中心、退出登录），个性化入口不再单独占位。
 顶栏 Logo 右侧为通知铃铛（未读徽标 + 通知面板，数据来自 SSE 事件历史；面板内可关闭「订阅通知」，关闭后显示静音铃铛）。
 导航项可配置 `external`，hover 时显示「新标签打开」按钮。
 
@@ -129,11 +136,17 @@ Sidebar 导航项定义在 `components/layout/app-layout.tsx`：旧版界面、�
   `redirect_uri` / `authorization_endpoint`；请求期间二维码区域显示同尺寸 loading 占位，iframe 加载时再叠加 loading
   层。出错、返回 null 或字段为空表示未开启扫码登录：页面自动切到账密模式，点击「咚咚扫码」时 toast 提示「当前暂未开启扫码登录」。扫码成功后调用
   `POST /api/v3/oauth/dong`（提交 `code` + `redirect_uri`）完成登录；二维码下方提供「咚咚统一登录认证」超链接，地址为
-  `authorization_endpoint?client_id=...&redirect_uri=...`，用于无法扫码时走整页 OAuth 登录。返回 session token 写入
-  `localStorage.token`，用户资料写入 `localStorage.auth-profile` 并显示在 Sidebar 用户区。业务路由由 `RequireAuth`
+  `authorization_endpoint?client_id=...&redirect_uri=...`，用于无法扫码时走整页 OAuth 登录。登录响应体
+  （`POST /auth/submit` 与 `POST /oauth/dong` 一致）为
+  `{ id, company, username, nickname, token, avatar_url }`：`id` 是 MongoDB ObjectID 的 24 位十六进制字符串；
+  `company` 取值为 `group / security / ttfund / futures / dcfund`，由 `lib/auth-session.ts` 的 `companyLabel()`
+  转成中文。返回 session token 写入 `localStorage.token`，其余字段写入 `localStorage.auth-profile`
+  并显示在 Sidebar 用户区（`avatar_url` 作为头像，加载失败回退到 `UserRound` 图标）。业务路由由 `RequireAuth`
   保护，统一请求收到 401 会清除 token/资料并跳转登录页。
 - 普通请求：token 自动写入 `Authorization` Header， **无 `Bearer` Scheme**（这一行为在 `http.ts` 中已处理好，业务代码用
   `http.get/post/put/delete` 即可，无需手动加）。旧版接口用 `legacyHttp`（同样自动携带 token）。
+- **query 数组参数**：`buildUrl` 支持数组值，以同名参数重复传递（如 `ci_type=server&ci_type=vserver`），
+  对应后端 `query:"ci_type"` 的切片绑定。
 - **GET 下载类接口**：token 通过 **query 参数 `authorization`** 传递，交给浏览器直接下载。
     - 使用 `buildAuthUrl(path, query)` 生成带认证的完整 URL，配合 `<a href>` 直接下载（不要用 blob 方式下载 GET 下载接口）。
     - 已有封装：`zipArchiveApi.downloadUrl(name)`、`zipFileApi.contentUrl(name, fullName)`、
@@ -271,15 +284,26 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET      | `/oauth/provider`             | 登录页 OAuth 提供商信息（`origin`，返回 `client_id` / `redirect_uri` / `authorization_endpoint`）                                    | `oauthProviderApi.get`                             |
 | GET      | `/sse/event`                  | SSE 事件流订阅（`Accept: text/event-stream`）                                                                                        | `features/server-events/client.ts`                 |
 | POST     | `/oauth/dong`                 | 扫码 code 登录（`code` + `redirect_uri`）                                                                                            | `oauthApi.dong`                                    |
+| GET/POST | `/cmdb/config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`）                                                                            | `cmdbConfigApi.get/update`                         |
+| GET      | `/cmdb/departments`           | CMDB 部门树（`{records: CMDBNode[]}`，树形分层）                                                                                      | `cmdbApi.departments`                             |
+| GET      | `/cmdb/assets`                | CMDB 资产分页（`page/size/q/department/ci_type`，`ci_type` 可重复传多个）                                                             | `cmdbApi.assets`                                  |
 | GET/POST | `/victoria-metrics-config`    | VictoriaMetrics 推送配置（`{enabled,address,tenant_id,username,password,headers}`）                                                  | `victoriaMetricsApi.get/update`                    |
 
-### 探针节点（旧版 `/api/v1`）
+### 探针节点
 
-| 方法   | 路径       | 用途                                                | 前端封装                  |
-|--------|------------|-----------------------------------------------------|---------------------------|
-| GET    | `/minions` | 分页（`current/size/keyword`，可选 `filters` JSON） | `minionApi.page`          |
-| GET    | `/minion`  | 详情（`id`，已封装但未使用）                        | `minionApi.detail`        |
-| DELETE | `/minion`  | 逻辑删除（`filters` JSON）                          | `minionApi.logicalDelete` |
+列表主数据源为 v3 `/minions`（`ssoc-manager/appv3/restapi/minion.go`），返回 `repository.Pages` 结构
+`{ page, size, total, records }`，记录为 `dal/model.Minion`：
+
+| 方法   | 路径           | 用途                                                                 | 前端封装                  |
+|--------|----------------|----------------------------------------------------------------------|---------------------------|
+| GET    | `/api/v3/minions` | 分页（`page/size/q/department`），`department` 同时匹配本部门与子部门 | `minionApi.pageNodes`     |
+| GET    | `/api/v1/minions` | 旧版分页（`current/size/keyword`，可选 `filters` JSON），已不被页面使用 | `minionApi.page`        |
+| GET    | `/api/v1/minion`  | 详情（`id`，已封装但未使用）                                          | `minionApi.detail`        |
+| DELETE | `/api/v1/minion`  | 逻辑删除（`filters` JSON），v3 暂无删除接口，页面仍走旧接口            | `minionApi.logicalDelete` |
+
+- v3 后端目前**未使用** `q` 参数（`service/minion.go` 只处理 `department`），搜索框会把值传给后端但暂无过滤效果。
+- v3 记录**不含** `tags` / `cpu_core` / `mem_total` / `mem_free`（这些来自旧版视图与 `sys_info` 表），
+  卡片因此只展示 `machine_id / edition / goos / broker_name / org_path / idc / comment / heartbeat_at`。
 
 ### 登录（旧版 `/api/v1`）
 
@@ -321,6 +345,33 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
     - 用于登录页的 OAuth 授权登录；`redirect_uris` 至少 1 个，`scopes` 最多 10 个。
     - 点击编辑时，三个端点为空会自动填充咚咚默认端点（login / token / userinfo）；
       回调地址为空时自动填充 `window.location.origin`；首次配置（尚无已保存配置）进入编辑时，启用开关默认打开。
+- `CMDBConfig`：`endpoint / enabled / key / secret / created_at / updated_at`
+    - 用于管理中心端读取 CMDB 资产数据；`endpoint`、`key`、`secret` 均为必填，`endpoint` 必须是 HTTP/HTTPS 地址。
+    - 只读状态下 `secret` 默认掩码显示，可按需切换明文。
+    - 首次配置（尚无已保存配置）进入编辑时，「启用 CMDB」开关默认打开，服务地址为空时自动填充
+      `https://yunwei.eastmoney.com/cmdb2/api/v0.1/ci/s`；`enabled=false` 时后端不读取资产数据。
+- `CMDBNode`（部门树）：`name / ci_id(string) / department（完整部门路径）/ children`
+    - `/cmdb/departments` 返回 `{ records: CMDBNode[] }`，根节点可能含空 `department`，前端已过滤空节点。
+- `CMDB`（资产）：字段极多，前端只取展示所需子集（见 `features/cmdb/types.ts` 的 `CMDBAsset`）：
+  `id / ci_id(string) / ci_type / name / department / private_ip / host_ip / idc / comment / ssoc_agent? / updated_at` 等。
+    - `/cmdb/assets` 关键字 `q` 后端在多字段上做正则匹配，`department` 精确匹配该部门；`ci_type` 支持多个值（重复 query），
+      最多 10 个；分页复用 `page/size`（默认 10，上限 1000）。
+    - 资产表列顺序固定为：类型、IP（`private_ip`）、SSOC、部门、机房、备注；
+      `ssoc_agent` 为 `null` 时显示灰色空心 `Shield` + 「未安装」；非空时按 `ssoc_agent.status`
+      显示：0-离线（黄色 `ShieldAlert`）、1-在线（绿色 `ShieldCheck`）、2-删除（红色 `ShieldX`），
+      `status` 缺失按离线处理；悬浮显示版本与中继节点，无内容时提示「已安装 SSOC 探针」；
+      `ssoc_agent.status`：0-离线、1-在线、2-已删除。点击任意行弹出资产详情对话框（数据直接取自列表响应，
+      无单独详情接口），空字段自动隐藏。
+    - `ci_type=server` 的详情按物理机字段文档分组展示（后端 `datalayer/model/cmdb.go` 实际返回的字段）：
+      「基本信息（SN/部门/业务/付款方/业务状态/资产状态/资产编号/作用/标签/更新时间）、位置（IDC/机房/机柜）、
+      硬件配置（CPU型号/核数/逻辑核数/超线程/用途/内存/硬盘/磁盘阵列）、网络（内网IP/IPv6/电信/网通/移动/主机名/
+      浮动IP/网络开放状态）、系统（操作系统版本/内核版本/环境）、负责人（开发/运维/系统/应用）、
+      应用与安全（应用名称/业务属性/宿主机类型/堡垒机账号/安全信息）+ SSOC 探针」；
+      文档中后端未同步的字段（供应商/品牌/组合型号/高度/ilo IP/财务/维保等）不展示。
+    - 其它 `ci_type` 仍使用通用分组：「基本信息 / 网络 / 硬件与系统 / 责任人 + SSOC 探针」。
+    - 资产标题右侧的类型下拉为多选，默认勾选「全部类型」（不传 `ci_type`）；
+      选项为物理机 / 虚拟机 / 基金虚拟机 / 容器 / 公有云五类（DNS、VIP 等类型系统不拉取），见 `CI_TYPE_OPTIONS`。
+      「全部类型」与其它类型平级，均为复选项，勾选即清空筛选。
 
 ### 后端已知 BUG/约定（前端已做规避）
 
@@ -368,6 +419,11 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - 暗色下选中/悬停高亮用 **中性灰**（`--accent` 灰色），不用橙色（橙色高亮在暗色下突兀）。
 - 暗色背景纯黑 `hsl(0 0% 0%)`。
 - 圆角：`--radius: 0.375rem`，控件统一 `rounded-md`。
+- 控件高度统一约定：
+    - 基础控件（`Input` / `Button` default / `Select` default）默认 **32px（`h-8`）**，用于表单、对话框等处。
+    - 列表页顶部工具栏（搜索框、筛选、操作按钮、分页控件）统一用 **28px**：搜索框 `h-7 pl-9`（前置搜索图标用
+      `left-3 size-4`）、按钮 `size="sm"`（`h-7`）或 `size="icon"` 的 `size-7`。
+    - 同一行内的搜索框与按钮必须等高，不要混用 `h-8` 与 `h-7`。
 - 字体：网页全局采用系统默认等宽字体；中文按浏览器/操作系统默认回退，不应用 Monaco 专属中文字体顺序。
 - 滚动条：全局默认透明隐藏，悬停时淡入（`index.css` 中已有 `::-webkit-scrollbar` 规则）。
 - 时间格式：统一 `yyyy-MM-dd HH:mm:ss`， **一律用 `lib/format.ts` 的 `formatDateTime()`**，禁止手写 `toLocaleString`/自定义
@@ -462,7 +518,8 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 
 ## 13. 当前已知差异 / 待办
 
-- 探针节点目前只有列表、筛选与逻辑删除；`minionApi.detail` 已封装但尚无详情页，也 **没有新建探针入口**。
+- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；`minionApi.detail` 已封装但尚无详情页，也 **没有新建探针入口**。
+  部门树组件已抽到 `features/cmdb/department-tree.tsx`，`/configs/cmdb/browse` 与本页共用。
 - 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤），归档/探针需回车或点击「搜索」（服务端查询）。
 - `zip-archive-detail.tsx` 顶部存在一处残留空行（仅格式问题）。
 - 删除归档、删除目录两个功能仍依赖后端修复。

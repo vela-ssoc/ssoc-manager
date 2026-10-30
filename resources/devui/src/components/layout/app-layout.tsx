@@ -5,7 +5,10 @@ import {
   Archive,
   BookText,
   ChevronDown,
+  ChevronsUpDown,
+  Database,
   ExternalLink,
+  HardDrive,
   Home,
   LogOut,
   MonitorPlay,
@@ -34,13 +37,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { clearToken } from "@/lib/http"
 import { cn } from "@/lib/utils"
-import { getAuthProfile } from "@/lib/auth-session"
+import { companyLabel, getAuthProfile } from "@/lib/auth-session"
 import { legacyAuthApi } from "@/features/auth/api"
 import { EventNotifications } from "@/features/server-events/event-notifier"
 import { clearServerEventHistory } from "@/features/server-events/history"
@@ -93,6 +95,14 @@ const navItems: NavItem[] = [
     icon: Settings,
     children: [
       { title: "身份验证", href: "/configs/oauth", icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "数据源",
+    href: "/datasources",
+    icon: HardDrive,
+    children: [
+      { title: "CMDB", href: "/configs/cmdb", icon: Database },
       { title: "VictoriaMetrics", href: "/configs/victoria-metrics", icon: Activity },
     ],
   },
@@ -117,6 +127,10 @@ export function AppLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const profile = getAuthProfile()
+  const displayName = profile?.nickname || profile?.username || "系统用户"
+  const company = companyLabel(profile?.company)
+  const accountLine =
+    [company, profile?.username].filter(Boolean).join(" · ") || "用户账号"
   useServerEvents()
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -257,65 +271,57 @@ export function AppLayout() {
           })}
         </nav>
 
-        <div className="flex h-12 shrink-0 items-center border-t border-sidebar-border px-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md py-1 text-left hover:bg-sidebar-accent/50"
-                >
-                  <div className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-full">
-                    <UserRound className="size-4" />
+        <div className="shrink-0 border-t border-sidebar-border p-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent/60 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <UserAvatar
+                  url={profile?.avatar_url}
+                  name={displayName}
+                  className="size-8"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm leading-tight font-medium">
+                    {displayName}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">
-                      {profile?.nickname || profile?.username || "系统用户"}
-                    </div>
-                    <div className="text-muted-foreground truncate text-xs">
-                      {profile?.username || "用户账号"}
-                    </div>
+                  <div className="text-muted-foreground mt-0.5 truncate text-xs leading-tight">
+                    {accountLine}
                   </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="w-48">
-                <DropdownMenuLabel>
-                  {profile?.nickname || profile?.username || "系统用户"}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  className="cursor-pointer"
-                  onSelect={() => setLogoutConfirmOpen(true)}
-                >
-                  <LogOut /> 退出登录
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <TooltipHint content="设置">
-              <span className="flex">
-                <NavLink
-                  to="/settings"
-                  aria-label="设置"
-                  className={({ isActive }) =>
-                    cn(
-                      "my-auto flex size-8 shrink-0 self-center items-center justify-center rounded-md transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                    )
-                  }
-                >
-                  <Settings className="size-4" />
-                </NavLink>
-              </span>
-            </TooltipHint>
-          </div>
+                </div>
+                <ChevronsUpDown className="text-muted-foreground size-3.5 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              alignOffset={-8}
+              sideOffset={0}
+              className="w-60 duration-200 ease-out data-[state=closed]:duration-150"
+            >
+              <DropdownMenuItem
+                className="cursor-pointer py-2"
+                onSelect={() => navigate("/settings")}
+              >
+                个人中心
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                className="cursor-pointer py-2"
+                onSelect={() => setLogoutConfirmOpen(true)}
+              >
+                <LogOut /> 退出登录
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
       <Dialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent showCloseButton={false} className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>退出登录</DialogTitle>
             <DialogDescription>确定要退出当前账号吗？</DialogDescription>
@@ -329,7 +335,7 @@ export function AppLayout() {
               取消
             </Button>
             <Button disabled={loggingOut} onClick={() => void logout()}>
-              {loggingOut ? "正在退出…" : "退出登录"}
+              {loggingOut ? "正在退出…" : "确定"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -342,6 +348,42 @@ export function AppLayout() {
       </div>
 
       <EventNotifications />
+    </div>
+  )
+}
+
+function UserAvatar({
+  url,
+  name,
+  className,
+  iconClassName,
+}: {
+  url?: string
+  name: string
+  className?: string
+  iconClassName?: string
+}) {
+  const [failed, setFailed] = useState(false)
+
+  if (url && !failed) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        className={cn("shrink-0 rounded-full object-cover", className)}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+
+  return (
+    <div
+      className={cn(
+        "bg-primary/10 text-primary flex shrink-0 items-center justify-center rounded-full",
+        className
+      )}
+    >
+      <UserRound className={iconClassName ?? "size-4"} />
     </div>
   )
 }

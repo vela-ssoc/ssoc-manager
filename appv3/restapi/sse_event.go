@@ -30,6 +30,8 @@ func (se *SSEEvent) subscribe(c *ship.Context) error {
 	}
 	defer sse.Close()
 
+	_ = sse.Ping() // 快速响应客户端，避免客户端一直 pending
+
 	sub := response.NewSSEEvent(sse)
 	se.dsp.AddSubscriber(sub)
 	defer se.dsp.DelSubscriber(sub)

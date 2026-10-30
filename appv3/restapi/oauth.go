@@ -3,8 +3,9 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/vela-ssoc/ssoc-manager/app/session"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
+	"github.com/vela-ssoc/ssoc-manager/appv3/response"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
@@ -20,9 +21,9 @@ func NewOAuth(svc *service.OAuth) *OAuth {
 
 func (oat *OAuth) RegisterHTTP(g shipx.RouteGroup3) error {
 	g.ExposeV3.Group.Route("/oauth/provider").
-		GET(oat.provider)
+		Data(shipx.NewAnonymous()).GET(oat.provider)
 	g.ExposeV3.Group.Route("/oauth/dong").
-		POST(oat.dong)
+		Data(shipx.NewAnonymous()).POST(oat.dong)
 
 	return nil
 }
@@ -51,11 +52,22 @@ func (oat *OAuth) dong(c *ship.Context) error {
 		return err
 	}
 
-	cu := session.Issued(user)
-	c.Any = cu
-	if err = c.SetSession(cu.Token, cu); err != nil {
-		return err
+	op := model.Operator{
+		ID:       user.ID,
+		Company:  user.Company,
+		Username: user.Username,
+		Nickname: user.Nickname,
+	}
+	c.Any = op
+
+	ret := &response.AuthInfo{
+		ID:        user.ID,
+		Company:   user.Company,
+		Username:  user.Username,
+		Nickname:  user.Nickname,
+		Token:     user.Session.Token,
+		AvatarURL: user.AvatarURL,
 	}
 
-	return c.JSON(http.StatusOK, cu)
+	return c.JSON(http.StatusOK, ret)
 }

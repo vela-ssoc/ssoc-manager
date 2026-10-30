@@ -35,6 +35,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	mgtsvc "github.com/vela-ssoc/ssoc-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/appv3/middle"
 	"github.com/vela-ssoc/ssoc-manager/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
@@ -42,6 +43,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/config"
 	"github.com/vela-ssoc/ssoc-manager/cronfunc"
+	"github.com/vela-ssoc/ssoc-manager/integration/ywcmdb"
+	"github.com/vela-ssoc/ssoc-manager/migration"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxcentral"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxroute"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
@@ -193,22 +196,37 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		EnableCompression: true,
 	}
 
+	if err = migration.Exec(ctx, migration.NewUser(pdb, log)); err != nil {
+		log.Error("数据迁移出错", "err", err)
+		return err
+	}
+
+	const apiV1, apiV3 = "/api/v1", "/api/v3"
+	noauth := exposeMUX.Group(apiV1)
+
+	midauth := middle.NewAuth(pdb, 24*time.Hour, log)
+	v1auth := noauth.Clone().Use(midauth)
+
 	route := shipx.RouteGroup3{
 		ExposeV1: shipx.RouteEndpoint{
-			Path:  "/api/v1",
-			Group: exposeMUX.Group("/api/v1"),
+			Path:  apiV1,
+			Group: v1auth,
 		},
 		ExposeV3: shipx.RouteEndpoint{
-			Path:  "/api/v3",
-			Group: exposeMUX.Group("/api/v3"),
+			Path:  apiV3,
+			Group: exposeMUX.Group(apiV3).Use(midauth),
 		},
 		BrokerV1: shipx.RouteEndpoint{
-			Path:  "/api/v1",
-			Group: brokerMUX.Group("/api/v1"),
+			Path:  apiV1,
+			Group: brokerMUX.Group(apiV1),
 		},
 		BrokerV3: shipx.RouteEndpoint{
-			Path:  "/api/v3",
-			Group: brokerMUX.Group("/api/v3"),
+			Path:  apiV3,
+			Group: brokerMUX.Group(apiV3),
+		},
+		ExposeV1NoAuth: shipx.RouteEndpoint{
+			Path:  apiV1,
+			Group: noauth,
 		},
 	}
 	dispatch := pubsub.NewDispatcher()
@@ -340,12 +358,18 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(restapi.NewBrokerReverseProxy),
 		gontainer.NewFactory(service.NewBrokerStream),
 		gontainer.NewFactory(restapi.NewBrokerStream),
+		gontainer.NewFactory(service.NewCMDB),
+		gontainer.NewFactory(restapi.NewCMDB),
+		gontainer.NewFactory(service.NewCMDBConfig),
+		gontainer.NewFactory(restapi.NewCMDBConfig),
 		gontainer.NewFactory(restapi.NewItself),
 		gontainer.NewFactory(service.NewItselfConfig),
 		gontainer.NewFactory(restapi.NewItselfConfig),
 		gontainer.NewFactory(restapi.NewItselfCrontab),
 		gontainer.NewFactory(restapi.NewItselfExit),
 		gontainer.NewFactory(restapi.NewItselfRoute),
+		gontainer.NewFactory(service.NewMinion),
+		gontainer.NewFactory(restapi.NewMinion),
 		gontainer.NewFactory(service.NewOAuth),
 		gontainer.NewFactory(restapi.NewOAuth),
 		gontainer.NewFactory(service.NewOAuthConfig),
@@ -367,9 +391,12 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(vmexport.NewMongoDB),
 		gontainer.NewFactory(vmexport.NewPsutil),
 
-		gontainer.NewFactory(func(cfg vmexport.VictoriaPushConfigLoader, mws gontainer.Multiple[vmexport.MetricWriter]) *cronfunc.VMetric {
-			return cronfunc.NewVMetric(cfg, mws)
-		}),
+		gontainer.NewFactory(ywcmdb.NewClient),
+		gontainer.NewFactory(cronfunc.NewCMDB),
+		gontainer.NewFactory(cronfunc.NewCMDBToSSOC),
+		gontainer.NewFactory(cronfunc.NewSSOCToCMDB),
+		gontainer.NewFactory(cronfunc.NewVMetric),
+
 		gontainer.NewEntrypoint(cronAddJobs),
 		gontainer.NewEntrypoint(registerRoutes),
 	}
@@ -394,7 +421,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	}
 
 	log.Error("程序运行结束", "err", err)
-	_ = closeHTTP(srv)
+	_ = srv.Close()
 
 	return err
 }

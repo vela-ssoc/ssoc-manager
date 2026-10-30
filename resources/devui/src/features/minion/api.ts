@@ -1,6 +1,11 @@
-import { legacyHttp } from "@/lib/http"
+import { http, legacyHttp } from "@/lib/http"
 
-import type { MinionDetail, MinionFilter, MinionPage } from "./types"
+import type {
+  MinionDetail,
+  MinionFilter,
+  MinionNodePage,
+  MinionPage,
+} from "./types"
 
 export const minionApi = {
   page(current: number, size: number, keyword: string, filters: MinionFilter[] = []) {
@@ -9,6 +14,15 @@ export const minionApi = {
       size,
       keyword,
       ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
+    })
+  },
+
+  pageNodes(page: number, size: number, keyword: string, department?: string) {
+    return http.get<MinionNodePage>("/minions", {
+      page,
+      size,
+      q: keyword,
+      department,
     })
   },
 

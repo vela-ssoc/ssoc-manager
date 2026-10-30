@@ -55,6 +55,42 @@ export interface MinionPage {
   records: Minion[]
 }
 
+export interface MinionNode {
+  id: string
+  machine_id: string
+  inet: string
+  inet6?: string
+  mac?: string
+  goos: string
+  arch?: string
+  edition: string
+  status: MinionStatus
+  broker_id?: string
+  broker_name?: string
+  broker_slug?: string
+  unload: boolean
+  unstable: boolean
+  customized?: string
+  org_path?: string
+  identity?: string
+  category?: string
+  op_duty?: string
+  comment?: string
+  ibu?: string
+  idc?: string
+  os_release?: string
+  heartbeat_at?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface MinionNodePage {
+  page: number
+  size: number
+  total: number
+  records: MinionNode[]
+}
+
 export interface MinionFilter {
   key: string
   operator: string
