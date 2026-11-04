@@ -56,6 +56,7 @@ export function usePortalPictureInPicture(options?: {
   const [container, setContainer] = useState<HTMLElement | null>(null)
   const [supported] = useState(() => Boolean(getDocumentPiP()))
   const onResizeRef = useRef(options?.onResize)
+  const { defaultWidth = 1024, defaultHeight = 680 } = options ?? {}
 
   useEffect(() => {
     onResizeRef.current = options?.onResize
@@ -68,8 +69,8 @@ export function usePortalPictureInPicture(options?: {
 
       try {
         const pipWindow = await dpip.requestWindow({
-          width: options?.defaultWidth ?? 1024,
-          height: options?.defaultHeight ?? 680,
+          width: defaultWidth,
+          height: defaultHeight,
         })
         const pipDoc = prepareDocument(pipWindow, title)
 
@@ -93,7 +94,7 @@ export function usePortalPictureInPicture(options?: {
         toast.error("无法打开画中画窗口")
       }
     },
-    [options?.defaultWidth, options?.defaultHeight]
+    [defaultWidth, defaultHeight]
   )
 
   return { supported, active, container, open }

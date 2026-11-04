@@ -461,6 +461,7 @@ function TimeRangePicker({
   const [fromMs, setFromMs] = useState(0)
   const [toMs, setToMs] = useState(0)
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(Date.now()))
+  const [today] = useState(() => startOfDay(Date.now()))
   const [timeText, setTimeText] = useState("")
   const rootRef = useRef<HTMLDivElement | null>(null)
 
@@ -589,7 +590,6 @@ function TimeRangePicker({
   })
   const fromDay = startOfDay(fromMs)
   const toDay = startOfDay(toMs)
-  const today = startOfDay(Date.now())
 
   return (
     <div ref={rootRef} className="relative">

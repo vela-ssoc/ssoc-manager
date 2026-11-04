@@ -15,8 +15,8 @@
 
 ## 2. 技术栈与版本
 
-- Vite 7 + React 19 + TypeScript 5.8
-- Tailwind CSS v4（`@tailwindcss/vite` 插件，`@theme inline` 映射 CSS 变量）
+- Vite 8 + React 19.3 + TypeScript 6.0
+- Tailwind CSS 4.3（`@tailwindcss/vite` 插件，`@theme inline` 映射 CSS 变量）
 - shadcn/ui 风格组件（自实现于 `src/components/ui/`，依赖 Radix UI）
 - react-router-dom v7（`BrowserRouter` + `basename="/devui"`）
 - monaco-editor + @monaco-editor/react（文件编辑/预览、接口调试报文）
@@ -38,6 +38,10 @@ npm run lint    # eslint（必须 0 error）
 除非用户明确要求，不要在每次改动后运行 `npm run build`；如有必要，可单独运行 `npm run lint`。
 当前 lint 基线为 **0 error / 3 warning**（`badge.tsx`、`button.tsx`、`file-icon.tsx` 的既有
 react-refresh warning），不允许新增 error/warning。
+`eslint-plugin-react-hooks@7` 新增的 `react-hooks/set-state-in-effect` 已在 `eslint.config.js` 中关闭
+（与项目既有的 `useEffect + load()` 取数模式冲突），其余 React Compiler 规则（`purity`、
+`preserve-manual-memoization` 等）保持开启。
+TypeScript 固定为 `~6.0.3`：`typescript-eslint@8` 的 peer 范围是 `<6.1.0`，暂不支持 TS 7。
 
 ## 4. 目录结构
 
@@ -61,7 +65,8 @@ src/
     central/             # 中心端（监控、配置、定时任务、路由、buildinfo）
     cmdb/                # CMDB 数据浏览（api + types，部门树 + 资产分页）
     cmdb-config/         # CMDB 配置（api + types）
-    minion/              # 探针节点类型与旧版 API 封装
+    certificate/         # TLS 证书（api + types）
+    minion/              # 探针节点类型（v3 列表 + 旧版删除/详情 API）
     oauth-config/        # 身份验证（OAuth 配置 api + types）
     reverse-proxy/       # 反向代理（列表 + 创建/编辑/删除）
     server-events/       # SSE 事件流（连接、重连、订阅 hook、通知卡片、事件历史、铃铛面板）
@@ -81,6 +86,7 @@ src/
     reverse-proxies.tsx  # 反向代理
     oauth-config.tsx     # 身份验证（OAuth 配置）
     cmdb-config.tsx      # CMDB 配置
+    certificate.tsx      # 证书（列表 + 新建/编辑 + 解析预览）
     cmdb-browse.tsx      # CMDB 数据浏览（部门树 + 资产表格）
     victoria-metrics.tsx # VictoriaMetrics 推送配置
     hone-dashboard.tsx   # 蜜罐大屏 iframe
@@ -113,7 +119,8 @@ src/
 | `/reverse-proxies`          | `pages/reverse-proxies.tsx`    | 反向代理表格 CRUD                                                                 |
 | `/configs/oauth`            | `pages/oauth-config.tsx`       | 身份验证（OAuth 登录配置）                                                        |
 | `/configs/cmdb`             | `pages/cmdb-config.tsx`        | CMDB 服务地址与访问凭证                                                           |
-| `/configs/cmdb/browse`      | `pages/cmdb-browse.tsx`       | CMDB 数据浏览（左侧部门树 + 右侧资产分页表格）                                    |
+| `/configs/certificate`      | `pages/certificate.tsx`        | TLS 证书列表 + 新建/编辑 + 解析预览                                               |
+| `/configs/cmdb/browse`      | `pages/cmdb-browse.tsx`        | CMDB 数据浏览（左侧部门树 + 右侧资产分页表格）                                    |
 | `/configs/victoria-metrics` | `pages/victoria-metrics.tsx`   | VictoriaMetrics 推送配置                                                          |
 | `/ssoc`                     | `pages/risk-dashboard.tsx`     | 风险大屏 iframe（overlay）                                                        |
 | `/hone`                     | `pages/hone-dashboard.tsx`     | 蜜罐大屏 iframe（overlay）                                                        |
@@ -121,9 +128,10 @@ src/
 | `/settings`                 | `pages/settings.tsx`           | 主题 / 强调色 / 字体                                                              |
 
 Sidebar 导航项定义在 `components/layout/app-layout.tsx`：旧版界面、探针节点、中继节点、中心端、
-虚拟文件、反向代理、配置管理（可折叠：身份验证）、数据源（可折叠：CMDB / VictoriaMetrics）、
+虚拟文件、反向代理、配置管理（可折叠：身份验证 / TLS 证书）、数据源（可折叠：CMDB / VictoriaMetrics）、
 大屏展示（可折叠：风险大屏 / 蜜罐大屏）、
-接口文档；底部为用户菜单（含头像、昵称、公司标签、个人中心、退出登录），个性化入口不再单独占位。
+接口文档；底部为用户菜单：触发按钮显示头像 + 昵称 + `公司 · 用户名`，点开后只有「个人中心」和「退出登录」两项
+（不再重复展示用户信息，也取消了右上角关闭按钮）。
 顶栏 Logo 右侧为通知铃铛（未读徽标 + 通知面板，数据来自 SSE 事件历史；面板内可关闭「订阅通知」，关闭后显示静音铃铛）。
 导航项可配置 `external`，hover 时显示「新标签打开」按钮。
 
@@ -284,25 +292,47 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET      | `/oauth/provider`             | 登录页 OAuth 提供商信息（`origin`，返回 `client_id` / `redirect_uri` / `authorization_endpoint`）                                    | `oauthProviderApi.get`                             |
 | GET      | `/sse/event`                  | SSE 事件流订阅（`Accept: text/event-stream`）                                                                                        | `features/server-events/client.ts`                 |
 | POST     | `/oauth/dong`                 | 扫码 code 登录（`code` + `redirect_uri`）                                                                                            | `oauthApi.dong`                                    |
-| GET/POST | `/cmdb/config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`）                                                                            | `cmdbConfigApi.get/update`                         |
-| GET      | `/cmdb/departments`           | CMDB 部门树（`{records: CMDBNode[]}`，树形分层）                                                                                      | `cmdbApi.departments`                             |
-| GET      | `/cmdb/assets`                | CMDB 资产分页（`page/size/q/department/ci_type`，`ci_type` 可重复传多个）                                                             | `cmdbApi.assets`                                  |
+| GET/POST | `/cmdb/config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`）                                                                           | `cmdbConfigApi.get/update`                         |
+| GET      | `/cmdb/departments`           | CMDB 部门树（`{records: CMDBNode[]}`，树形分层）                                                                                     | `cmdbApi.departments`                              |
+| GET      | `/cmdb/assets`                | CMDB 资产分页（`page/size/q/department/ci_type`，`ci_type` 可重复传多个）                                                            | `cmdbApi.assets`                                   |
 | GET/POST | `/victoria-metrics-config`    | VictoriaMetrics 推送配置（`{enabled,address,tenant_id,username,password,headers}`）                                                  | `victoriaMetricsApi.get/update`                    |
+
+### 证书
+
+| 方法   | 路径                 | 用途                                                  | 前端封装                |
+|--------|----------------------|-------------------------------------------------------|-------------------------|
+| GET    | `/certificates`      | 证书列表，`public_key` / `private_key` 被投影排除     | `certificateApi.list`   |
+| POST   | `/certificate/parse` | 用 `{public_key, private_key}` 试解析，返回证书元数据 | `certificateApi.parse`  |
+| POST   | `/certificate`       | 新建（`{public_key, private_key}`，服务端解析后入库） | `certificateApi.create` |
+| PUT    | `/certificate`       | 更新（`{id, public_key, private_key}`）               | `certificateApi.update` |
+| DELETE | `/certificate`       | 删除（query `id`，ObjectID 十六进制）                 | `certificateApi.remove` |
+
+- 列表接口直接返回数组（不是 `{records}` 包装），字段为 `id / common_name / certificate_sha256 /
+  public_key_sha256 / private_key_sha256 / dns_names / ip_addresses / email_addresses / uris / version /
+  not_before / not_after / issuer / subject / signature_algorithm / created_at / updated_at`，
+  其中 `issuer` / `subject` 是 `CertificatePKIXName`（`common_name / organization / organizational_unit /
+  country / locality / province / street_address / postal_code / serial_number`，除 `serial_number` 外都是字符串数组）。
+- 列表 **不含**公私钥，所以「编辑」需要重新粘贴证书与私钥，页面上已有说明文案。
+- 私钥与证书均支持三种录入方式：直接粘贴、点击标题栏图标选择文件（`.pem/.crt/.cer/.key/.txt`）、拖拽文件到输入区；
+  超过 512 KB、内容为空或读取失败都会 toast 提示。
+- 后端 `restapi.Certificate` 已实现 `RegisterHTTP`，路由挂在 `ExposeV3`（`/api/v3/certificates` 等），
+  前端可直接调用；`/certificate/download` 仍被注释，前端没有下载入口。
+- 列表为卡片网格，到期徽标按剩余天数着色：>15 天绿色、0~15 天黄色、<0 天红色并只显示「已过期」。
 
 ### 探针节点
 
 列表主数据源为 v3 `/minions`（`ssoc-manager/appv3/restapi/minion.go`），返回 `repository.Pages` 结构
 `{ page, size, total, records }`，记录为 `dal/model.Minion`：
 
-| 方法   | 路径           | 用途                                                                 | 前端封装                  |
-|--------|----------------|----------------------------------------------------------------------|---------------------------|
-| GET    | `/api/v3/minions` | 分页（`page/size/q/department`），`department` 同时匹配本部门与子部门 | `minionApi.pageNodes`     |
-| GET    | `/api/v1/minions` | 旧版分页（`current/size/keyword`，可选 `filters` JSON），已不被页面使用 | `minionApi.page`        |
-| GET    | `/api/v1/minion`  | 详情（`id`，已封装但未使用）                                          | `minionApi.detail`        |
-| DELETE | `/api/v1/minion`  | 逻辑删除（`filters` JSON），v3 暂无删除接口，页面仍走旧接口            | `minionApi.logicalDelete` |
+| 方法   | 路径              | 用途                                                                    | 前端封装                  |
+|--------|-------------------|-------------------------------------------------------------------------|---------------------------|
+| GET    | `/api/v3/minions` | 分页（`page/size/q/department`），`department` 同时匹配本部门与子部门   | `minionApi.pageNodes`     |
+| GET    | `/api/v1/minions` | 旧版分页（`current/size/keyword`，可选 `filters` JSON），已不被页面使用 | `minionApi.page`          |
+| GET    | `/api/v1/minion`  | 详情（`id`，已封装但未使用）                                            | `minionApi.detail`        |
+| DELETE | `/api/v1/minion`  | 逻辑删除（`filters` JSON），v3 暂无删除接口，页面仍走旧接口             | `minionApi.logicalDelete` |
 
-- v3 后端目前**未使用** `q` 参数（`service/minion.go` 只处理 `department`），搜索框会把值传给后端但暂无过滤效果。
-- v3 记录**不含** `tags` / `cpu_core` / `mem_total` / `mem_free`（这些来自旧版视图与 `sys_info` 表），
+- v3 后端目前 **未使用** `q` 参数（`service/minion.go` 只处理 `department`），搜索框会把值传给后端但暂无过滤效果。
+- v3 记录 **不含** `tags` / `cpu_core` / `mem_total` / `mem_free`（这些来自旧版视图与 `sys_info` 表），
   卡片因此只展示 `machine_id / edition / goos / broker_name / org_path / idc / comment / heartbeat_at`。
 
 ### 登录（旧版 `/api/v1`）
@@ -329,7 +359,11 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - `CronJobInfo`：`id / name / expr / timeout（纳秒）/ immediate / next / entry_id`
 - `CentralConfig`：`id / server{addr, static{path:{spa,dir}}} / logger / created_at / updated_at`
 - `CentralConfigResponse`：`{ boot: { database: { uri, dsn } }, config: CentralConfig | null }`
-- `Minion`：
+- `MinionNode`（v3 `/minions` 列表，`dal/model.Minion`）：
+  `id(string) / machine_id / inet / inet6 / mac / goos / arch / edition / status / broker_id / broker_name /
+  broker_slug / unload / unstable / customized / org_path / identity / category / op_duty / comment / ibu / idc /
+  os_release / heartbeat_at / created_at / updated_at`（**无** `tags` / `cpu_core` / `mem_total` / `mem_free`）
+- `Minion`（旧版 `/api/v1/minions` 视图，页面已不再使用）：
   `id / inet / goos / edition / status / heartbeat_at / cpu_core / mem_total / mem_free / idc / ibu / comment / broker_name / unload / uptime / unstable / tags`
 - `MinionStatus`：1-未激活，2-离线，3-在线，4-已删除（`MINION_STATUSES`）
 - `ProcessInfo`：
@@ -353,22 +387,30 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - `CMDBNode`（部门树）：`name / ci_id(string) / department（完整部门路径）/ children`
     - `/cmdb/departments` 返回 `{ records: CMDBNode[] }`，根节点可能含空 `department`，前端已过滤空节点。
 - `CMDB`（资产）：字段极多，前端只取展示所需子集（见 `features/cmdb/types.ts` 的 `CMDBAsset`）：
-  `id / ci_id(string) / ci_type / name / department / private_ip / host_ip / idc / comment / ssoc_agent? / updated_at` 等。
+  `id / ci_id(string) / ci_type / name / department / private_ip / host_ip / idc / comment / ssoc_agent? / updated_at`
+  等。
     - `/cmdb/assets` 关键字 `q` 后端在多字段上做正则匹配，`department` 精确匹配该部门；`ci_type` 支持多个值（重复 query），
       最多 10 个；分页复用 `page/size`（默认 10，上限 1000）。
     - 资产表列顺序固定为：类型、IP（`private_ip`）、SSOC、部门、机房、备注；
       `ssoc_agent` 为 `null` 时显示灰色空心 `Shield` + 「未安装」；非空时按 `ssoc_agent.status`
       显示：0-离线（黄色 `ShieldAlert`）、1-在线（绿色 `ShieldCheck`）、2-删除（红色 `ShieldX`），
-      `status` 缺失按离线处理；悬浮显示版本与中继节点，无内容时提示「已安装 SSOC 探针」；
-      `ssoc_agent.status`：0-离线、1-在线、2-已删除。点击任意行弹出资产详情对话框（数据直接取自列表响应，
-      无单独详情接口），空字段自动隐藏。
-    - `ci_type=server` 的详情按物理机字段文档分组展示（后端 `datalayer/model/cmdb.go` 实际返回的字段）：
-      「基本信息（SN/部门/业务/付款方/业务状态/资产状态/资产编号/作用/标签/更新时间）、位置（IDC/机房/机柜）、
+      `status` 缺失按离线处理；悬浮显示版本与中继节点，无内容时提示「已安装 SSOC 探针」。
+      点击任意行弹出资产详情对话框（数据直接取自列表响应，无单独详情接口），空字段自动隐藏。
+    - 详情内容以**表格**呈现：每个分组一张带边框的表，浅灰底为属性列、白底为值列，一行放两组「属性 / 值」
+      （列宽 11% / 39% ×2）；值过长自动换行，`mono` 字段用等宽字体。
+    - 分组顺序固定为：**SSOC 探针**（状态/版本/中继节点/机器码）→ 业务分组 → **资产时间**。
+      `SSOC 探针` 在最上方；未安装时该分组仍会显示，只有「状态：未安装」一行。
+    - `ci_type=server` 的业务分组按物理机字段文档划分（后端 `datalayer/model/cmdb.go` 实际返回的字段）：
+      「基本信息（SN/部门/业务/付款方/业务状态/资产状态/资产编号/作用/标签）、位置（IDC/机房/机柜）、
       硬件配置（CPU型号/核数/逻辑核数/超线程/用途/内存/硬盘/磁盘阵列）、网络（内网IP/IPv6/电信/网通/移动/主机名/
       浮动IP/网络开放状态）、系统（操作系统版本/内核版本/环境）、负责人（开发/运维/系统/应用）、
-      应用与安全（应用名称/业务属性/宿主机类型/堡垒机账号/安全信息）+ SSOC 探针」；
+      应用与安全（应用名称/业务属性/宿主机类型/堡垒机账号/安全信息）」；
       文档中后端未同步的字段（供应商/品牌/组合型号/高度/ilo IP/财务/维保等）不展示。
-    - 其它 `ci_type` 仍使用通用分组：「基本信息 / 网络 / 硬件与系统 / 责任人 + SSOC 探针」。
+    - 其它 `ci_type` 使用通用分组：「基本信息 / 网络 / 硬件与系统 / 责任人」。
+    - **资产时间**（最底部，所有类型共用）：`created_time`（CMDB 创建时间，原样显示）、`update_time`（CMDB 更新时间，
+      原样显示）、`created_at`（SSOC 导入时间）、`updated_at`（SSOC 更新时间，后两者经 `formatDateTime()`，
+      零值 `0001-01-01` 自动隐藏）。
+    - IP 类字段（`private_ip` / `host_ip` / `ipv6` / `float_ip`）**一行一个**，不用逗号拼接。
     - 资产标题右侧的类型下拉为多选，默认勾选「全部类型」（不传 `ci_type`）；
       选项为物理机 / 虚拟机 / 基金虚拟机 / 容器 / 公有云五类（DNS、VIP 等类型系统不拉取），见 `CI_TYPE_OPTIONS`。
       「全部类型」与其它类型平级，均为复选项，勾选即清空筛选。
@@ -431,7 +473,11 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - 鼠标可交互控件统一显示手型（`index.css` 中已有 button/[role] cursor 规则）。
 - UI 要简洁：右侧区域尽量留给数据展示，减少无意义文字说明与控制按钮。
 - 危险提示统一使用 `border-destructive/30 bg-destructive/5 text-destructive` 的浅底警告块 + `TriangleAlert` 图标。
-- 成功/生效状态用 `text-green-600 dark:text-green-400`，异常用 `text-destructive`。
+- **注意 `--destructive` 与 `--primary` 同源**（`lib/theme.ts` 里两者赋同一个值，默认是橙色）：
+  它是「跟随主题的危险色」，不是固定的红色。因此**状态标记**（如证书过期、探针删除）必须用显式的
+  `text-red-600 dark:text-red-400`，不要用 `text-destructive`；表单校验类的警示块仍沿用 `destructive` 以跟随主题。
+- 状态色统一写法：成功/在线 `text-green-600 dark:text-green-400`，警示/临期 `text-amber-600 dark:text-amber-400`，
+  异常/过期 `text-red-600 dark:text-red-400`，中性/离线 `text-muted-foreground`。
 
 ## 10. 交互约定
 
@@ -488,7 +534,8 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - 缩进统一使用 **2 个空格**；`eslint.config.js` 的 `indent` 规则会校验此约定。
 - TypeScript 严格模式，`verbatimModuleSyntax`（类型导入用 `import type`）。
 - 不使用 `enum` 或命名空间（`erasableSyntaxOnly`），用字符串字面量联合 / `as const`。
-- 组件文件若导出非组件（常量/函数），需加 `// eslint-disable-next-line react-refresh/only-export-components`（或拆到单独文件）。
+- 组件文件若导出非组件（常量/函数），优先拆到单独文件，或加 `// eslint-disable-next-line react-refresh/only-export-components`。
+  现有 `badge.tsx` / `button.tsx` / `file-icon.tsx` 三处保留了该告警作为基线，新增文件不要继续累积。
 - **不加注释**（除非用户要求）。
 - 复用已有工具函数，勿重复造轮子：
     - `cn()`（`@/lib/utils`）
@@ -501,7 +548,7 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
     - `DataPagination`
     - `useConfirmCountdown`
 - 表单校验统一用 `zod`；错误信息通过 `safeParse` 收集到 `Record<string, string>` 后渲染在字段下方。
-- 分页参数命名：v3 归档用 `page/size/q`，v1 探针用 `current/size/keyword`，不要混用。
+- 分页参数命名：v3 接口统一 `page/size`（搜索用 `q`），包括归档、CMDB 资产、探针节点；旧版 `/api/v1` 用 `current/size/keyword`，不要混用。
 - 页面级数据加载用 `useCallback` 包 `load`，`useEffect(() => void load(), [load])`；并发请求用递增 `requestId` 防止旧响应覆盖新响应。
 
 ## 12. 明确禁止事项
@@ -518,10 +565,11 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 
 ## 13. 当前已知差异 / 待办
 
-- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；`minionApi.detail` 已封装但尚无详情页，也 **没有新建探针入口**。
+- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；`minionApi.detail` 已封装但尚无详情页，也
+  **没有新建探针入口**。
   部门树组件已抽到 `features/cmdb/department-tree.tsx`，`/configs/cmdb/browse` 与本页共用。
-- 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤），归档/探针需回车或点击「搜索」（服务端查询）。
-- `zip-archive-detail.tsx` 顶部存在一处残留空行（仅格式问题）。
+- 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤）；归档走服务端 `q`；探针节点虽把 `q` 传给
+  v3 `/minions`，但后端 `service/minion.go` 尚未使用该参数，暂无过滤效果。
 - 删除归档、删除目录两个功能仍依赖后端修复。
 
 ---

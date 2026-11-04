@@ -9,6 +9,7 @@ import { ReverseProxiesPage } from "@/pages/reverse-proxies"
 import { OAuthConfigPage } from "@/pages/oauth-config"
 import { CMDBConfigPage } from "@/pages/cmdb-config"
 import { CMDMBrowsePage } from "@/pages/cmdb-browse"
+import { CertificatePage } from "@/pages/certificate"
 import { VictoriaMetricsPage } from "@/pages/victoria-metrics"
 import { SettingsPage } from "@/pages/settings"
 import { BrokersPage } from "@/pages/brokers"
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/configs/oauth" element={<OAuthConfigPage />} />
           <Route path="/configs/cmdb" element={<CMDBConfigPage />} />
           <Route path="/configs/cmdb/browse" element={<CMDMBrowsePage />} />
+          <Route path="/configs/certificate" element={<CertificatePage />} />
           <Route path="/configs/victoria-metrics" element={<VictoriaMetricsPage />} />
           <Route path="/brokers" element={<BrokersPage />} />
           <Route path="/brokers/:slug" element={<BrokerDetailPage />} />

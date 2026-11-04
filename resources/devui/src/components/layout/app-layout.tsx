@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   Database,
   ExternalLink,
+  FileBadge,
   HardDrive,
   Home,
   LogOut,
@@ -95,6 +96,7 @@ const navItems: NavItem[] = [
     icon: Settings,
     children: [
       { title: "身份验证", href: "/configs/oauth", icon: ShieldCheck },
+      { title: "TLS 证书", href: "/configs/certificate", icon: FileBadge },
     ],
   },
   {

@@ -19,6 +19,8 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // 项目统一采用 “useEffect + async load()” 的取数模式，加载态在 effect 内同步置位属于既有约定。
+      "react-hooks/set-state-in-effect": "off",
       indent: ["error", 2, { SwitchCase: 1 }],
       "react-refresh/only-export-components": [
         "warn",
