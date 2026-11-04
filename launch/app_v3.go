@@ -32,7 +32,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
-	"github.com/vela-ssoc/ssoc-common-mb/vmexport"
+	"github.com/vela-ssoc/ssoc-common-mb/victoria"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	mgtsvc "github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/middle"
@@ -390,8 +390,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(service.NewZipFile),
 		gontainer.NewFactory(restapi.NewZipFile),
 
-		gontainer.NewFactory(vmexport.NewMongoDB),
-		gontainer.NewFactory(vmexport.NewPsutil),
+		gontainer.NewFactory(victoria.NewMongoDB),
+		gontainer.NewFactory(victoria.NewPsutil),
 
 		gontainer.NewFactory(ywcmdb.NewClient),
 		gontainer.NewFactory(cronfunc.NewCMDB),

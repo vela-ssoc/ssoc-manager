@@ -1,6 +1,5 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
 name: 编译
 
 on:
@@ -8,23 +7,53 @@ on:
   push:
     branches:
       - v3
-#  pull_request:
-#    branches: [ "main" ]
 
 jobs:
-  build:
+  # 独立编译前端，只执行一次
+  frontend:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v7
+        with:
+          cache: npm
+          cache-dependency-path: resources/devui/package-lock.json
+
+      - name: Build Frontend
+        working-directory: resources/devui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-build
+          path: resources/static/
+          if-no-files-found: error
+
+  # 后端多平台编译
+  backend:
+    needs: frontend
+    runs-on: ubuntu-latest
+
     env:
       CGO_ENABLED: 0
+
     strategy:
       fail-fast: false
       matrix:
         target:
           - os: linux
             arch: amd64
-          - os: android
-            arch: arm64
           - os: windows
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: freebsd
             arch: amd64
 
     steps:
@@ -37,11 +66,12 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v7
+      # 下载前端编译产物
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v7
         with:
-          cache: npm
-          cache-dependency-path: resources/devui/package-lock.json
+          name: frontend-build
+          path: resources/static/
 
       - name: Build Backend ${{ matrix.target.os }}-${{ matrix.target.arch }}
         env:
@@ -50,12 +80,6 @@ jobs:
         run: |
           chmod +x ./build.sh
           ./build.sh
-
-      - name: Build Frontend
-        working-directory: resources/devui
-        run: |
-          npm ci
-          npm run build
 
       - name: Set Artifact name
         id: artifact

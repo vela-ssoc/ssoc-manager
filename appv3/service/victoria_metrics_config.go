@@ -103,7 +103,7 @@ func (vmc *VictoriaMetrics) Reverse(ctx context.Context, w http.ResponseWriter, 
 	return nil
 }
 
-func (vmc *VictoriaMetrics) LoadVictoriaPushConfig(ctx context.Context) (pushURL string, opts *metrics.PushOptions, err error) {
+func (vmc *VictoriaMetrics) PushConfig(ctx context.Context) (pushURL string, opts *metrics.PushOptions, err error) {
 	pu, headers, data, err := vmc.load(ctx)
 	if err != nil {
 		return "", nil, err

@@ -23,6 +23,12 @@ export const oauthProviderApi = {
   },
 }
 
+export const versionApi = {
+  get() {
+    return http.get<{ data?: string }>("/itself/version")
+  },
+}
+
 export const oauthApi = {
   dong(code: string, redirectUri: string) {
     return http.post<AuthSession>("/oauth/dong", {
