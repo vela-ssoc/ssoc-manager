@@ -29,7 +29,7 @@ func NewTunnel(han muxproto.MUXServer) *Tunnel {
 }
 
 func (tnl *Tunnel) RegisterHTTP(g shipx.RouteGroup3) error {
-	g.ExposeV3.Group.Route("/tunnel").GET(tnl.handle) // 中继节点连接端点
+	g.ExposeV3.Group.Route("/tunnel").Data(shipx.NewAnonymous()).GET(tnl.handle) // 中继节点连接端点
 
 	return nil
 }

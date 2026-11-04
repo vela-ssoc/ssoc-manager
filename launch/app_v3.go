@@ -358,6 +358,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(restapi.NewBrokerReverseProxy),
 		gontainer.NewFactory(service.NewBrokerStream),
 		gontainer.NewFactory(restapi.NewBrokerStream),
+		gontainer.NewFactory(service.NewCertificate),
+		gontainer.NewFactory(restapi.NewCertificate),
 		gontainer.NewFactory(service.NewCMDB),
 		gontainer.NewFactory(restapi.NewCMDB),
 		gontainer.NewFactory(service.NewCMDBConfig),
