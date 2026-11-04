@@ -6,10 +6,10 @@ import (
 )
 
 type sseEvent struct {
-	sse eventsource.EventSource
+	sse *eventsource.Writer
 }
 
-func NewSSEEvent(sse eventsource.EventSource) pubsub.Subscriber {
+func NewSSEEvent(sse *eventsource.Writer) pubsub.Subscriber {
 	return &sseEvent{sse: sse}
 }
 

@@ -1,8 +1,8 @@
 package restapi
 
 import (
+	"github.com/vela-ssoc/ssoc-common-mb/eventsource"
 	"github.com/vela-ssoc/ssoc-common-mb/pubsub"
-	"github.com/vela-ssoc/ssoc-common/eventsource"
 	"github.com/vela-ssoc/ssoc-manager/appv3/response"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
