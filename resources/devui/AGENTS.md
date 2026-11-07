@@ -66,6 +66,7 @@ src/
     cmdb/                # CMDB 数据浏览（api + types，部门树 + 资产分页）
     cmdb-config/         # CMDB 配置（api + types）
     certificate/         # TLS 证书（api + types）
+    redis-config/        # Redis 连接配置（api + types）
     minion/              # 探针节点类型（v3 列表 + 旧版删除/详情 API）
     oauth-config/        # 身份验证（OAuth 配置 api + types）
     reverse-proxy/       # 反向代理（列表 + 创建/编辑/删除）
@@ -89,6 +90,7 @@ src/
     certificate.tsx      # 证书（列表 + 新建/编辑 + 解析预览）
     cmdb-browse.tsx      # CMDB 数据浏览（部门树 + 资产表格）
     victoria-metrics.tsx # VictoriaMetrics 推送配置
+    redis-config.tsx     # Redis 连接配置 + 选项卡（运行信息 / 数据浏览 / 命令行）
     hone-dashboard.tsx   # 蜜罐大屏 iframe
     risk-dashboard.tsx   # 风险大屏 iframe
     oas3.tsx             # 接口文档 iframe
@@ -122,13 +124,14 @@ src/
 | `/configs/certificate`      | `pages/certificate.tsx`        | TLS 证书列表 + 新建/编辑 + 解析预览                                               |
 | `/configs/cmdb/browse`      | `pages/cmdb-browse.tsx`        | CMDB 数据浏览（左侧部门树 + 右侧资产分页表格）                                    |
 | `/configs/victoria-metrics` | `pages/victoria-metrics.tsx`   | VictoriaMetrics 推送配置                                                          |
+| `/configs/redis`            | `pages/redis-config.tsx`       | Redis 配置 + 选项卡（运行信息 / 数据浏览 / 命令行）                                 |
 | `/ssoc`                     | `pages/risk-dashboard.tsx`     | 风险大屏 iframe（overlay）                                                        |
 | `/hone`                     | `pages/hone-dashboard.tsx`     | 蜜罐大屏 iframe（overlay）                                                        |
 | `/oas3`                     | `pages/oas3.tsx`               | 接口文档 iframe                                                                   |
 | `/settings`                 | `pages/settings.tsx`           | 主题 / 强调色 / 字体                                                              |
 
 Sidebar 导航项定义在 `components/layout/app-layout.tsx`：旧版界面、探针节点、中继节点、中心端、
-虚拟文件、反向代理、配置管理（可折叠：身份验证 / TLS 证书）、数据源（可折叠：CMDB / VictoriaMetrics）、
+虚拟文件、反向代理、配置管理（可折叠：身份验证 / TLS 证书）、数据源（可折叠：CMDB / Redis / VictoriaMetrics）、
 大屏展示（可折叠：风险大屏 / 蜜罐大屏）、
 接口文档；底部为用户菜单：触发按钮显示头像 + 昵称 + `公司 · 用户名`，点开后只有「个人中心」和「退出登录」两项
 （不再重复展示用户信息，也取消了右上角关闭按钮）。
@@ -282,8 +285,8 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | DELETE   | `/itself/crontab/job`         | 删除定时任务（`id`）                                                                                                                 | `centralApi.crontabRemove`                         |
 | GET      | `/itself/route/brokers`       | 中继节点侧接口列表                                                                                                                   | `centralApi.brokerRoutes`                          |
 | GET      | `/itself/route/exposes`       | 用户侧接口列表                                                                                                                       | `centralApi.exposeRoutes`                          |
-| GET      | `/vmp/api/v1/query`           | VictoriaMetrics 即时查询                                                                                                             | `instantQuery`                                     |
-| GET      | `/vmp/api/v1/query_range`     | VictoriaMetrics 区间查询                                                                                                             | `rangeQuery`                                       |
+| GET      | `/victoria-metrics/api/v1/query`       | VictoriaMetrics 即时查询（反向代理到 `/vmp/*path`，后端路由为 `ANY /victoria-metrics/*path`）                                          | `instantQuery`                                     |
+| GET      | `/victoria-metrics/api/v1/query_range` | VictoriaMetrics 区间查询                                                                                                             | `rangeQuery`                                       |
 | ANY      | `/webdav`、`/webdav/*`        | 中心端文件管理（WebDAV）                                                                                                             | `centralDavEndpoint`                               |
 | GET      | `/system/pty`（WebSocket）    | 中心端虚拟终端                                                                                                                       | `WebTerminal`                                      |
 | GET      | `/system/processes`           | 系统进程列表                                                                                                                         | `systemProcessApi.list`                            |
@@ -293,10 +296,16 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET      | `/oauth/provider`             | 登录页 OAuth 提供商信息（`origin`，返回 `client_id` / `redirect_uri` / `authorization_endpoint`）                                    | `oauthProviderApi.get`                             |
 | GET      | `/sse/event`                  | SSE 事件流订阅（`Accept: text/event-stream`）                                                                                        | `features/server-events/client.ts`                 |
 | POST     | `/oauth/dong`                 | 扫码 code 登录（`code` + `redirect_uri`）                                                                                            | `oauthApi.dong`                                    |
-| GET/POST | `/cmdb/config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`）                                                                           | `cmdbConfigApi.get/update`                         |
+| GET/POST | `/cmdb-config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`），单例 upsert                                                               | `cmdbConfigApi.get/update`                         |
 | GET      | `/cmdb/departments`           | CMDB 部门树（`{records: CMDBNode[]}`，树形分层）                                                                                     | `cmdbApi.departments`                              |
 | GET      | `/cmdb/assets`                | CMDB 资产分页（`page/size/q/department/ci_type`，`ci_type` 可重复传多个）                                                            | `cmdbApi.assets`                                   |
 | GET/POST | `/victoria-metrics-config`    | VictoriaMetrics 推送配置（`{enabled,address,tenant_id,username,password,headers}`）                                                  | `victoriaMetricsApi.get/update`                    |
+| GET/POST | `/redis-config`              | Redis 连接配置（`{enabled,addresses,username,password,cluster_mode,master_name,db}`，单例 upsert）                                    | `redisConfigApi.get/upsert`                        |
+| GET      | `/redis/info`                | 实时 `INFO`（`section` 可重复传多个），返回 `{ data: "<INFO 文本>" }`                                                                | `redisConfigApi.info`                              |
+| POST     | `/redis/do`                  | 执行任意 Redis 命令（body `{ args: string[], privilege: bool }`，1~20 个），返回 `{ data: <原样结果> }`                          | `redisConfigApi.do`                                |
+| GET      | `/redis-config/safe-commands` | 安全命令白名单（大写命令名数组），用于命令行提交前的拦截                                                                              | `redisConfigApi.safeCommands`                      |
+| GET      | `/redis/keys`                | SCAN 扫描 Key（`size/match/cursor`），返回 `{ keys: [{key,type,ttl,memory}], cursor }`                                                | `redisConfigApi.keys`                              |
+| GET      | `/redis/value`               | Key 内容（`key/size/match/cursor`），返回 `{ key, type, data, cursor }`；`data` 结构随类型变化                                        | `redisConfigApi.value`                             |
 
 ### 证书
 
@@ -375,6 +384,81 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - `VictoriaMetricsConfig`：`id / enabled / address / tenant_id / username / password / headers / created_at / updated_at`
     - 该配置用于管理中心端向 VictoriaMetrics 推送自身运行指标；`enabled=false` 时不推送。
     - 集群版 `tenant_id` 非空时，后端自动拼接 `insert/{tenant}/prometheus` 写入路径。
+- `RedisConfig`：`id / enabled / addresses / username / password / cluster_mode / master_name / db / created_at / updated_at`
+    - 单例配置，`GET /redis-config` 未配置时返回 `null`；`POST` 走 upsert（`$set` + `$setOnInsert.created_at`）。
+    - **`cluster_mode` 与 `master_name` 可以共存**：go-redis 的 `NewUniversalClient` 在
+      `MasterName != "" && (RouteByLatency || RouteRandomly || IsClusterMode)` 时返回 `NewFailoverClusterClient`
+      （哨兵发现集群节点）；仅 `master_name` 为 `NewFailoverClient`（哨兵 + 普通主从）；仅 `cluster_mode` 或
+      多地址为 `NewClusterClient`；否则 `NewClient`。前端因此不再在集群模式下禁用 / 清空 Master 名称。
+    - 地址必须是 `host:port`（不带 `redis://`）；单机只能填 1 个，集群/哨兵可多个；`password` 最长 100，`db` 0~15
+      （集群固定 0）。页面不再展示「连接串」预览区块。
+    - 前端提交体为 `{enabled, addresses, username, password, cluster_mode, master_name, db}`（`RedisConfigPayload`）。
+    - 配置页结构：头部状态卡 → **连接配置**（默认单行摘要：模式徽标 + 地址 + master + DB + 用户名，右侧「展开 / 收起」；
+      展开后显示只读明细或编辑表单；卡片底部固定一行「创建时间 / 更新时间」）→ 选项卡（运行信息 / 数据浏览 / 命令行，仅启用时）。
+    - 「运行信息」调用 `GET /redis/info?section=...` 实时读取 INFO：上方为关键指标卡（版本 / 运行模式 / 节点角色 /
+      端口 / 客户端连接 / 已用内存 / 最大内存 / 运行时长 / 命中率），下方为 Tiny RDM 式左导航 + 右侧「键 / 值」
+      两列表格（无表头、无刷新按钮）。
+    - 请求的 section 固定为 17 个：`server / clients / memory / persistence / threads / stats / replication /
+      cpu / commandstats / latencystats / sentinel / cluster / modules / keyspace / keysizes / errorstats / hotkeys`。
+      逐个列举而不是用 `all` / `everything`，是为了兼容 Redis 7 以下版本（旧版本不认这些聚合参数，会退回默认集）；
+      未知 section 会被 Redis 忽略，空 section 在前端过滤掉不出现在导航里。
+    - 导航顺序按上面的固定顺序重排，响应中多出来的（如模块自建 section）追加在末尾。
+      实现在 `features/redis-config/info-panel.tsx`。
+- 命令行面板（`features/redis-config/cli-panel.tsx`，「命令行」选项卡的内容）：
+    - 基于 **xterm.js**（`@xterm/xterm` + `addon-fit`）实现，无边框、不透明背景，嵌入选项卡面板内；
+      主题跟随明暗切换，容器用 `ResizeObserver` 自动 fit。
+    - banner 与提示符（PS1）取**连接配置**（页面传入 `endpoint / db / cluster / master`），
+      形如 `10.0.0.1:6379[2]>`、`10.0.0.1:6379[cluster]>`；哨兵模式在 banner 中额外显示 `哨兵 mymaster`。
+      不走 `INFO`：配置才是本次会话的真实目标，零额外请求、无失败回退，故障转移后 `INFO` 的角色还会漂移。
+      高风险命令二次确认取消后回落到同一动态提示符（不再固定 `redis>`）。
+    - 输入行自带行编辑器：左右箭头移动光标、`Home`/`End`（Ctrl+A / Ctrl+E）、`Backspace`/`Delete`、
+      Ctrl+U 清行、Ctrl+C 中断当前行、Ctrl+L 清屏、↑/↓ 翻阅历史（`\r` 提交）。
+    - 剪贴板：选中文字后 `Ctrl+C` 复制到剪贴板；`Ctrl+V` 走 `navigator.clipboard.readText()`
+      读取后插入光标处（换行/制表符转空格），读取失败时提示改用 `Ctrl+Shift+V`。
+      剪贴板 API 取当前容器所在 window（画中画时是 PiP 窗口）。
+    - 参数按 shell 规则切分（单/双引号、反斜杠转义），最多 20 个（与后端 `validate:"lte=20"` 对齐）。
+    - 提交 `POST /redis/do { args }`，`data` 为 go-redis `Do().Result()` 原样结果：`nil` → `(nil)`、
+      整数 → `(integer) N`、字符串加引号、数组逐行 `1) "x"`（嵌套缩进）、错误红字 `(error) …`。
+    - 主题跟随 `useTheme().isDark`（切换立刻生效），两套 xterm 主题都定义了完整 ANSI 调色板，
+      banner/提示/结果在明暗两种底色下都保持可读；切换后调用 `term.refresh()` 强制重绘。
+      终端使用**不透明背景**（深色 `#000000` / 浅色 `#ffffff`，与 `--card` 一致），
+      并用 `MutationObserver` 监听 `html.dark` 兜底同步。
+    - 支持 Document Picture-in-Picture（复用 `lib/use-picture-in-picture.ts`）：终端右上角出现画中画按钮，
+      在独立窗口里仍可输入命令、支持 `Ctrl+C` 复制选区。
+    - 失败时按后端 RFC7807 `problem+json` 渲染：优先 `detail.detail`，退化为 `detail.title`，
+      末尾追加灰色 `[HTTP <status>]`；网络断开/请求取消分别提示「网络不可用」「请求已取消」。
+    - **安全命令拦截**：表头命令 `TrimSpace + ToUpper` 后与 `GET /redis-config/safe-commands`
+      返回的名单（挂载时拉取一次，失败则视为全部不安全）比对；不在名单中时**在终端内**二次确认
+      （提示风险后要求输入 `y` / `Y` 回车，空回车、其它输入或 Ctrl+C 均取消），确认后以 `{ args, privilege: true }`
+      提交，否则后端返回 403。之所以不用弹窗：画中画模式下 DOM 弹窗仍渲染在主页面，用户看不到。
+- `RedisValue`：`key / type / data / cursor`（`GET /redis/value`）
+    - `data` 随 `type` 变化：`string` → 字符串；`hash` → `{field: value}` 对象；`list`/`set` → 字符串数组；
+      `zset` → `member,score` 交替排列的字符串数组；`stream` → `[{ID, Values}]`；其它类型为 `null`。
+    - 分页语义随类型不同：`hash`/`set`/`zset` 是 SCAN 游标（`cursor=0` 结束），`list` 是**下标游标**
+      （`cursor = start + size`，返回条数不足一批即表示结束），`stream`/`string` 不支持翻页。
+    - 前端实现在 `features/redis-config/value-view.tsx`：按类型渲染（字符串用 Monaco、hash/zset/list/set 双列表格、
+      stream 消息表），`hash` 按字段、`set`/`zset` 按成员去重合并，每次追加 100 条。
+    - `string` 类型走 `features/redis-config/string-viewer.tsx`，顶部格式切换：自动 / JSON / Markdown / Msgpack /
+      Hex / Binary。`自动` 会先按魔数嗅探 Java 序列化（`AC ED 00 05`）与 Python pickle（`80 01~05`）：命中则直接展示
+      Hex 并提示「暂不支持解析」；否则尝试 JSON 解析（`{`/`[` 开头且可解析）再判断 Markdown 特征，最后按纯文本；
+      Msgpack 用 `@msgpack/msgpack` 解码并 JSON 美化，失败时回退 Hex 视图并在顶部提示。
+    - **不解析 Java / Python 原生序列化**：JDK 序列化需要完整的类描述符与 `writeObject` 语义，pickle 依赖解释器
+      状态且 PROTO 4/5 的 JS 实现不完整，强行解码只会得到错误结果，因此只做识别 + Hex 查看。
+- `RedisKeyMeta`：`key / type / ttl / memory`（`GET /redis/keys` 返回）
+    - `type` 为 Redis 类型（`string`/`hash`/`list`/`set`/`zset`/`stream`/`none`）。
+    - `ttl` 是 Go `time.Duration`，JSON 里为**纳秒数字**：`-1e9` 表示永不过期、`-2e9` 表示 Key 不存在，
+      其余值除以 `1e9` 得到剩余秒数再交给 `formatDuration()`。换算逻辑统一封装在
+      `features/redis-config/types.ts` 的 `redisTtl()`，页面不要自己再除。
+    - `memory` 单位字节，用 `formatBytes()` 展示。
+    - 分页是 **SCAN 游标**（非 offset）：`cursor=0` 表示扫描结束，前端采用「追加 + 去重」的加载更多模式，
+      `DataPagination` 不适用于此列表。
+    - 数据浏览是 Redis 配置页「数据浏览」选项卡的内容（`features/redis-config/keys-browser.tsx`），
+      布局参考 RedisInsight：左侧为 Key 区（可在「列表 / 树结构」间切换，树按 `:` 分隔符切分，
+      路径相同的节点自动合并；只有一个子节点且自身不是 Key 的目录会被**压缩成一段路径**（`a:b:c`），
+      避免深层前缀把 Key 挤到右边；目录图标复用 `public/icons` 的 `folder` / `fold` / `unfold` SVG
+      （`features/zip-file/file-icon.tsx` 的 `FolderIcon` / `CollapseIcon`，自动跟随明暗主题），
+      叶子 Key 前显示**大写类型徽标**（`STRING` / `HASH` / `ZSET` …，列表模式下同样显示），右侧为 Key 详情；进入页面即自动扫描一批（默认 `match=*`、`size=200`），
+      底部「加载更多」按游标续扫，`cursor=0` 时显示「已加载全部」。
 - `OAuthConfig`：
   `enabled / client_id / client_secret / authorization_endpoint / token_endpoint / userinfo_endpoint / redirect_uris / scopes / created_at / updated_at`
     - 用于登录页的 OAuth 授权登录；`redirect_uris` 至少 1 个，`scopes` 最多 10 个。
@@ -430,8 +514,9 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - 文件列表接口返回 **扁平**数组，`buildFileTree()` 构建树。
 - 文件树默认 **只展开根级目录**，深层折叠（`src/features/zip-file/file-tree.tsx` 的展开状态用 `Set<string>` 统一管理）。
 - 树节点图标来自 `public/icons/*.svg`，命名规范：`xxx.svg`（light）/ `xxx_dark.svg`（dark）。
-    - 图标映射集中在 `src/features/zip-file/file-icon.tsx` 的 `fileIconBase()` 与 `FileIcon` / `CollapseIcon`。
-    - 新增图标后在此文件补充扩展名→图标名映射。
+    - 树节点图标来自 `public/icons/*.svg`，命名规范：`xxx.svg`（light）/ `xxx_dark.svg`（dark）。
+    - 图标映射集中在 `src/features/zip-file/file-icon.tsx` 的 `fileIconBase()` 与 `FileIcon` / `CollapseIcon` /
+      `FolderIcon`（纯目录图标，Redis 树复用它）。新增图标后在此文件补充扩展名→图标名映射。
 - 预览（`content-preview.tsx`）：中心端/中继节点 WebDAV 与虚拟文件共用同一套预览逻辑，
   通过 `source.load` / `source.downloadUrl` / 可选 `source.save` 适配不同数据源；无 `save` 时为只读。
     - 先判断大小： **任何文件大于 1MB 都不预览**，显示「文件过大，暂不支持预览」。

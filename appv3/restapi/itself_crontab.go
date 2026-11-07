@@ -20,7 +20,7 @@ func NewItselfCrontab(crond *crontab.Table) *ItselfCrontab {
 
 func (slf *ItselfCrontab) RegisterHTTP(g shipx.RouteGroup3) error {
 	g.ExposeV3.Group.Route("/itself/crontab/jobs").GET(slf.jobs)
-	g.ExposeV3.Group.Route("/itself/crontab/job").DELETE(slf.remove)
+	g.ExposeV3.Group.Route("/itself/crontab/job").POST(slf.call).DELETE(slf.remove)
 
 	return nil
 }
@@ -40,6 +40,17 @@ func (slf *ItselfCrontab) jobs(c *ship.Context) error {
 func (slf *ItselfCrontab) remove(c *ship.Context) error {
 	var param request.StringID
 	if err := c.BindQuery(&param); err != nil {
+		return err
+	}
+	_, deleted := slf.crond.Remove(param.ID)
+	ret := response.NewData(deleted)
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (slf *ItselfCrontab) call(c *ship.Context) error {
+	var param request.StringID
+	if err := c.Bind(&param); err != nil {
 		return err
 	}
 	_, deleted := slf.crond.Remove(param.ID)

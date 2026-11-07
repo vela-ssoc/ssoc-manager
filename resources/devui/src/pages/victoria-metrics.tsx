@@ -17,6 +17,13 @@ import { z } from "zod"
 
 import { InfoTooltip } from "@/components/info-tooltip"
 import { TooltipHint } from "@/components/tooltip-hint"
+import {
+  ConfigEmptyState,
+  ConfigFieldError,
+  ConfigReadonlyRow,
+  ConfigSection,
+  ConfigStatusPill,
+} from "@/components/config-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -233,7 +240,7 @@ export function VictoriaMetricsPage() {
                 <h1 className="truncate text-base font-semibold">
                   VictoriaMetrics
                 </h1>
-                <StatusPill state={status} />
+                <ConfigStatusPill state={status} />
               </div>
               <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
                 <span>管理中心端运行指标推送配置</span>
@@ -272,37 +279,20 @@ export function VictoriaMetricsPage() {
         </div>
 
         {!editing && !config ? (
-          <div className="flex flex-col items-center gap-3 rounded-md border border-dashed bg-card px-6 py-14 text-center">
-            <div className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full">
-              <Activity className="size-6" />
-            </div>
-            <div className="grid gap-1">
-              <h2 className="text-sm font-semibold">尚未配置 VictoriaMetrics</h2>
-              <p className="text-muted-foreground text-xs">
-                配置服务地址后，管理中心端即可推送运行指标。
-              </p>
-            </div>
-            <div className="text-muted-foreground flex flex-wrap justify-center gap-1.5 text-[11px]">
-              {["填写服务地址", "配置认证方式", "启用并保存"].map((step, index) => (
-                <span
-                  key={step}
-                  className="bg-muted/40 flex items-center gap-1.5 rounded-full border px-2.5 py-1"
-                >
-                  <span className="bg-background flex size-4 items-center justify-center rounded-full border text-[10px] font-medium">
-                    {index + 1}
-                  </span>
-                  {step}
-                </span>
-              ))}
-            </div>
-            <Button size="sm" onClick={startEdit}>
-              <Pencil /> 立即配置
-            </Button>
-          </div>
+          <ConfigEmptyState
+            icon={Activity}
+            title="尚未配置 VictoriaMetrics"
+            description="配置服务地址后，管理中心端即可推送运行指标。"
+            action={
+              <Button size="sm" onClick={startEdit}>
+                <Pencil /> 立即配置
+              </Button>
+            }
+          />
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex min-w-0 flex-col gap-4">
-              <Section icon={Server} title="基础配置">
+              <ConfigSection icon={Server} title="基础配置">
                 {editing ? (
                   <div className="grid gap-4 p-4 sm:grid-cols-3">
                     <div className="grid gap-1.5 sm:col-span-3">
@@ -316,7 +306,7 @@ export function VictoriaMetricsPage() {
                       <p className="text-muted-foreground text-[11px]">
                         单机版填写服务地址；集群版填写 vminsert 地址
                       </p>
-                      <FieldError message={errors.address} />
+                      <ConfigFieldError message={errors.address} />
                     </div>
 
                     <div className="grid gap-1.5">
@@ -327,7 +317,7 @@ export function VictoriaMetricsPage() {
                         placeholder="留空为单机版，集群版填写例如 0"
                         onChange={(event) => update({ tenant_id: event.target.value })}
                       />
-                      <FieldError message={errors.tenant_id} />
+                      <ConfigFieldError message={errors.tenant_id} />
                     </div>
 
                     <div className="grid gap-1.5">
@@ -339,7 +329,7 @@ export function VictoriaMetricsPage() {
                         autoComplete="off"
                         onChange={(event) => update({ username: event.target.value })}
                       />
-                      <FieldError message={errors.username} />
+                      <ConfigFieldError message={errors.username} />
                     </div>
 
                     <div className="grid gap-1.5">
@@ -367,7 +357,7 @@ export function VictoriaMetricsPage() {
                           )}
                         </button>
                       </div>
-                      <FieldError message={errors.password} />
+                      <ConfigFieldError message={errors.password} />
                     </div>
 
                     <div
@@ -405,10 +395,10 @@ export function VictoriaMetricsPage() {
                   </div>
                 ) : (
                   <div className="divide-y px-4">
-                    <ReadonlyRow label="服务地址" value={config?.address} mono />
-                    <ReadonlyRow label="租户 ID" value={config?.tenant_id} mono />
-                    <ReadonlyRow label="用户名" value={config?.username} />
-                    <ReadonlyRow
+                    <ConfigReadonlyRow label="服务地址" value={config?.address} mono />
+                    <ConfigReadonlyRow label="租户 ID" value={config?.tenant_id} mono />
+                    <ConfigReadonlyRow label="用户名" value={config?.username} />
+                    <ConfigReadonlyRow
                       label="密码"
                       value={
                         config?.password
@@ -439,9 +429,9 @@ export function VictoriaMetricsPage() {
                     />
                   </div>
                 )}
-              </Section>
+              </ConfigSection>
 
-              <Section
+              <ConfigSection
                 icon={Tags}
                 title="HTTP Header"
                 description="附加到 VictoriaMetrics 推送请求"
@@ -547,9 +537,9 @@ export function VictoriaMetricsPage() {
                     )}
                   </div>
                 )}
-              </Section>
+              </ConfigSection>
 
-              <Section
+              <ConfigSection
                 icon={Link2}
                 title="写入地址"
                 description="指标实际推送的完整地址"
@@ -563,7 +553,7 @@ export function VictoriaMetricsPage() {
                     </TooltipHint>
                   </div>
                 </div>
-              </Section>
+              </ConfigSection>
 
               <div className="text-muted-foreground flex flex-wrap items-center gap-x-6 gap-y-1 px-1 text-[11px]">
                 <span>
@@ -578,106 +568,6 @@ export function VictoriaMetricsPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
-
-function Section({
-  icon: Icon,
-  title,
-  description,
-  actions,
-  children,
-}: {
-  icon: typeof Server
-  title: string
-  description?: string
-  actions?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <section className="overflow-hidden rounded-md border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="bg-background text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded border">
-            <Icon className="size-3.5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold">{title}</h2>
-            {description && (
-              <p className="text-muted-foreground truncate text-[11px]">{description}</p>
-            )}
-          </div>
-        </div>
-        {actions}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function StatusPill({ state }: { state: "enabled" | "disabled" | "empty" }) {
-  const label = state === "enabled" ? "已启用" : state === "disabled" ? "已停用" : "未配置"
-  return (
-    <span
-      className={cn(
-        "inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full border px-2 text-[11px] leading-none font-medium",
-        state === "enabled"
-          ? "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400"
-          : state === "empty"
-            ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-            : "bg-muted/40 text-muted-foreground"
-      )}
-    >
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          state === "enabled"
-            ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]"
-            : state === "disabled"
-              ? "bg-muted-foreground/50"
-              : "bg-amber-500"
-        )}
-      />
-      {label}
-    </span>
-  )
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null
-  return <p className="text-destructive text-xs">{message}</p>
-}
-
-function ReadonlyRow({
-  label,
-  value,
-  mono = false,
-  action,
-}: {
-  label: string
-  value?: string
-  mono?: boolean
-  action?: React.ReactNode
-}) {
-  const text = value && value.trim() ? value : "—"
-  return (
-    <div className="flex items-center justify-between gap-4 py-2.5">
-      <span className="text-muted-foreground w-24 shrink-0 text-xs">{label}</span>
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
-        <TooltipHint content={text}>
-          <span
-            className={cn(
-              "min-w-0 truncate text-sm",
-              mono && "font-mono",
-              text === "—" && "text-muted-foreground"
-            )}
-          >
-            {text}
-          </span>
-        </TooltipHint>
-        {action}
       </div>
     </div>
   )

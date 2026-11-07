@@ -192,7 +192,15 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node
 	}
 
 	slug := brok.Slug
-	peer := s.hub.Put(slug, mux, nil)
+	data := muxproto.NodeData{
+		ID:      brok.ID,
+		Slug:    brok.Slug,
+		Inet:    auth.Inet,
+		GOOS:    auth.GOOS,
+		GOARCH:  auth.GOARCH,
+		Version: auth.Version,
+	}
+	peer := s.hub.Put(slug, mux, data)
 	if peer == nil {
 		msg := "节点已经在线（连接池检查）"
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: msg}
@@ -309,8 +317,8 @@ func (s *server) updateBrokerOnline(p muxproto.Node, sess *sessionData) error {
 		RemoteAddr:  mux.Addr().String(),
 	}
 	exestat := model.ExecuteStat{
-		Goos:       auth.Goos,
-		Goarch:     auth.Goarch,
+		GOOS:       auth.GOOS,
+		GOARCH:     auth.GOARCH,
 		Version:    auth.Version,
 		PID:        auth.PID,
 		Args:       auth.Args,
@@ -360,10 +368,10 @@ func (s *server) validAuthRequest(req muxproto.BrokerAuthRequest) error {
 	} else if _, err := netip.ParseAddr(str); err != nil {
 		errs = append(errs, errors.New("出口地址格式错误(inet)"))
 	}
-	if req.Goos == "" {
+	if req.GOOS == "" {
 		errs = append(errs, errors.New("操作系统类型必须填写(goos)"))
 	}
-	if req.Goarch == "" {
+	if req.GOARCH == "" {
 		errs = append(errs, errors.New("架构必须填写(goarch)"))
 	}
 

@@ -49,6 +49,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxroute"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
 	"github.com/xgfone/ship/v5"
+	"gorm.io/gorm"
+	gormlog "gorm.io/gorm/logger"
 )
 
 func RunV3(ctx context.Context, filename string) error {
@@ -125,7 +127,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	log = slog.New(logHandler)
 	_ = logc.Close()
 
-	rdb, err := dbconn.OpenRDB(dbcfg.DSN)
+	gormLog := dbconn.NewGormLog(logHandler, gormlog.Config{LogLevel: gormlog.Info})
+	rdb, err := dbconn.OpenRDB(dbcfg.DSN, &gorm.Config{Logger: gormLog})
 	if err != nil {
 		log.Error("连接关系型数据库出错", "err", err)
 		return err
@@ -376,6 +379,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(restapi.NewOAuth),
 		gontainer.NewFactory(service.NewOAuthConfig),
 		gontainer.NewFactory(restapi.NewOAuthConfig),
+		gontainer.NewFactory(service.NewRedisConfig),
+		gontainer.NewFactory(restapi.NewRedisConfig),
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewSSEEvent),
@@ -399,7 +404,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(cronfunc.NewSSOCToCMDB),
 		gontainer.NewFactory(cronfunc.NewVMetric),
 
-		gontainer.NewEntrypoint(cronAddJobs),
+		gontainer.NewEntrypoint(crond.AddJobs),
 		gontainer.NewEntrypoint(registerRoutes),
 	}
 	if err = gontainer.Run(diopts...); err != nil {
@@ -434,6 +439,8 @@ func newShip(v *validation.Validate, h slog.Handler) *ship.Ship {
 	s := ship.Default()
 	s.Validator = v
 	s.Logger = log
+	s.NotFound = shipx.NotFound
+	s.HandleError = shipx.HandleError
 
 	return s
 }

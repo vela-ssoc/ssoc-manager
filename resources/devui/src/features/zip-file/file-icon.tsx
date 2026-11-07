@@ -191,6 +191,11 @@ export function FileIcon({
   )
 }
 
+export function FolderIcon({ className }: { className?: string }) {
+  const dark = useIsDark()
+  return <TreeIcon name="folder" dark={dark} className={className} />
+}
+
 // fold=收起（当前展开），unfold=展开（当前折叠）。
 export function CollapseIcon({
   open,

@@ -21,7 +21,8 @@ func (vmc *VictoriaMetrics) RegisterHTTP(g shipx.RouteGroup3) error {
 	g.ExposeV3.Group.Route("/victoria-metrics-config").
 		GET(vmc.get).    // 获取 VictoriaMetrics 配置
 		POST(vmc.upsert) // 修改/新增 VictoriaMetrics 配置
-	g.ExposeV3.Group.Route("/vmp/*path").Any(vmc.reverse)
+	// g.ExposeV3.Group.Route("/vmp/*path").Any(vmc.reverse)
+	g.ExposeV3.Group.Route("/victoria-metrics/*path").Any(vmc.reverse)
 
 	return nil
 }

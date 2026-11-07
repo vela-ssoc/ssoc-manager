@@ -18,7 +18,7 @@ func NewCMDBConfig(svc *service.CMDBConfig) *CMDBConfig {
 }
 
 func (cc *CMDBConfig) RegisterHTTP(g shipx.RouteGroup3) error {
-	g.ExposeV3.Group.Route("/cmdb/config").
+	g.ExposeV3.Group.Route("/cmdb-config").
 		GET(cc.get).
 		POST(cc.upsert)
 

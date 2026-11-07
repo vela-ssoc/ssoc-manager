@@ -24,7 +24,7 @@ func (mon *Minion) Page(ctx context.Context, param request.MinionPage) (*reposit
 	dao := tbl.WithContext(ctx)
 
 	if dept := param.Department; dept != "" {
-		dao.Where(tbl.OrgPath.Eq(dept)).Or(tbl.OrgPath.Like(dept + "/%"))
+		dao = dao.Where(tbl.OrgPath.Eq(dept)).Or(tbl.OrgPath.Like(dept + "/%"))
 	}
 	page, size := param.PSN()
 	count, err := dao.Count()

@@ -28,7 +28,7 @@ export function metricsLabel(appname: string, instance?: string): string {
 }
 
 export function instantQuery(query: string, time?: number): Promise<VMVectorResponse> {
-  return http.get<VMVectorResponse>("/vmp/api/v1/query", {
+  return http.get<VMVectorResponse>("/victoria-metrics/api/v1/query", {
     query,
     time: time ? String(time) : undefined,
   })
@@ -40,7 +40,7 @@ export function rangeQuery(
   end: number,
   step = "30s"
 ): Promise<VMMatrixResponse> {
-  return http.get<VMMatrixResponse>("/vmp/api/v1/query_range", {
+  return http.get<VMMatrixResponse>("/victoria-metrics/api/v1/query_range", {
     query,
     start: String(start),
     end: String(end),

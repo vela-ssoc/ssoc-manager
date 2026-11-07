@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/NVIDIA/gontainer/v2"
-	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"gorm.io/gorm"
@@ -44,8 +43,4 @@ func registerRoutes(route shipx.RouteGroup3, handlers gontainer.Multiple[shipx.H
 
 func registerV1Routes(route shipx.RouteGroup3, handlers gontainer.Multiple[shipx.V1HTTPRegistrar]) {
 	route.RegisterV1Routes(handlers)
-}
-
-func cronAddJobs(c *crontab.Table, jobs gontainer.Multiple[crontab.Jober]) error {
-	return c.AddJobs(jobs)
 }

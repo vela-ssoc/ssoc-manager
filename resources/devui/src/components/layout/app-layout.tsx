@@ -12,6 +12,7 @@ import {
   HardDrive,
   Home,
   LogOut,
+  MemoryStick,
   MonitorPlay,
   Network,
   Radar,
@@ -105,6 +106,7 @@ const navItems: NavItem[] = [
     icon: HardDrive,
     children: [
       { title: "CMDB", href: "/configs/cmdb", icon: Database },
+      { title: "Redis", href: "/configs/redis", icon: MemoryStick },
       { title: "VictoriaMetrics", href: "/configs/victoria-metrics", icon: Activity },
     ],
   },

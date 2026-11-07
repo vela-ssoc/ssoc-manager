@@ -50,6 +50,8 @@ var (
 	ErrBrokerNodeOffline        = ship.ErrBadRequest.Newf("中继节点已离线")
 	ErrVictoriaNotConfigured    = ship.ErrBadRequest.Newf("没有配置 VictoriaMetrics 地址")
 	ErrVictoriaDisabled         = ship.ErrBadRequest.Newf("VictoriaMetrics 未启用")
+	ErrRedisNotConfigured       = ship.ErrBadRequest.Newf("没有配置 Redis 地址")
+	ErrRedisDisabled            = ship.ErrBadRequest.Newf("Redis 未启用")
 	ErrCMDBNotConfigured        = ship.ErrBadRequest.Newf("没有配置 CMDB 地址")
 	ErrCMDBDisabled             = ship.ErrBadRequest.Newf("CMDB 未启用")
 	ErrForbiddenOAuth           = ship.ErrForbidden.Newf("当前认证方式已暂停使用")
