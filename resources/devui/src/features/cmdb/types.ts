@@ -15,13 +15,27 @@ export interface SimpleDuty {
   company?: string
 }
 
+export interface CMDBBrokerEndpoint {
+  id?: string
+  idv1?: number
+  slug?: string
+  name?: string
+}
+
 export interface SSOCAgentSimple {
-  id?: number | string
+  idv1?: number
   status?: number
   machine_id?: string
   version?: string
-  broker_slug?: string
-  broker_name?: string
+  broker?: CMDBBrokerEndpoint | null
+}
+
+export interface SSOCBrokerSimple {
+  id?: string
+  status?: boolean
+  slug?: string
+  name?: string
+  version?: string
 }
 
 export interface CMDBAsset {
@@ -82,6 +96,7 @@ export interface CMDBAsset {
   op_duty?: SimpleDuty[]
   sys_duty?: SimpleDuty[]
   ssoc_agent?: SSOCAgentSimple | null
+  ssoc_broker?: SSOCBrokerSimple | null
   created_time?: string
   update_time?: string
   created_at?: string

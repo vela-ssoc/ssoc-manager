@@ -5,8 +5,8 @@ import (
 	"net/http/httputil"
 	"path"
 
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
-	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/xgfone/ship/v5"
@@ -23,7 +23,7 @@ func NewAgentReverseProxy(rt http.RoundTripper) *AgentReverseProxy {
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetXForwarded()
 		},
-		ErrorHandler: problem.HandleError,
+		ErrorHandler: httpship.ErrorHandle,
 	}
 
 	return &AgentReverseProxy{rt: rt, pxy: pxy}

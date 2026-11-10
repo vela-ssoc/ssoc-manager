@@ -27,8 +27,12 @@ func (u *User) Exec(ctx context.Context) error {
 	mdb := u.pdb.MDB()
 	coll := mdb.User()
 	cnt, err := coll.CountDocuments(ctx, bson.D{})
-	if err != nil || cnt != 0 {
+	if err != nil {
+		u.log.Error("[user] 查询新表出错", "err", err)
 		return err
+	} else if cnt != 0 {
+		u.log.Info("[user] 数据无需再次迁移")
+		return nil
 	}
 
 	rdb := u.pdb.RDB()

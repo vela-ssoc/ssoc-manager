@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { toast } from "@/lib/toast"
 import { Building2, Loader2, Radar, Search, Trash2 } from "lucide-react"
 
@@ -54,6 +55,15 @@ export function MinionsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<MinionNode | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const navigate = useNavigate()
+
+  const openNode = useCallback(
+    (minion: MinionNode) => {
+      navigate(`/legacy?path=${encodeURIComponent(`/#/node/${minion.id}`)}`)
+    },
+    [navigate]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -245,6 +255,7 @@ export function MinionsPage() {
                   <MinionCard
                     key={minion.id}
                     minion={minion}
+                    onOpen={openNode}
                     onDelete={setDeleteTarget}
                   />
                 ))}
@@ -301,16 +312,31 @@ export function MinionsPage() {
 
 function MinionCard({
   minion,
+  onOpen,
   onDelete,
 }: {
   minion: MinionNode
+  onOpen: (minion: MinionNode) => void
   onDelete: (minion: MinionNode) => void
 }) {
   const status = MINION_STATUSES[minion.status] ?? "未知"
   const statusColor = STATUS_COLORS[minion.status] ?? "bg-muted-foreground/50"
 
   return (
-    <article className="group flex min-w-0 flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20">
+    <article
+      role="button"
+      tabIndex={0}
+      aria-label={`查看探针 ${minion.inet} 详情`}
+      onClick={() => onOpen(minion)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onOpen(minion)
+        }
+      }}
+      className="group flex min-w-0 cursor-pointer flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <TooltipHint content={status}>
@@ -337,7 +363,10 @@ function MinionCard({
               size="icon"
               className="text-destructive size-7"
               aria-label="删除探针节点"
-              onClick={() => onDelete(minion)}
+              onClick={(event) => {
+                event.stopPropagation()
+                onDelete(minion)
+              }}
             >
               <Trash2 />
             </Button>

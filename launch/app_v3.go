@@ -22,6 +22,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/gopool"
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/httpx"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
@@ -48,7 +49,6 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxcentral"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxroute"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
-	"github.com/xgfone/ship/v5"
 	"gorm.io/gorm"
 	gormlog "gorm.io/gorm/logger"
 )
@@ -181,8 +181,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	crond.Start()
 	defer crond.Stop()
 
-	exposeMUX := newShip(valid, logHandler)
-	brokerMUX := newShip(valid, logHandler)
+	exposeMUX := httpship.NewDefault(valid, logHandler)
+	brokerMUX := httpship.NewDefault(valid, logHandler)
 	cfgsrv := cfg.Server
 	for k, v := range cfgsrv.Static {
 		exposeMUX.Route(k).StaticFS(v)
@@ -199,7 +199,11 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		EnableCompression: true,
 	}
 
-	if err = migration.Exec(ctx, migration.NewUser(pdb, log)); err != nil {
+	if err = migration.Exec(ctx,
+		migration.NewUser(pdb, log),
+		migration.NewBroker(pdb, log),
+		migration.NewAgent(pdb, log), // 必须要晚于 Broker
+	); err != nil {
 		log.Error("数据迁移出错", "err", err)
 		return err
 	}
@@ -400,8 +404,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 
 		gontainer.NewFactory(ywcmdb.NewClient),
 		gontainer.NewFactory(cronfunc.NewCMDB),
-		gontainer.NewFactory(cronfunc.NewCMDBToSSOC),
-		gontainer.NewFactory(cronfunc.NewSSOCToCMDB),
+		gontainer.NewFactory(cronfunc.NewSSOCCMDBSync),
 		gontainer.NewFactory(cronfunc.NewVMetric),
 
 		gontainer.NewEntrypoint(crond.AddJobs),
@@ -431,16 +434,4 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	_ = srv.Close()
 
 	return err
-}
-
-func newShip(v *validation.Validate, h slog.Handler) *ship.Ship {
-	log := logger.NewFormat(h, 4)
-
-	s := ship.Default()
-	s.Validator = v
-	s.Logger = log
-	s.NotFound = shipx.NotFound
-	s.HandleError = shipx.HandleError
-
-	return s
 }

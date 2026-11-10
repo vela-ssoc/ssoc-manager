@@ -86,7 +86,7 @@ func (s *server) responseError(conn net.Conn, err *muxproto.AuthError) error {
 	return muxconn.WriteAuth(conn, err)
 }
 
-func (s *server) responseConfig(conn net.Conn, cfg model.BrokerConfig) error {
+func (s *server) responseConfig(conn net.Conn, cfg model.BrokerConfigParams) error {
 	timeout := s.perTimeout()
 	resp := muxproto.NewAcceptedBrokerAuthResponse(cfg)
 	_ = conn.SetWriteDeadline(time.Now().Add(timeout))
@@ -192,15 +192,15 @@ func (s *server) authentication(mux muxconn.Muxer, now time.Time) (muxproto.Node
 	}
 
 	slug := brok.Slug
-	data := muxproto.NodeData{
+	info := muxproto.NodeInfo{
 		ID:      brok.ID,
-		Slug:    brok.Slug,
+		Slug:    slug,
 		Inet:    auth.Inet,
 		GOOS:    auth.GOOS,
 		GOARCH:  auth.GOARCH,
 		Version: auth.Version,
 	}
-	peer := s.hub.Put(slug, mux, data)
+	peer := s.hub.Put(slug, mux, info)
 	if peer == nil {
 		msg := "节点已经在线（连接池检查）"
 		ae := &muxproto.AuthError{Code: http.StatusConflict, Text: msg}
@@ -378,9 +378,16 @@ func (s *server) validAuthRequest(req muxproto.BrokerAuthRequest) error {
 	return errors.Join(errs...)
 }
 
-func (s *server) buildBrokerConfig(brok *model.Broker) model.BrokerConfig {
-	sc, cfg := s.cfg, brok.Config
-	cfg.Slug = brok.Slug
+func (s *server) buildBrokerConfig(brok *model.Broker) model.BrokerConfigParams {
+	cfg := model.BrokerConfigParams{
+		ID:           brok.ID,
+		Slug:         brok.Slug,
+		IDV1:         brok.IDV1,
+		Name:         brok.Name,
+		BrokerConfig: brok.Config,
+	}
+
+	sc := s.cfg
 	if cfg.Server == nil {
 		cfg.Server = &model.BrokerServerConfig{Addr: sc.Server.Addr}
 	}

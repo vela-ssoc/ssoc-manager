@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
-	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
 )
@@ -21,7 +21,7 @@ func NewBrokerReverseProxy(rt http.RoundTripper) *BrokerReverseProxy {
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetXForwarded()
 		},
-		ErrorHandler: problem.HandleError,
+		ErrorHandler: httpship.ErrorHandle,
 	}
 
 	return &BrokerReverseProxy{rt: rt, pxy: pxy}

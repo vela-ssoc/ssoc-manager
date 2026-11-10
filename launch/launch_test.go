@@ -54,15 +54,6 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-func Run(ctx context.Context, path string) error {
-	cfg, err := profile.ParseManager(path)
-	if err != nil {
-		return err
-	}
-
-	return runApp(ctx, cfg)
-}
-
 func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	logCfg := cfg.Logger
 	logLevel := new(slog.LevelVar)

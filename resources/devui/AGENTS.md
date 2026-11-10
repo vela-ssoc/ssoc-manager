@@ -111,8 +111,8 @@ src/
 | 路由                        | 页面                           | 说明                                                                              |
 |-----------------------------|--------------------------------|-----------------------------------------------------------------------------------|
 | `/login`                    | `pages/login.tsx`              | 默认扫码登录，可切换账密 + TOTP                                                   |
-| `/legacy`                   | `pages/legacy.tsx`             | 旧版 `/` iframe，暗色下整体反色                                                   |
-| `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除         |
+| `/legacy`                   | `pages/legacy.tsx`             | 旧版 `/` iframe，暗色下整体反色；`?path=` 可指定 iframe 初始地址                   |
+| `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除；点击卡片跳转 `/legacy?path=/#/node/{id}` |
 | `/brokers`                  | `pages/brokers.tsx`            | 中继节点行卡片：左侧信息，右侧最近 6 小时 CPU/内存/网络指标（一次拉全量，无分页） |
 | `/brokers/:slug`            | `pages/broker-detail.tsx`      | 中继节点详情（多 Tab）                                                            |
 | `/central`                  | `pages/central.tsx`            | 中心端（多 Tab）                                                                  |
@@ -479,12 +479,20 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
     - 资产表列顺序固定为：类型、IP（`private_ip`）、SSOC、部门、机房、备注；
       `ssoc_agent` 为 `null` 时显示灰色空心 `Shield` + 「未安装」；非空时按 `ssoc_agent.status`
       显示：0-离线（黄色 `ShieldAlert`）、1-在线（绿色 `ShieldCheck`）、2-删除（红色 `ShieldX`），
-      `status` 缺失按离线处理；悬浮显示版本与中继节点，无内容时提示「已安装 SSOC 探针」。
+      `status` 缺失按离线处理；悬浮显示版本与中继节点名称（`ssoc_agent.broker.name || slug`），
+      无内容时提示「已安装 SSOC 探针」。
+      `ssoc_agent`（后端 `CMDBSSOCAgentSimple`）字段为 `{ idv1, status, machine_id, version, broker }`，
+      其中 `broker` 是**嵌套对象** `{ id, idv1, slug, name } | null`（旧的扁平 `broker_name` / `broker_slug` 已移除）。
       点击任意行弹出资产详情对话框（数据直接取自列表响应，无单独详情接口），空字段自动隐藏。
     - 详情内容以**表格**呈现：每个分组一张带边框的表，浅灰底为属性列、白底为值列，一行放两组「属性 / 值」
       （列宽 11% / 39% ×2）；值过长自动换行，`mono` 字段用等宽字体。
-    - 分组顺序固定为：**SSOC 探针**（状态/版本/中继节点/机器码）→ 业务分组 → **资产时间**。
+    - 分组顺序固定为：**SSOC 探针**（状态/版本/中继节点/机器码）→ **SSOC 中继节点**（仅带 `ssoc_broker` 时）
+      → 业务分组 → **资产时间**。
       `SSOC 探针` 在最上方；未安装时该分组仍会显示，只有「状态：未安装」一行。
+      探针所在中继节点与「SSOC 中继节点」的名称均渲染为指向 `/brokers/{slug}` 的链接（悬浮显示 slug）。
+    - `ssoc_broker`（后端 `CMDBSSOCBrokerSimple`，资产本身是中继节点所在主机时才有）：
+      `{ id, status(bool), slug, name, version }`。列表页**不展示**，仅在详情页以「SSOC 中继节点」分组显示
+      状态（在线/离线）/ 版本 / 名称 / 标识（slug）。
     - `ci_type=server` 的业务分组按物理机字段文档划分（后端 `datalayer/model/cmdb.go` 实际返回的字段）：
       「基本信息（SN/部门/业务/付款方/业务状态/资产状态/资产编号/作用/标签）、位置（IDC/机房/机柜）、
       硬件配置（CPU型号/核数/逻辑核数/超线程/用途/内存/硬盘/磁盘阵列）、网络（内网IP/IPv6/电信/网通/移动/主机名/
@@ -651,8 +659,9 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 
 ## 13. 当前已知差异 / 待办
 
-- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；`minionApi.detail` 已封装但尚无详情页，也
-  **没有新建探针入口**。
+- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；点击卡片会跳转
+  `/legacy?path=/#/node/{id}`，由 `legacy.tsx` 把 `path` 传给 iframe（仅接受以 `/` 开头且非 `//` 的相对路径，
+  其它值回落到 `/`），旧版界面负责渲染节点详情。`minionApi.detail` 已封装但仍未使用，也**没有新建探针入口**。
   部门树组件已抽到 `features/cmdb/department-tree.tsx`，`/configs/cmdb/browse` 与本页共用。
 - 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤）；归档走服务端 `q`；探针节点虽把 `q` 传给
   v3 `/minions`，但后端 `service/minion.go` 尚未使用该参数，暂无过滤效果。

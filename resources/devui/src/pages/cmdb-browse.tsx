@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   ArrowLeft,
   Building2,
@@ -57,9 +57,11 @@ import {
   ciTypeLabel,
   countDepartmentNodes,
   type CMDBAsset,
+  type CMDBBrokerEndpoint,
   type CMDBDepartmentNode,
   type SimpleDuty,
   type SSOCAgentSimple,
+  type SSOCBrokerSimple,
 } from "@/features/cmdb/types"
 
 export function CMDMBrowsePage() {
@@ -408,6 +410,7 @@ function AssetDetailDialog({
         {asset && (
           <div className="grid max-h-[75vh] gap-4 overflow-y-auto pr-1">
             <SSOCDetailSection agent={asset.ssoc_agent} />
+            <SSOCBrokerDetailSection broker={asset.ssoc_broker} />
 
             {asset.ci_type === "server" ? (
               <ServerDetailSections asset={asset} />
@@ -598,6 +601,9 @@ function ServerDetailSections({ asset }: { asset: CMDBAsset }) {
 }
 
 function SSOCDetailSection({ agent }: { agent?: SSOCAgentSimple | null }) {
+  const broker = agent?.broker
+  const brokerName = brokerLabel(broker)
+
   return (
     <DetailSection
       title="SSOC 探针"
@@ -606,9 +612,56 @@ function SSOCDetailSection({ agent }: { agent?: SSOCAgentSimple | null }) {
         { label: "版本", value: agent?.version },
         {
           label: "中继节点",
-          value: agent?.broker_name || agent?.broker_slug,
+          value: broker?.slug ? (
+            <TooltipHint content={broker.slug}>
+              <Link
+                to={`/brokers/${broker.slug}`}
+                className="text-primary hover:underline"
+              >
+                {brokerName || broker.slug}
+              </Link>
+            </TooltipHint>
+          ) : (
+            brokerName
+          ),
         },
         { label: "机器码", value: agent?.machine_id, mono: true },
+      ]}
+    />
+  )
+}
+
+function SSOCBrokerDetailSection({
+  broker,
+}: {
+  broker?: SSOCBrokerSimple | null
+}) {
+  if (!broker) return null
+
+  const name = broker.name || broker.slug || ""
+
+  return (
+    <DetailSection
+      title="SSOC 中继节点"
+      items={[
+        { label: "状态", value: brokerStatusBadge(broker.status) },
+        { label: "版本", value: broker.version },
+        {
+          label: "名称",
+          value: broker.slug ? (
+            <TooltipHint content={broker.slug}>
+              <Link
+                to={`/brokers/${broker.slug}`}
+                className="text-primary hover:underline"
+              >
+                {name || broker.slug}
+              </Link>
+            </TooltipHint>
+          ) : (
+            name
+          ),
+        },
+        { label: "标识", value: broker.slug, mono: true },
       ]}
     />
   )
@@ -686,7 +739,7 @@ function assetIps(asset: CMDBAsset): string {
 
 function ssocCell(agent?: SSOCAgentSimple | null) {
   const detail = agent
-    ? [agent.version, agent.broker_name].filter(Boolean).join(" · ")
+    ? [agent.version, brokerLabel(agent.broker)].filter(Boolean).join(" · ")
     : ""
 
   return (
@@ -695,6 +748,31 @@ function ssocCell(agent?: SSOCAgentSimple | null) {
     >
       {ssocStatusBadge(agent)}
     </TooltipHint>
+  )
+}
+
+function brokerLabel(broker?: CMDBBrokerEndpoint | null): string {
+  if (!broker) return ""
+  return broker.name || broker.slug || ""
+}
+
+function brokerStatusBadge(status?: boolean) {
+  const online = status === true
+  return (
+    <span
+      className={cn(
+        "inline-flex h-4 items-center gap-1.5 align-middle text-xs leading-none",
+        online ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+      )}
+    >
+      <span
+        className={cn(
+          "size-2 rounded-full",
+          online ? "bg-green-500" : "bg-muted-foreground/50"
+        )}
+      />
+      {online ? "在线" : "离线"}
+    </span>
   )
 }
 
