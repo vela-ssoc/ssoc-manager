@@ -3,6 +3,7 @@ package restapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
@@ -46,7 +47,7 @@ func (vmc *VictoriaMetrics) upsert(c *ship.Context) error {
 }
 
 func (vmc *VictoriaMetrics) reverse(c *ship.Context) error {
-	w, r := shipx.Strip(c, "path")
+	w, r := httpship.Strip(c, "path")
 	ctx := r.Context()
 
 	return vmc.svc.Reverse(ctx, w, r)

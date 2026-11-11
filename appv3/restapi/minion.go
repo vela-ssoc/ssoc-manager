@@ -19,6 +19,7 @@ func NewMinion(svc *service.Minion) *Minion {
 
 func (mon *Minion) RegisterHTTP(g shipx.RouteGroup3) error {
 	g.ExposeV3.Group.Route("/minions").GET(mon.page)
+	g.ExposeV1.Group.Route("/cmdb").GET(mon.cmdb)
 
 	return nil
 }
@@ -31,6 +32,21 @@ func (mon *Minion) page(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	ret, err := mon.svc.Page(ctx, param)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, ret)
+}
+
+func (mon *Minion) cmdb(c *ship.Context) error {
+	var param request.Int64ID
+	if err := c.BindQuery(&param); err != nil {
+		return err
+	}
+
+	ctx := c.Request().Context()
+	ret, err := mon.svc.CMDB(ctx, param.ID)
 	if err != nil {
 		return err
 	}

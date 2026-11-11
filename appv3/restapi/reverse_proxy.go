@@ -3,6 +3,7 @@ package restapi
 import (
 	"net/http"
 
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/response"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
@@ -88,7 +89,7 @@ func (rp *ReverseProxy) delete(c *ship.Context) error {
 }
 
 func (rp *ReverseProxy) handle(c *ship.Context) error {
-	w, r := shipx.Strip(c, "path")
+	w, r := httpship.Strip(c, "path")
 	ctx := r.Context()
 	loc := c.Param("location")
 	r.Header.Del(ship.HeaderAuthorization)

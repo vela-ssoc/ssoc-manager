@@ -3,7 +3,6 @@ package restapi
 import (
 	"net/http"
 	"net/http/httputil"
-	"path"
 
 	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
@@ -48,10 +47,12 @@ func (arp *AgentReverseProxy) handle(c *ship.Context) error {
 	}
 
 	// 隧道内部走 http 协议
-	w, r := shipx.Strip(c, "path")
-	r.URL.Path = path.Join("/api/v3/arp", r.URL.Path)
+	fqdn := muxproto.BuildAgentFQDN(id)
+	w, r := c.Response(), c.Request()
+	// r.URL.Path =  r.URL.Path
 	r.URL.Scheme = "http"
-	r.URL.Host = muxproto.BuildAgentFQDN(id)
+	r.URL.Host = fqdn
+	r.Host = fqdn
 	arp.pxy.ServeHTTP(w, r)
 
 	return nil

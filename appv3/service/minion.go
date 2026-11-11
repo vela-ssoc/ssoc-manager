@@ -5,9 +5,11 @@ import (
 	"log/slog"
 
 	model2 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type Minion struct {
@@ -45,4 +47,18 @@ func (mon *Minion) Page(ctx context.Context, param request.MinionPage) (*reposit
 	}
 
 	return ret, nil
+}
+
+func (mon *Minion) CMDB(ctx context.Context, id int64) (*model.CMDB, error) {
+	tbl := mon.pdb.RDB().Minion
+	dao := tbl.WithContext(ctx)
+	mod, err := dao.Where(tbl.ID.Eq(id)).First()
+	if err != nil {
+		return nil, err
+	}
+
+	coll := mon.pdb.MDB().CMDB()
+	filter := bson.M{"private_ip": mod.Inet}
+
+	return coll.FindOne(ctx, filter)
 }

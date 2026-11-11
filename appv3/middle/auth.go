@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
+	"github.com/vela-ssoc/ssoc-manager/app/session"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/xgfone/ship/v5"
@@ -60,6 +61,15 @@ func (ath *auth) handle(h ship.Handler) ship.Handler {
 		if err != nil {
 			return errcode.ErrUnauthorized
 		}
+
+		ident := &session.Ident{
+			ID:       user.IDV1,
+			Username: user.Username,
+			Nickname: user.Nickname,
+			Token:    token,
+			IssuedAt: user.Session.IssuedAt,
+		}
+		c.Any = ident
 
 		// 检查用户
 		now := time.Now()

@@ -46,6 +46,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/cronfunc"
 	"github.com/vela-ssoc/ssoc-manager/integration/ywcmdb"
 	"github.com/vela-ssoc/ssoc-manager/migration"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxcentral"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxroute"
 	"github.com/vela-ssoc/vela-common-mba/netutil"
@@ -261,6 +262,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewService(wsupgrade),
 		gontainer.NewService(dispatch),
 
+		gontainer.NewFactory(apiclient.NewClient),
 		// --------------------[ V1 START]--------------------
 		gontainer.NewFactory(cmdb.NewConfigure),
 		gontainer.NewFactory(cmdb.NewClient),

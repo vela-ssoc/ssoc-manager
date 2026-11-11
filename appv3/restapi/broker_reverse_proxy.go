@@ -40,7 +40,7 @@ func (brp *BrokerReverseProxy) RegisterHTTP(g shipx.RouteGroup3) error {
 }
 
 func (brp *BrokerReverseProxy) handle(c *ship.Context) error {
-	w, r := shipx.Strip(c, "path")
+	w, r := httpship.Strip(c, "path")
 	slug := c.Param("slug")
 
 	// 隧道内部走 http 协议

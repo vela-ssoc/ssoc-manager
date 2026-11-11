@@ -9,15 +9,15 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
-	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"gorm.io/gen"
 )
 
-func NewSubstance(qry *query.Query, pusher push.Pusher, digest DigestService, task *SubstanceTask) *Substance {
+func NewSubstance(qry *query.Query, cli apiclient.Client, digest DigestService, task *SubstanceTask) *Substance {
 	return &Substance{
 		qry:    qry,
-		pusher: pusher,
+		cli:    cli,
 		digest: digest,
 		task:   task,
 	}
@@ -25,8 +25,8 @@ func NewSubstance(qry *query.Query, pusher push.Pusher, digest DigestService, ta
 
 type Substance struct {
 	qry    *query.Query
+	cli    apiclient.Client
 	mutex  sync.Mutex
-	pusher push.Pusher
 	digest DigestService
 	task   *SubstanceTask
 }
@@ -130,6 +130,8 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 		}
 	}
 
+	_ = bid
+
 	// 计算 hash
 	sum := sst.digest.SumMD5(sc.Chunk)
 	dat := &model.Substance{
@@ -151,7 +153,7 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 	}
 
 	if mid != 0 { // 推送
-		sst.pusher.TaskSync(ctx, bid, []int64{mid})
+		// TODO sst.pusher.TaskSync(ctx, bid, []int64{mid})
 	}
 
 	return nil
@@ -197,7 +199,8 @@ func (sst *Substance) Update(ctx context.Context, su *param.SubstanceUpdate, use
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+			_ = mon
+			// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 		return 0, nil
 	}
@@ -262,7 +265,8 @@ func (sst *Substance) Delete(ctx context.Context, id int64) error {
 			Where(monTbl.ID.Eq(mid)).
 			First()
 		if err == nil {
-			sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+			_ = mon
+			// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 		}
 	}
 
@@ -300,7 +304,8 @@ func (sst *Substance) Reload(ctx context.Context, mid, sid int64) error {
 	}
 	// TODO 检查是否排除
 
-	sst.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
+	_ = mon
+	// TODO sst.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
 
 	return nil
 }
@@ -326,7 +331,7 @@ func (sst *Substance) Resync(ctx context.Context, mid int64) error {
 		return errcode.ErrNodeStatus
 	}
 
-	sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+	// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
 
 	return nil
 }
@@ -347,7 +352,7 @@ func (sst *Substance) Command(ctx context.Context, mid int64, cmd string) error 
 		return errcode.ErrNodeStatus
 	}
 
-	sst.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
+	// TODO sst.pusher.Command(ctx, mon.BrokerID, []int64{mid}, cmd)
 
 	return nil
 }
