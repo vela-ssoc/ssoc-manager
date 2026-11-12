@@ -19,7 +19,7 @@ func NewOAuth(svc *service.OAuth) *OAuth {
 	return &OAuth{svc: svc}
 }
 
-func (oat *OAuth) RegisterHTTP(g shipx.RouteGroup3) error {
+func (oat *OAuth) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/oauth/provider").
 		Data(shipx.NewAnonymous()).GET(oat.provider)
 	g.ExposeV3.Group.Route("/oauth/dong").

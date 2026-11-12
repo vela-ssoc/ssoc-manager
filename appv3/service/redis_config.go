@@ -13,19 +13,21 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/response"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type RedisConfig struct {
 	db    polydb.Sourcer
+	cli   apiclient.Client
 	log   *slog.Logger
 	mem   *memcache.Value[redis.UniversalClient]
 	safes map[string]struct{}
 }
 
-func NewRedisConfig(db polydb.Sourcer, log *slog.Logger) *RedisConfig {
-	rc := &RedisConfig{db: db, log: log}
+func NewRedisConfig(db polydb.Sourcer, cli apiclient.Client, log *slog.Logger) *RedisConfig {
+	rc := &RedisConfig{db: db, cli: cli, log: log}
 	rc.mem = memcache.NewValue(rc.slowLoad)
 	rc.safes = rc.safeCommands()
 
@@ -57,7 +59,7 @@ func (rc *RedisConfig) Upsert(ctx context.Context, param request.RedisConfigUpse
 	update := bson.M{"$set": mod, "$setOnInsert": bson.M{"created_at": now}}
 	_, err := coll.UpdateOne(ctx, bson.D{}, update, opts)
 	if err == nil {
-		rc.Forget()
+		rc.Forget(ctx)
 	}
 
 	return err
@@ -202,10 +204,11 @@ func (rc *RedisConfig) Value(ctx context.Context, key string, cursor uint64, mat
 	return ret, nil
 }
 
-func (rc *RedisConfig) Forget() {
+func (rc *RedisConfig) Forget(ctx context.Context) {
 	if cli, _ := rc.mem.Forget(); cli != nil {
 		_ = cli.Close()
 	}
+	_ = rc.cli.Forget().Redis(ctx)
 }
 
 func (rc *RedisConfig) SafeCommands() map[string]struct{} {

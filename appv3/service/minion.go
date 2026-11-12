@@ -35,7 +35,7 @@ func (mon *Minion) Page(ctx context.Context, param request.MinionPage) (*reposit
 	} else if count == 0 {
 		return repository.NewEmptyPages[model2.Minion](size), nil
 	}
-	records, err := dao.Scopes(param.Scope(count)).Find()
+	records, err := dao.Scopes(param.Scope(count)).Order(tbl.ID.Desc()).Find()
 	if err != nil {
 		return nil, err
 	}

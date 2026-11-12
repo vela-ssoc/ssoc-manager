@@ -15,6 +15,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/memcache"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -22,15 +23,17 @@ import (
 type VictoriaMetrics struct {
 	db    polydb.Sourcer
 	rtp   http.RoundTripper
+	cli   apiclient.Client
 	log   *slog.Logger
 	label string
 	mem   *memcache.Value[*model.VictoriaMetricsConfig]
 }
 
-func NewVictoriaMetrics(db polydb.Sourcer, rtp http.RoundTripper, log *slog.Logger) *VictoriaMetrics {
+func NewVictoriaMetrics(db polydb.Sourcer, rtp http.RoundTripper, cli apiclient.Client, log *slog.Logger) *VictoriaMetrics {
 	vmc := &VictoriaMetrics{
 		db:    db,
 		rtp:   rtp,
+		cli:   cli,
 		log:   log,
 		label: `appname="ssoc-manager"`, // 固定 Label
 	}
@@ -63,7 +66,7 @@ func (vmc *VictoriaMetrics) Upsert(ctx context.Context, param request.VictoriaMe
 	update := bson.M{"$set": mod, "$setOnInsert": bson.M{"created_at": now}}
 	_, err := coll.UpdateOne(ctx, bson.D{}, update, opts)
 	if err == nil {
-		_, _ = vmc.mem.Forget()
+		vmc.Forget(ctx)
 	}
 
 	return err
@@ -115,6 +118,11 @@ func (vmc *VictoriaMetrics) PushConfig(ctx context.Context) (pushURL string, opt
 	opts = &metrics.PushOptions{ExtraLabels: vmc.label, Headers: headers.Array()}
 
 	return pu.String(), opts, nil
+}
+
+func (vmc *VictoriaMetrics) Forget(ctx context.Context) {
+	_, _ = vmc.mem.Forget()
+	_ = vmc.cli.Forget().VictoriaMetrics(ctx)
 }
 
 func (vmc *VictoriaMetrics) load(ctx context.Context) (*url.URL, model.HTTPHeader, *model.VictoriaMetricsConfig, error) {

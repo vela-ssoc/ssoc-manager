@@ -18,7 +18,7 @@ type Certificate struct {
 	svc *service.Certificate
 }
 
-func (crt *Certificate) RegisterHTTP(g shipx.RouteGroup3) error {
+func (crt *Certificate) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/certificates").GET(crt.list)
 	//r.Route("/certificate/download").GET(crt.download)
 	g.ExposeV3.Group.Route("/certificate/parse").POST(crt.parse)

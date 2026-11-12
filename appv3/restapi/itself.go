@@ -16,7 +16,7 @@ func NewItself() *Itself {
 	return &Itself{}
 }
 
-func (slf *Itself) RegisterHTTP(g shipx.RouteGroup3) error {
+func (slf *Itself) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/itself/version").Data(shipx.NewAnonymous()).GET(slf.version) // 版本信息
 	g.ExposeV3.Group.Route("/itself/buildinfo").GET(slf.buildinfo)                        // 二进制编译信息
 	return nil

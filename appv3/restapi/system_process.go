@@ -18,7 +18,7 @@ func NewSystemProcess() *SystemProcess {
 	return &SystemProcess{}
 }
 
-func (sp *SystemProcess) RegisterHTTP(g shipx.RouteGroup3) error {
+func (sp *SystemProcess) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/system/processes").GET(sp.list)                  // 进程列表
 	g.ExposeV3.Group.Route("/system/process").GET(sp.info)                    // 进程信息
 	g.ExposeV3.Group.Route("/system/process/connections").GET(sp.connections) // 进程打开的连接数

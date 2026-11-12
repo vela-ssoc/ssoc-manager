@@ -17,7 +17,7 @@ func NewBrokerConnectHistory(svc *service.BrokerConnectHistory) *BrokerConnectHi
 	return &BrokerConnectHistory{svc: svc}
 }
 
-func (bch *BrokerConnectHistory) RegisterHTTP(g shipx.RouteGroup3) error {
+func (bch *BrokerConnectHistory) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/broker/connect-histories").GET(bch.page)
 
 	return nil

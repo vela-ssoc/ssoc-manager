@@ -17,7 +17,7 @@ func NewItselfRoute() *ItselfRoute {
 	return new(ItselfRoute)
 }
 
-func (rt *ItselfRoute) RegisterHTTP(g shipx.RouteGroup3) error {
+func (rt *ItselfRoute) RegisterHTTP(g shipx.RouteGroup) error {
 	rt.exp = g.ExposeV3.Group.Ship()
 	rt.brk = g.BrokerV3.Group.Ship()
 

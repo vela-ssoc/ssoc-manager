@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "@/lib/toast"
-import { Building2, Loader2, Radar, Search, Trash2 } from "lucide-react"
+import {
+  ArrowRight,
+  Building2,
+  ExternalLink,
+  LayoutDashboard,
+  Loader2,
+  Radar,
+  Search,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react"
 
 import { TooltipHint } from "@/components/tooltip-hint"
 import { DataPagination } from "@/components/data-pagination"
@@ -27,18 +37,11 @@ import {
 import { minionApi } from "@/features/minion/api"
 import {
   MINION_STATUSES,
+  MINION_STATUS_COLORS,
   type MinionNode,
-  type MinionStatus,
 } from "@/features/minion/types"
 
 const DEFAULT_PAGE_SIZE = 12
-
-const STATUS_COLORS: Record<MinionStatus, string> = {
-  1: "bg-amber-500",
-  2: "bg-muted-foreground/50",
-  3: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]",
-  4: "bg-destructive",
-}
 
 export function MinionsPage() {
   const [departments, setDepartments] = useState<CMDBDepartmentNode[]>([])
@@ -55,15 +58,29 @@ export function MinionsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<MinionNode | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [modeTarget, setModeTarget] = useState<string | null>(null)
 
   const navigate = useNavigate()
 
-  const openNode = useCallback(
-    (minion: MinionNode) => {
+  const toggleMode = (minion: MinionNode) => {
+    setModeTarget((prev) => (prev === minion.id ? null : minion.id))
+  }
+
+  const closeMode = useCallback(() => setModeTarget(null), [])
+
+  const confirmDelete = (minion: MinionNode) => {
+    setModeTarget(null)
+    setDeleteTarget(minion)
+  }
+
+  const chooseMode = (minion: MinionNode, mode: "legacy" | "devui") => {
+    setModeTarget(null)
+    if (mode === "legacy") {
       navigate(`/legacy?path=${encodeURIComponent(`/#/node/${minion.id}`)}`)
-    },
-    [navigate]
-  )
+      return
+    }
+    navigate(`/minions/${minion.id}`)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -224,7 +241,7 @@ export function MinionsPage() {
               <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 value={keyword}
-                placeholder="搜索 IP、机器码或代理节点"
+                placeholder="搜索 IP、机器码或中继节点"
                 className="h-7 pl-9"
                 onChange={(event) => setKeyword(event.target.value)}
                 onKeyDown={(event) => {
@@ -255,8 +272,11 @@ export function MinionsPage() {
                   <MinionCard
                     key={minion.id}
                     minion={minion}
-                    onOpen={openNode}
-                    onDelete={setDeleteTarget}
+                    choosing={modeTarget === minion.id}
+                    onToggle={toggleMode}
+                    onCancel={closeMode}
+                    onChoose={chooseMode}
+                    onDelete={confirmDelete}
                   />
                 ))}
               </div>
@@ -312,30 +332,58 @@ export function MinionsPage() {
 
 function MinionCard({
   minion,
-  onOpen,
+  choosing,
+  onToggle,
+  onCancel,
+  onChoose,
   onDelete,
 }: {
   minion: MinionNode
-  onOpen: (minion: MinionNode) => void
+  choosing: boolean
+  onToggle: (minion: MinionNode) => void
+  onCancel: () => void
+  onChoose: (minion: MinionNode, mode: "legacy" | "devui") => void
   onDelete: (minion: MinionNode) => void
 }) {
+  const cardRef = useRef<HTMLElement>(null)
   const status = MINION_STATUSES[minion.status] ?? "未知"
-  const statusColor = STATUS_COLORS[minion.status] ?? "bg-muted-foreground/50"
+  const statusColor =
+    MINION_STATUS_COLORS[minion.status] ?? "bg-muted-foreground/50"
+
+  useEffect(() => {
+    if (!choosing) return
+    const handlePointerDown = (event: PointerEvent) => {
+      if (cardRef.current?.contains(event.target as Node)) return
+      onCancel()
+    }
+    document.addEventListener("pointerdown", handlePointerDown)
+    return () => document.removeEventListener("pointerdown", handlePointerDown)
+  }, [choosing, onCancel])
 
   return (
     <article
+      ref={cardRef}
       role="button"
       tabIndex={0}
-      aria-label={`查看探针 ${minion.inet} 详情`}
-      onClick={() => onOpen(minion)}
+      aria-expanded={choosing}
+      aria-label={`打开探针 ${minion.inet}`}
+      onClick={() => onToggle(minion)}
       onKeyDown={(event) => {
+        if (event.key === "Escape" && choosing) {
+          event.preventDefault()
+          onCancel()
+          return
+        }
         if (event.target !== event.currentTarget) return
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault()
-          onOpen(minion)
+          onToggle(minion)
         }
       }}
-      className="group flex min-w-0 cursor-pointer flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className={cn(
+        "group flex min-w-0 cursor-pointer flex-col gap-3 rounded-md border bg-card p-3 transition-colors hover:bg-accent/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        choosing && "border-primary/50 bg-accent/10 hover:bg-accent/10"
+      )}
     >
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -374,14 +422,47 @@ function MinionCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-        <MinionField label="机器码" value={minion.machine_id} mono />
-        <MinionField label="Agent 版本" value={minion.edition} />
-        <MinionField label="操作系统" value={minion.goos} />
-        <MinionField label="代理节点" value={minion.broker_name} />
-        <MinionField label="部门" value={minion.org_path || minion.ibu} />
-        <MinionField label="机房" value={minion.idc} />
-      </div>
+      {choosing ? (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-[11px]">
+              选择打开方式
+            </span>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground text-[11px] transition-colors"
+              onClick={(event) => {
+                event.stopPropagation()
+                onCancel()
+              }}
+            >
+              取消
+            </button>
+          </div>
+          <ModeOption
+            icon={ExternalLink}
+            title="老 UI"
+            description="旧版界面查看详情"
+            autoFocus
+            onClick={() => onChoose(minion, "legacy")}
+          />
+          <ModeOption
+            icon={LayoutDashboard}
+            title="开发 UI"
+            description="新版详情页查看"
+            onClick={() => onChoose(minion, "devui")}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <MinionField label="机器码" value={minion.machine_id} mono />
+          <MinionField label="Agent 版本" value={minion.edition} />
+          <MinionField label="操作系统" value={minion.goos} />
+          <MinionField label="中继节点" value={minion.broker_name} />
+          <MinionField label="部门" value={minion.org_path || minion.ibu} />
+          <MinionField label="机房" value={minion.idc} />
+        </div>
+      )}
 
       <div className="text-muted-foreground flex items-center justify-between border-t pt-2 text-[11px]">
         <span className="truncate">{minion.comment || "—"}</span>
@@ -390,6 +471,43 @@ function MinionCard({
         </span>
       </div>
     </article>
+  )
+}
+
+function ModeOption({
+  icon: Icon,
+  title,
+  description,
+  autoFocus,
+  onClick,
+}: {
+  icon: LucideIcon
+  title: string
+  description: string
+  autoFocus?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      autoFocus={autoFocus}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick()
+      }}
+      className="group/opt flex w-full items-center gap-2 rounded-md border bg-background/60 px-2 py-1.5 text-left transition-colors hover:border-primary/40 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <span className="bg-muted text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded transition-colors group-hover/opt:bg-primary/10 group-hover/opt:text-primary">
+        <Icon className="size-3.5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs leading-tight font-medium">{title}</span>
+        <span className="text-muted-foreground block truncate text-[10px] leading-tight">
+          {description}
+        </span>
+      </span>
+      <ArrowRight className="text-muted-foreground size-3.5 shrink-0 opacity-0 transition-opacity group-hover/opt:opacity-100" />
+    </button>
   )
 }
 

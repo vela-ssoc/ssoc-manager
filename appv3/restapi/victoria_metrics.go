@@ -18,7 +18,7 @@ func NewVictoriaMetrics(svc *service.VictoriaMetrics) *VictoriaMetrics {
 	return &VictoriaMetrics{svc: svc}
 }
 
-func (vmc *VictoriaMetrics) RegisterHTTP(g shipx.RouteGroup3) error {
+func (vmc *VictoriaMetrics) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/victoria-metrics-config").
 		GET(vmc.get).    // 获取 VictoriaMetrics 配置
 		POST(vmc.upsert) // 修改/新增 VictoriaMetrics 配置

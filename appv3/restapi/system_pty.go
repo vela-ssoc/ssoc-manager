@@ -17,7 +17,7 @@ func NewSystemPTY(wsu *websocket.Upgrader) *SystemPTY {
 	return &SystemPTY{wsu: wsu}
 }
 
-func (pt *SystemPTY) RegisterHTTP(g shipx.RouteGroup3) error {
+func (pt *SystemPTY) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/system/pty").GET(pt.open)
 
 	return nil

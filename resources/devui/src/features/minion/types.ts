@@ -21,15 +21,30 @@ export interface Minion {
   tags: string[]
 }
 
-export interface MinionDetail extends Minion {
+export interface MinionTag {
+  id?: string
+  minion_id?: string
+  tag: string
+  kind?: number
+}
+
+export interface MinionManualNote {
+  field: string
+  value: string
+}
+
+export interface MinionDetail extends Omit<Minion, "tags"> {
+  tags?: MinionTag[]
   inet6?: string
   mac?: string
   arch?: string
   broker_id?: string
+  broker_slug?: string
   org_path?: string
   identity?: string
   category?: string
   op_duty?: string
+  manual_notes?: MinionManualNote[]
   created_at?: string
   updated_at?: string
   release?: string
@@ -97,9 +112,79 @@ export interface MinionFilter {
   value: string | number
 }
 
+export interface AgentExecuteStat {
+  goos?: string
+  goarch?: string
+  version?: string
+  unstable?: boolean
+  customized?: string
+  pid?: number
+  args?: string[]
+  hostname?: string
+  workdir?: string
+  executable?: string
+}
+
+export interface AgentTunnelStat {
+  library?: string
+  module?: string
+  inet?: string
+  connected_at?: string
+  cumulative?: number
+  local_addr?: string
+  remote_addr?: string
+  receive_bytes?: number
+  transmit_bytes?: number
+}
+
+export interface AgentBrokerEndpoint {
+  id?: string
+  idv1?: number
+  slug?: string
+  name?: string
+}
+
+export interface AgentConnectHistory {
+  id: string
+  agent_idv1: number
+  execute_stat?: AgentExecuteStat
+  tunnel_stat?: AgentTunnelStat
+  broker?: AgentBrokerEndpoint
+  seconds: number
+  disconnected_at?: string
+}
+
+export interface AgentConnectHistoryPage {
+  page: number
+  size: number
+  total: number
+  records: AgentConnectHistory[]
+}
+
+export interface AgentSubstream {
+  id: string
+  rx: number
+  tx: number
+  established_at: string
+}
+
+export interface AgentSubstreams {
+  records: AgentSubstream[]
+}
+
 export const MINION_STATUSES: Record<MinionStatus, string> = {
   1: "未激活",
   2: "离线",
   3: "在线",
   4: "已删除",
 }
+
+export const MINION_STATUS_COLORS: Record<MinionStatus, string> = {
+  1: "bg-amber-500",
+  2: "bg-muted-foreground/50",
+  3: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.65)]",
+  4: "bg-destructive",
+}
+
+// 在线状态。探针侧接口（活跃子流等）只有在线时才可用。
+export const MINION_STATUS_ONLINE: MinionStatus = 3

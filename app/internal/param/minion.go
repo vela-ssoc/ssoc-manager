@@ -49,6 +49,7 @@ type MinionDetail struct {
 	Uptime        time.Time          `json:"uptime"         gorm:"column:uptime"`
 	BrokerID      string             `json:"broker_id"      gorm:"column:broker_id"`
 	BrokerName    string             `json:"broker_name"    gorm:"column:broker_name"`
+	BrokerSlug    string             `json:"broker_slug"    gorm:"broker_slug"`
 	OrgPath       string             `json:"org_path"       gorm:"column:org_path"`
 	Identity      string             `json:"identity"       gorm:"column:identity"`
 	Category      string             `json:"category"       gorm:"column:category"`

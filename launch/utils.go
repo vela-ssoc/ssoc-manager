@@ -37,10 +37,10 @@ func closeHTTP(srv *http.Server) error {
 	return srv.Close()
 }
 
-func registerRoutes(route shipx.RouteGroup3, handlers gontainer.Multiple[shipx.HTTPRegistrar]) error {
+func registerRoutes(route shipx.RouteGroup, handlers gontainer.Multiple[shipx.HTTPRegistrar]) error {
 	return route.RegisterRoutes(handlers)
 }
 
-func registerV1Routes(route shipx.RouteGroup3, handlers gontainer.Multiple[shipx.V1HTTPRegistrar]) {
+func registerV1Routes(route shipx.RouteGroup, handlers gontainer.Multiple[shipx.V1HTTPRegistrar]) {
 	route.RegisterV1Routes(handlers)
 }

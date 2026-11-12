@@ -1,12 +1,14 @@
 package restapi
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Minion struct {
@@ -17,7 +19,7 @@ func NewMinion(svc *service.Minion) *Minion {
 	return &Minion{svc: svc}
 }
 
-func (mon *Minion) RegisterHTTP(g shipx.RouteGroup3) error {
+func (mon *Minion) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/minions").GET(mon.page)
 	g.ExposeV1.Group.Route("/cmdb").GET(mon.cmdb)
 
@@ -47,7 +49,7 @@ func (mon *Minion) cmdb(c *ship.Context) error {
 
 	ctx := c.Request().Context()
 	ret, err := mon.svc.CMDB(ctx, param.ID)
-	if err != nil {
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	}
 

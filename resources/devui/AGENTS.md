@@ -67,7 +67,7 @@ src/
     cmdb-config/         # CMDB 配置（api + types）
     certificate/         # TLS 证书（api + types）
     redis-config/        # Redis 连接配置（api + types）
-    minion/              # 探针节点类型（v3 列表 + 旧版删除/详情 API）
+    minion/              # 探针节点类型（v3 列表 + 旧版删除/详情 API）、连接历史、活跃子流
     oauth-config/        # 身份验证（OAuth 配置 api + types）
     reverse-proxy/       # 反向代理（列表 + 创建/编辑/删除）
     server-events/       # SSE 事件流（连接、重连、订阅 hook、通知卡片、事件历史、铃铛面板）
@@ -112,7 +112,8 @@ src/
 |-----------------------------|--------------------------------|-----------------------------------------------------------------------------------|
 | `/login`                    | `pages/login.tsx`              | 默认扫码登录，可切换账密 + TOTP                                                   |
 | `/legacy`                   | `pages/legacy.tsx`             | 旧版 `/` iframe，暗色下整体反色；`?path=` 可指定 iframe 初始地址                   |
-| `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除；点击卡片跳转 `/legacy?path=/#/node/{id}` |
+| `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除；点击卡片在卡片内展开「老 UI / 开发 UI」选择 |
+| `/minions/:id`              | `pages/minion-detail.tsx`      | 探针节点详情（开发 UI）：基本信息 / 连接历史 / 活跃子流（在线才可点）；老 UI 仍走 `/legacy?path=/#/node/{id}` |
 | `/brokers`                  | `pages/brokers.tsx`            | 中继节点行卡片：左侧信息，右侧最近 6 小时 CPU/内存/网络指标（一次拉全量，无分页） |
 | `/brokers/:slug`            | `pages/broker-detail.tsx`      | 中继节点详情（多 Tab）                                                            |
 | `/central`                  | `pages/central.tsx`            | 中心端（多 Tab）                                                                  |
@@ -267,6 +268,8 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET             | `/system/processes`                       | `systemProcessApi.list`        |
 | GET             | `/system/process/connections`             | `systemProcessApi.connections` |
 | GET             | `/system/process/openfiles`               | `systemProcessApi.openFiles`   |
+| GET             | `/agent/substreams?id=`                   | `minionApi.substreams`         |
+| DELETE          | `/agent/substream?id=&stream_id=`         | `minionApi.killSubstream`      |
 | ANY             | `/webdav`、`/webdav/*`                    | `brokerDavEndpoint`            |
 
 ### 中心端
@@ -338,12 +341,24 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 |--------|-------------------|-------------------------------------------------------------------------|---------------------------|
 | GET    | `/api/v3/minions` | 分页（`page/size/q/department`），`department` 同时匹配本部门与子部门   | `minionApi.pageNodes`     |
 | GET    | `/api/v1/minions` | 旧版分页（`current/size/keyword`，可选 `filters` JSON），已不被页面使用 | `minionApi.page`          |
-| GET    | `/api/v1/minion`  | 详情（`id`，已封装但未使用）                                            | `minionApi.detail`        |
+| GET    | `/api/v1/minion`  | 详情（`id`），含 `broker_slug`；详情页唯一数据源，v3 暂无详情接口        | `minionApi.detail`        |
 | DELETE | `/api/v1/minion`  | 逻辑删除（`filters` JSON），v3 暂无删除接口，页面仍走旧接口             | `minionApi.logicalDelete` |
+| GET    | `/api/v3/agent/connect-histories` | 探针连接历史分页（`id` + `page/size`），按 `disconnected_at` 倒序 | `minionApi.connectHistories` |
+| GET    | `/api/v3/br/{slug}/api/v3/agent/substreams` | 探针活跃子流（真实路由 `GET /api/v3/agent/substreams?id=`，经中继节点内部代理） | `minionApi.substreams` |
+| DELETE | `/api/v3/br/{slug}/api/v3/agent/substream`  | 结束探针子流（真实路由 `DELETE /api/v3/agent/substream?id=&stream_id=`） | `minionApi.killSubstream` |
 
 - v3 后端目前 **未使用** `q` 参数（`service/minion.go` 只处理 `department`），搜索框会把值传给后端但暂无过滤效果。
 - v3 记录 **不含** `tags` / `cpu_core` / `mem_total` / `mem_free`（这些来自旧版视图与 `sys_info` 表），
   卡片因此只展示 `machine_id / edition / goos / broker_name / org_path / idc / comment / heartbeat_at`。
+- 详情页 `/minions/:id` 当前三个选项卡，标题栏与「基本信息」共用一次 `minionApi.detail`（旧版 `/api/v1/minion`，含 `broker_slug`）：
+  - **基本信息**（`features/minion/basic-info.tsx`）：节点 / 系统 / 资源 / 归属信息 + 标签、人工备注、节点描述；
+    字段按 `param.MinionDetail` 全量渲染，内存类字段用 `formatBytes`，`boot_at` 是 Unix 秒，需 ×1000 转时间。
+  - **连接历史**（`features/minion/connect-history.tsx`）：表格固定 12 列（中继节点〔名称+slug，如「本地开发（local-dev）」〕 / 版本 / 隧道类型 / 子流数 / 出口 IP / 本地地址 / 远端地址 / 接收 / 发送 / 连接时间 / 断开时间 / 连接时长），
+    行点击弹出详情对话框（连接信息 / 运行信息 / 隧道信息），样式与 `features/broker/history.tsx` 保持一致，默认每页 24 条。
+  - **活跃子流**（`features/minion/substreams.tsx`）：仅在线节点可点（离线置灰并 toast 提示，同中继节点详情的 `onlineOnly` 规则）。
+    探针侧接口没有独立路由，需经中心端内部代理 `/api/v3/br/{slug}/api/v3/agent/*` 转发到节点所在中继节点，
+    slug 直接取「基本信息」的 `broker_slug`（不再反查 `/brokers`）。
+    表格与结束子流交互复用 `features/broker/substreams.tsx` 的 `SubstreamsPanel`，只是 `load/kill` 换成探针实现。
 
 ### 登录（旧版 `/api/v1`）
 
@@ -659,9 +674,11 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 
 ## 13. 当前已知差异 / 待办
 
-- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；点击卡片会跳转
-  `/legacy?path=/#/node/{id}`，由 `legacy.tsx` 把 `path` 传给 iframe（仅接受以 `/` 开头且非 `//` 的相对路径，
-  其它值回落到 `/`），旧版界面负责渲染节点详情。`minionApi.detail` 已封装但仍未使用，也**没有新建探针入口**。
+- 探针节点页为「部门树 + 节点卡片」，部门数据复用 `/api/v3/cmdb/departments`；点击卡片会在卡片内部展开打开方式选择
+  （不再弹居中对话框）：「老 UI」跳转 `/legacy?path=/#/node/{id}`，由 `legacy.tsx` 把 `path` 传给 iframe（仅接受以 `/` 开头且非 `//` 的相对路径，
+  其它值回落到 `/`）；「开发 UI」跳转 `/minions/:id`，对应 `pages/minion-detail.tsx`，目前有「基本信息」「连接历史」「活跃子流」三个选项卡，
+  其余内容待设计。三个选项卡共用一次 `minionApi.detail`（旧版 `/api/v1/minion`，已补 `broker_slug`，v3 暂无详情接口）；
+  活跃子流要经 `/api/v3/br/{slug}/api/v3/agent/*` 代理到所在中继节点，slug 直接复用详情里的 `broker_slug`。也**没有新建探针入口**。
   部门树组件已抽到 `features/cmdb/department-tree.tsx`，`/configs/cmdb/browse` 与本页共用。
 - 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤）；归档走服务端 `q`；探针节点虽把 `q` 传给
   v3 `/minions`，但后端 `service/minion.go` 尚未使用该参数，暂无过滤效果。

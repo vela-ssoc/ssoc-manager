@@ -26,6 +26,26 @@ interface SortState {
 }
 
 export function SubstreamsSection({ slug }: { slug: string }) {
+  const load = useCallback(async () => {
+    const ret = await brokerApi.substreams(slug)
+    return ret.records ?? []
+  }, [slug])
+
+  const kill = useCallback(
+    (id: string) => brokerApi.killSubstream(slug, id),
+    [slug]
+  )
+
+  return <SubstreamsPanel load={load} kill={kill} />
+}
+
+export function SubstreamsPanel({
+  load,
+  kill,
+}: {
+  load: () => Promise<BrokerSubstream[]>
+  kill: (id: string) => Promise<unknown>
+}) {
   const [records, setRecords] = useState<BrokerSubstream[]>([])
   const [loading, setLoading] = useState(false)
   const [killTarget, setKillTarget] = useState<BrokerSubstream | null>(null)
@@ -35,13 +55,13 @@ export function SubstreamsSection({ slug }: { slug: string }) {
   const remaining = useConfirmCountdown(killTarget !== null)
   const requestId = useRef(0)
 
-  const load = useCallback(async () => {
+  const refresh = useCallback(async () => {
     const id = ++requestId.current
     setLoading(true)
     try {
-      const ret = await brokerApi.substreams(slug)
+      const records = await load()
       if (id !== requestId.current) return
-      setRecords(ret.records ?? [])
+      setRecords(records)
     } catch (err) {
       if (id === requestId.current) {
         toast.error(err instanceof Error ? err.message : "加载活跃子流失败")
@@ -49,11 +69,11 @@ export function SubstreamsSection({ slug }: { slug: string }) {
     } finally {
       if (id === requestId.current) setLoading(false)
     }
-  }, [slug])
+  }, [load])
 
   useEffect(() => {
-    void load()
-  }, [load])
+    void refresh()
+  }, [refresh])
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -72,10 +92,10 @@ export function SubstreamsSection({ slug }: { slug: string }) {
     if (!killTarget) return
     setKilling(true)
     try {
-      await brokerApi.killSubstream(slug, killTarget.id)
+      await kill(killTarget.id)
       toast.success("子流已结束")
       setKillTarget(null)
-      await load()
+      await refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "结束子流失败")
     } finally {
@@ -95,7 +115,7 @@ export function SubstreamsSection({ slug }: { slug: string }) {
             size="sm"
             className="h-7"
             disabled={loading}
-            onClick={() => void load()}
+            onClick={() => void refresh()}
           >
             <RefreshCw className={cn(loading && "animate-spin")} /> 刷新
           </Button>

@@ -18,7 +18,7 @@ func NewCMDB(svc *service.CMDB) *CMDB {
 	return &CMDB{svc: svc}
 }
 
-func (cdb *CMDB) RegisterHTTP(g shipx.RouteGroup3) error {
+func (cdb *CMDB) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/cmdb/departments").GET(cdb.departments)
 	g.ExposeV3.Group.Route("/cmdb/assets").GET(cdb.assets)
 

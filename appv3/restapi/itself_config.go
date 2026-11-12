@@ -22,7 +22,7 @@ func NewItselfConfig(boot config.Config, cfg *model.ManagerConfig, svc *service.
 	return &ItselfConfig{boot: boot, cfg: cfg, svc: svc}
 }
 
-func (slf *ItselfConfig) RegisterHTTP(g shipx.RouteGroup3) error {
+func (slf *ItselfConfig) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/itself/config/effect").GET(slf.effect) // 当前生效的配置参数
 	g.ExposeV3.Group.Route("/itself/config").
 		GET(slf.get).    // 获取最新配置参数（可能已保存但是还未生效）

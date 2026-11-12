@@ -12,17 +12,19 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/memcache"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
+	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type ReverseProxy struct {
 	db      polydb.Sourcer
+	cli     apiclient.Client
 	log     *slog.Logger
 	proxies *memcache.Map[string, *httputil.ReverseProxy]
 }
 
-func NewReverseProxy(db polydb.Sourcer, log *slog.Logger) *ReverseProxy {
-	rp := &ReverseProxy{db: db, log: log}
+func NewReverseProxy(db polydb.Sourcer, cli apiclient.Client, log *slog.Logger) *ReverseProxy {
+	rp := &ReverseProxy{db: db, cli: cli, log: log}
 	rp.proxies = memcache.NewMap(rp.findLocation)
 
 	return rp
@@ -132,8 +134,7 @@ func (rp *ReverseProxy) findLocation(ctx context.Context, loc string) (*httputil
 
 func (rp *ReverseProxy) forget(ctx context.Context, loc string) error {
 	rp.proxies.Forget(loc)
+	forget := rp.cli.Forget()
 
-	// _ = rp.hub.Broadcast(ctx, "/api/v3/reverse-proxy", nil)
-
-	return nil
+	return forget.HTTPProxy(ctx, loc)
 }

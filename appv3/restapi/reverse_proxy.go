@@ -19,7 +19,7 @@ func NewReverseProxy(svc *service.ReverseProxy) *ReverseProxy {
 	return &ReverseProxy{svc: svc}
 }
 
-func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup3) error {
+func (rp *ReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/reverse-proxies").GET(rp.list)    // 列表显示
 	g.ExposeV3.Group.Route("/reverse-proxy").GET(rp.get)       // 单个信息
 	g.ExposeV3.Group.Route("/reverse-proxy").POST(rp.create)   // 新增

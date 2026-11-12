@@ -19,7 +19,7 @@ func NewItselfExit() *ItselfExit {
 	return &ItselfExit{}
 }
 
-func (et *ItselfExit) RegisterHTTP(g shipx.RouteGroup3) error {
+func (et *ItselfExit) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/itself/exit").
 		GET(et.deadline).
 		POST(et.exit).

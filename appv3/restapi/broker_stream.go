@@ -18,7 +18,7 @@ func NewBrokerStream(svc *service.BrokerStream) *BrokerStream {
 	return &BrokerStream{svc: svc}
 }
 
-func (bs *BrokerStream) RegisterHTTP(g shipx.RouteGroup3) error {
+func (bs *BrokerStream) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/broker/stream").DELETE(bs.close)       // 结束主连接
 	g.ExposeV3.Group.Route("/broker/substreams").GET(bs.substreams) // 获取子流信息
 	g.ExposeV3.Group.Route("/broker/substream").DELETE(bs.kill)     // 强制结束一个子流

@@ -21,7 +21,7 @@ func NewZipFile(svc *service.ZipFile) *ZipFile {
 	return &ZipFile{svc: svc}
 }
 
-func (zf *ZipFile) RegisterHTTP(g shipx.RouteGroup3) error {
+func (zf *ZipFile) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/zip-file/readdir").GET(zf.readdir)   // 获取 zip 下的文件列表（所有文件）。
 	g.ExposeV3.Group.Route("/zip-file/content").GET(zf.read)      // 下载文件（预览文件）。
 	g.ExposeV3.Group.Route("/zip-file/unzip").POST(zf.unzip)      // 上传一个 zip 文件，读取映射成虚拟 zip 文件。

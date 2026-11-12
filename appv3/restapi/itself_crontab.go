@@ -18,7 +18,7 @@ func NewItselfCrontab(crond *crontab.Table) *ItselfCrontab {
 	return &ItselfCrontab{crond: crond}
 }
 
-func (slf *ItselfCrontab) RegisterHTTP(g shipx.RouteGroup3) error {
+func (slf *ItselfCrontab) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/itself/crontab/jobs").GET(slf.jobs)
 	g.ExposeV3.Group.Route("/itself/crontab/job").POST(slf.call).DELETE(slf.remove)
 

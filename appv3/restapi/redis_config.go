@@ -20,7 +20,7 @@ func NewRedisConfig(svc *service.RedisConfig) *RedisConfig {
 	return &RedisConfig{svc: svc}
 }
 
-func (rc *RedisConfig) RegisterHTTP(g shipx.RouteGroup3) error {
+func (rc *RedisConfig) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/redis-config").
 		GET(rc.get).    // 获取 Redis 配置
 		POST(rc.upsert) // 修改/新增 Redis 配置

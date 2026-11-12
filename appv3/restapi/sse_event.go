@@ -16,7 +16,7 @@ func NewSSEEvent(dsp pubsub.Dispatcher) *SSEEvent {
 	return &SSEEvent{dsp: dsp}
 }
 
-func (se *SSEEvent) RegisterHTTP(g shipx.RouteGroup3) error {
+func (se *SSEEvent) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/sse/event").GET(se.subscribe) // 列表显示
 
 	return nil

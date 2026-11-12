@@ -22,7 +22,7 @@ type WebDAV struct {
 	webDAV *webdav.Handler
 }
 
-func (d *WebDAV) RegisterHTTP(g shipx.RouteGroup3) error {
+func (d *WebDAV) RegisterHTTP(g shipx.RouteGroup) error {
 	prefix := g.ExposeV3.Path
 	d.webDAV.Prefix = path.Join(prefix, "/webdav")
 	methods := []string{

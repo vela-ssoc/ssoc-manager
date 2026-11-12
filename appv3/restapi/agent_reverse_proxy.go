@@ -28,7 +28,7 @@ func NewAgentReverseProxy(rt http.RoundTripper) *AgentReverseProxy {
 	return &AgentReverseProxy{rt: rt, pxy: pxy}
 }
 
-func (arp *AgentReverseProxy) RegisterHTTP(g shipx.RouteGroup3) error {
+func (arp *AgentReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
 	methods := []string{
 		http.MethodOptions, http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete,
 		"QUERY", "LOCK", "UNLOCK", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE",

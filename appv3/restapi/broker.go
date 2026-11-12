@@ -19,7 +19,7 @@ func NewBroker(svc *service.Broker) *Broker {
 	return &Broker{svc: svc}
 }
 
-func (bk *Broker) RegisterHTTP(g shipx.RouteGroup3) error {
+func (bk *Broker) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/brokers").GET(bk.list)     // 中继节点列表
 	g.ExposeV3.Group.Route("/broker").GET(bk.get)       // 获取中继节点详情
 	g.ExposeV3.Group.Route("/broker").POST(bk.create)   // 创建中继节点

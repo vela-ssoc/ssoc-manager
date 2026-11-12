@@ -17,7 +17,7 @@ func NewOAuthConfig(svc *service.OAuthConfig) *OAuthConfig {
 	return &OAuthConfig{svc: svc}
 }
 
-func (oat *OAuthConfig) RegisterHTTP(g shipx.RouteGroup3) error {
+func (oat *OAuthConfig) RegisterHTTP(g shipx.RouteGroup) error {
 	g.ExposeV3.Group.Route("/oauth/config").
 		GET(oat.get).
 		POST(oat.upsert)

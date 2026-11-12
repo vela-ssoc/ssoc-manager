@@ -16,6 +16,7 @@ import { SettingsPage } from "@/pages/settings"
 import { BrokersPage } from "@/pages/brokers"
 import { BrokerDetailPage } from "@/pages/broker-detail"
 import { MinionsPage } from "@/pages/minions"
+import { MinionDetailPage } from "@/pages/minion-detail"
 import { LegacyPage } from "@/pages/legacy"
 import { HoneDashboardPage } from "@/pages/hone-dashboard"
 import { RiskDashboardPage } from "@/pages/risk-dashboard"
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/brokers/:slug" element={<BrokerDetailPage />} />
           <Route path="/central" element={<CentralPage />} />
           <Route path="/minions" element={<MinionsPage />} />
+          <Route path="/minions/:id" element={<MinionDetailPage />} />
           <Route path="/legacy" element={<LegacyPage />} />
           <Route path="/hone" element={<HoneDashboardPage />} />
           <Route path="/ssoc" element={<RiskDashboardPage />} />

@@ -27,7 +27,7 @@ func NewBrokerReverseProxy(rt http.RoundTripper) *BrokerReverseProxy {
 	return &BrokerReverseProxy{rt: rt, pxy: pxy}
 }
 
-func (brp *BrokerReverseProxy) RegisterHTTP(g shipx.RouteGroup3) error {
+func (brp *BrokerReverseProxy) RegisterHTTP(g shipx.RouteGroup) error {
 	methods := []string{
 		http.MethodOptions, http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete,
 		"QUERY", "LOCK", "UNLOCK", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE",

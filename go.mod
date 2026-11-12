@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/NVIDIA/gontainer/v2 v2.5.1
 	github.com/VictoriaMetrics/metrics v1.45.0
-	github.com/google/pprof v0.0.0-20261110164715-8bb1ee682bd8
+	github.com/google/pprof v0.0.0-20261111200114-fac431ef4d26
 	github.com/gorilla/websocket v1.5.3
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/robfig/cron/v3 v3.0.1
@@ -13,13 +13,13 @@ require (
 	github.com/vela-public/onekit v1.7.31
 	github.com/vela-ssoc/luatemplate v1.0.1
 	github.com/vela-ssoc/ssoc-common v0.0.0-20260630031758-ca3d1c79208c
-	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261111024328-6094b55ff3b8
+	github.com/vela-ssoc/ssoc-common-mb v0.0.0-20261112012714-679fcaf1bc75
 	github.com/vela-ssoc/vela-common-mba v0.0.0-20251210091356-7c0c9896a277
-	github.com/vela-ssoc/vela-tunnel v0.0.0-20261109015452-01b902a5f485
+	github.com/vela-ssoc/vela-tunnel v0.0.0-20261111054436-3f39d8185b75
 	github.com/xgfone/ship/v5 v5.3.2
 	github.com/yeka/zip v0.0.0-20231116150916-03d6312748a9
 	go.mongodb.org/mongo-driver/v2 v2.10.0
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/text v0.44.0

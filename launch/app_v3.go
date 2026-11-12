@@ -22,8 +22,8 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
 	"github.com/vela-ssoc/ssoc-common-mb/dbconn"
 	"github.com/vela-ssoc/ssoc-common-mb/gopool"
+	"github.com/vela-ssoc/ssoc-common-mb/httpclient"
 	"github.com/vela-ssoc/ssoc-common-mb/httpship"
-	"github.com/vela-ssoc/ssoc-common-mb/httpx"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
 	"github.com/vela-ssoc/ssoc-common-mb/logger"
@@ -173,7 +173,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		IdleConnTimeout:     30 * time.Second,
 	}
 	httpcli := &http.Client{Transport: transport}
-	httpxcli := httpx.NewClient(httpcli)
+	httpxcli := httpclient.NewClient(httpcli)
 	tlspool := tlscert.NewMatch(nil, log)
 	pool := gopool.New(4096)
 
@@ -215,7 +215,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	midauth := middle.NewAuth(pdb, 24*time.Hour, log)
 	v1auth := noauth.Clone().Use(midauth)
 
-	route := shipx.RouteGroup3{
+	route := shipx.RouteGroup{
 		ExposeV1: shipx.RouteEndpoint{
 			Path:  apiV1,
 			Group: v1auth,
@@ -359,6 +359,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		// --------------------[ V1 END]--------------------
 
 		gontainer.NewFactory(muxcentral.NewServer),
+		gontainer.NewFactory(service.NewAgentConnectHistory),
+		gontainer.NewFactory(restapi.NewAgentConnectHistory),
 		gontainer.NewFactory(restapi.NewAgentReverseProxy),
 		gontainer.NewFactory(service.NewBroker),
 		gontainer.NewFactory(restapi.NewBroker),
