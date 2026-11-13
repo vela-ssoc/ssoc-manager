@@ -104,7 +104,7 @@ func (svc *Shared) Update(ctx context.Context, req *param.SharedUpdate) error {
 
 	_, err := tbl.WithContext(ctx).
 		Where(tbl.Bucket.Eq(bucket), tbl.Key.Eq(key)).
-		UpdateSimple(tbl.Value.Value(req.Value))
+		UpdateSimple(tbl.Value.Value(model.RawMessage(req.Value)))
 
 	return err
 }

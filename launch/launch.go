@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-common-mb/cronv3"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
@@ -23,7 +24,6 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/integration/vulnsync"
 	"github.com/vela-ssoc/ssoc-common-mb/problem"
 	"github.com/vela-ssoc/ssoc-common-mb/profile"
-	"github.com/vela-ssoc/ssoc-common-mb/shipx"
 	"github.com/vela-ssoc/ssoc-common-mb/sqldb"
 	"github.com/vela-ssoc/ssoc-common-mb/storage/v2"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
@@ -133,7 +133,7 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	}
 
 	sh := ship.Default()
-	sh.Logger = shipx.NewLog(log)
+	sh.Logger = logger.NewFormat(logHandler, 4)
 	sh.Session = sess
 	sh.Validator = valid
 	sh.NotFound = prob.NotFound
@@ -264,10 +264,12 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 	taskExecuteItemAPI.Route(anon, bearer, basic)
 
 	{
-		crond.Schedule("task-timeout-clean", cronv3.NewPeriodicallyTimes(30*time.Second), func() {
+		crond.Schedule("task-timeout-clean", cron.Every(5*time.Minute), func() {
 			cctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 			defer cancel()
-			taskExecuteSvc.TimeoutMonitor(cctx)
+			log.Warn("开始执行超时推送任务标记")
+			err1 := taskExecuteSvc.TimeoutMonitor(cctx)
+			log.Warn("开始执行超时推送任务标记执行结束", "err", err1)
 		})
 	}
 
@@ -467,9 +469,6 @@ func runApp(ctx context.Context, cfg *profile.ManagerConfig) error {
 
 	zombieConnectSvc := exposesvc.NewZombieConnect(qry, log)
 	exposeapi.NewZombieConnect(zombieConnectSvc).BindRoute(bearer)
-
-	davREST := mgtapi.NewDavFS(base)
-	davREST.Route(anon, bearer, basic)
 
 	pprofDir := "resources/pprof"
 	_ = os.RemoveAll(pprofDir)

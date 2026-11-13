@@ -157,3 +157,47 @@ func (tex *TaskExecute) reStatus(ctx context.Context, execID int64) (*model.Task
 
 	return data, err
 }
+
+func (tex *TaskExecute) Scan(ctx context.Context) error {
+	now := time.Now()
+	itemTbl := tex.qry.TaskExecuteItem
+
+	status := &model.TaskStepStatus{
+		Succeed:    false,
+		Reason:     "任务执行超时",
+		ExecutedAt: now,
+	}
+
+	var lastID int64
+	execIDs := make(map[int64]struct{}, 16)
+
+	for {
+		items, err := itemTbl.WithContext(ctx).
+			Where(itemTbl.ID.Gt(lastID), itemTbl.ExpiredAt.Lt(now), itemTbl.Finished.Is(false)).
+			Order(itemTbl.ID).Limit(100).Find()
+		if err != nil {
+			tex.log.Error("扫描下发超时任务出错", "err", err)
+			return err
+		}
+
+		num := len(items)
+		if num == 0 {
+			break
+		}
+
+		lastID = items[lastID-1].ID
+		for _, item := range items {
+			execIDs[item.ExecID] = struct{}{}
+			_, _ = itemTbl.WithContext(ctx).
+				Where(itemTbl.ID.Eq(item.ID)).
+				UpdateColumnSimple(
+					itemTbl.Succeed.Value(false),
+					itemTbl.Finished.Value(true),
+					itemTbl.MinionStatus.Value(status),
+					itemTbl.ErrorCode.Value(model.TaskExecuteErrorCodeTimeout),
+				)
+		}
+	}
+
+	return tex.executeMonitor(ctx, execIDs)
+}
