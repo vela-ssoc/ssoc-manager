@@ -22,6 +22,10 @@ type Ident struct {
 	IssuedAt time.Time `json:"issued_at"`
 }
 
+func (i Ident) Operator() model.Operator {
+	return model.Operator{ID: i.ID, Nickname: i.Nickname, Username: i.Username}
+}
+
 type Session interface {
 	ship.Session
 	Destroy(id int64) error

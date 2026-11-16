@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
@@ -193,4 +194,20 @@ func (biz *Risk) Payloads(ctx context.Context, page request.Pages, start, end ti
 	}
 
 	return pages.SetRecords(records), nil
+}
+
+func (biz *Risk) Disposal(ctx context.Context, req *mrequest.RiskDisposal, op model.Operator) error {
+	now := time.Now()
+	tbl := biz.qry.Risk
+	dao := tbl.WithContext(ctx)
+
+	_, err := dao.Where(tbl.ID.Eq(req.ID)).
+		UpdateColumnSimple(
+			tbl.DisposalAt.Value(sql.Null[time.Time]{V: now, Valid: true}),
+			tbl.DisposalOpinion.Value(req.DisposalOpinion),
+			tbl.Status.Value(uint8(req.Status)),
+			tbl.DisposalBy.Value(op),
+		)
+
+	return err
 }

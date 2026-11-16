@@ -11,6 +11,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/app/route"
 	"github.com/vela-ssoc/ssoc-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/app/session"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
 	"github.com/xgfone/ship/v5"
@@ -66,6 +67,8 @@ func (rest *Risk) Route(anon, bearer, _ *ship.RouteGroupBuilder) {
 		Data(route.Named("批量忽略风险事件")).PATCH(rest.Ignore)
 	bearer.Route("/risk/process").
 		Data(route.Named("批量处理风险事件")).PATCH(rest.Process)
+	bearer.Route("/risk/disposal").
+		Data(route.Named("处置风险事件")).POST(rest.disposal)
 }
 
 func (rest *Risk) Cond(c *ship.Context) error {
@@ -267,4 +270,17 @@ func (rest *Risk) Payloads(c *ship.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ret)
+}
+
+func (rest *Risk) disposal(c *ship.Context) error {
+	req := new(mrequest.RiskDisposal)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+
+	cu := session.Cast(c.Any)
+	op := cu.Operator()
+	ctx := c.Request().Context()
+
+	return rest.svc.Disposal(ctx, req, op)
 }

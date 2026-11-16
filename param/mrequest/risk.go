@@ -3,6 +3,7 @@ package mrequest
 import (
 	"time"
 
+	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/param/request"
 )
 
@@ -39,7 +40,7 @@ func (rrs RiskRecentTemps) Charts(days int) *RecentCharts {
 	day := 24 * time.Hour
 	now := time.Now()
 
-	for i := 0; i < days; i++ {
+	for i := range days {
 		date := now.Add(-time.Duration(i) * day).Format("01-02")
 		dates[i] = date
 		serial[date] = i
@@ -79,4 +80,10 @@ type RiskPayloadRequest struct {
 type RiskPayload struct {
 	Payload string    `json:"payload"  gorm:"column:payload"`
 	OccurAt time.Time `json:"occur_at" gorm:"column:occur_at"`
+}
+
+type RiskDisposal struct {
+	ID              int64            `json:"id,string"        validate:"required"`
+	Status          model.RiskStatus `json:"status"           validate:"required,oneof=2 3"`
+	DisposalOpinion string           `json:"disposal_opinion" validate:"lte=1000"`
 }
