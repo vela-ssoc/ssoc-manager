@@ -54,7 +54,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/apiclient"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxcentral"
 	"github.com/vela-ssoc/ssoc-manager/muxtunnel/muxroute"
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 	"gorm.io/gorm"
 	gormlog "gorm.io/gorm/logger"
 )

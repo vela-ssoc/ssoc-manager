@@ -13,8 +13,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/mresponse"
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/ciphertext"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 )
 
 func NewBrokerBinary(qry *query.Query, gfs gridfs.FS, store storage.Storer) *BrokerBinary {

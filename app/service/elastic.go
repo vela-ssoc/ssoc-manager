@@ -13,7 +13,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/internal/param"
 	"github.com/vela-ssoc/ssoc-manager/bridge/push"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-	"github.com/vela-ssoc/vela-common-mba/netutil"
+	"github.com/vela-ssoc/vela-tunnel/legacy/netutil"
 )
 
 func NewElastic(qry *query.Query, pusher push.Pusher, forward elastic.Searcher, cfg elastic.Configurer, client netutil.HTTPClient) *Elastic {

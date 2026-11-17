@@ -12,8 +12,8 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/errcode"
 	"github.com/vela-ssoc/ssoc-manager/param/modview"
 	"github.com/vela-ssoc/ssoc-manager/param/mrequest"
-	"github.com/vela-ssoc/vela-common-mba/ciphertext"
-	"github.com/vela-ssoc/vela-common-mba/definition"
+	"github.com/vela-ssoc/vela-tunnel/legacy/ciphertext"
+	"github.com/vela-ssoc/vela-tunnel/legacy/definition"
 	"gorm.io/gen"
 )
 
