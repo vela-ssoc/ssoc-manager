@@ -4,11 +4,13 @@ import {
   Activity,
   Archive,
   BookText,
+  Bot,
   ChevronDown,
   ChevronsUpDown,
   Database,
   ExternalLink,
   FileBadge,
+  FlaskConical,
   HardDrive,
   Home,
   LogOut,
@@ -45,6 +47,7 @@ import {
 import { clearToken } from "@/lib/http"
 import { cn } from "@/lib/utils"
 import { companyLabel, getAuthProfile } from "@/lib/auth-session"
+import { useExperimentalFeatures } from "@/lib/experimental-features"
 import { legacyAuthApi } from "@/features/auth/api"
 import { EventNotifications } from "@/features/server-events/event-notifier"
 import { clearServerEventHistory } from "@/features/server-events/history"
@@ -98,6 +101,7 @@ const navItems: NavItem[] = [
     children: [
       { title: "身份验证", href: "/configs/oauth", icon: ShieldCheck },
       { title: "TLS 证书", href: "/configs/certificate", icon: FileBadge },
+      { title: "聊天模型", href: "/configs/ai-chat-model", icon: Bot },
     ],
   },
   {
@@ -111,19 +115,14 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: "大屏展示",
+    title: "扩展页面",
     href: "/dashboards",
     icon: MonitorPlay,
     children: [
       { title: "风险大屏", href: "/ssoc", icon: MonitorPlay, external: "/ssoc/" },
       { title: "蜜罐大屏", href: "/hone", icon: MonitorPlay, external: "/hone/" },
+      { title: "接口文档", href: "/oas3", icon: BookText, external: "/oas3/" },
     ],
-  },
-  {
-    title: "接口文档",
-    href: "/oas3",
-    icon: BookText,
-    external: "/oas3/",
   },
 ]
 
@@ -136,11 +135,29 @@ export function AppLayout() {
   const accountLine =
     [company, profile?.username].filter(Boolean).join(" · ") || "用户账号"
   useServerEvents()
+  const features = useExperimentalFeatures()
+  const enabledFeatures = features.filter((feature) => feature.enabled)
+  const experimentalGroup: NavItem | null =
+    enabledFeatures.length > 0
+      ? {
+        title: "实验功能",
+        href: "/experimental",
+        icon: FlaskConical,
+        children: enabledFeatures.map((feature) => ({
+          title: feature.name,
+          href: feature.href,
+          icon: feature.icon,
+        })),
+      }
+      : null
+  const items = experimentalGroup
+    ? [...navItems, experimentalGroup]
+    : navItems
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const initial = new Set<string>()
-    for (const item of navItems) {
+    for (const item of items) {
       if (item.children?.some((child) => child.href === location.pathname)) {
         initial.add(item.href)
       }
@@ -182,7 +199,7 @@ export function AppLayout() {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon
 
             if (!item.children?.length) {
@@ -346,7 +363,7 @@ export function AppLayout() {
       </Dialog>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

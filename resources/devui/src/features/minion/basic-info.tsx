@@ -5,6 +5,7 @@ import { formatDateTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { formatBytes } from "@/features/broker/types"
 import { MINION_STATUSES, MINION_STATUS_COLORS } from "@/features/minion/types"
+import { MinionOperations } from "@/features/minion/operations"
 import type { MinionDetail } from "@/features/minion/types"
 
 export function MinionBasicInfo({ detail }: { detail: MinionDetail }) {
@@ -169,6 +170,8 @@ export function MinionBasicInfo({ detail }: { detail: MinionDetail }) {
           </p>
         </section>
       ) : null}
+
+      <MinionOperations detail={detail} />
     </div>
   )
 }

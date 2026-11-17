@@ -15,8 +15,9 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/vela-ssoc/ssoc-common-mb/crontab"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/gridfs"
-	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
+	modelv1 "github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/repository"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/varload"
@@ -34,8 +35,12 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/tlscert"
 	"github.com/vela-ssoc/ssoc-common-mb/validation"
 	"github.com/vela-ssoc/ssoc-common-mb/victoria"
+	"github.com/vela-ssoc/ssoc-manager/agentic"
+	"github.com/vela-ssoc/ssoc-manager/agentic/agtool"
+	"github.com/vela-ssoc/ssoc-manager/agentic/atoui"
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	mgtsvc "github.com/vela-ssoc/ssoc-manager/app/service"
+	"github.com/vela-ssoc/ssoc-manager/appv3/einotool"
 	"github.com/vela-ssoc/ssoc-manager/appv3/middle"
 	"github.com/vela-ssoc/ssoc-manager/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
@@ -139,7 +144,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	log.Info("关系数据库连接成功", "dialect", rdb.Dialector.Name())
 	// 如果需要创建关系型数据库的索引、数据合并，在此处实现。
 	qry := query.Use(rdb)
-	if err = rdb.WithContext(ctx).AutoMigrate(model.All()...); err != nil {
+	if err = rdb.WithContext(ctx).AutoMigrate(modelv1.All()...); err != nil {
 		log.Error("关系数据库执行迁移出错", "err", err)
 		return err
 	}
@@ -239,6 +244,15 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 	}
 	dispatch := pubsub.NewDispatcher()
 
+	mgopts := agtool.MongoOptions{
+		Models: []repository.CollectionInfer{
+			model.Agent{},
+			model.Broker{},
+			model.CMDB{},
+		},
+		Timeout: 10 * time.Second,
+	}
+
 	v1cfg := new(profile.ManagerConfig)
 	hubv1 := linkhub.New(qry, brokerMUX, pool, v1cfg) // v1 fake hub
 	pushv1 := push.NewPush(qry, hubv1)
@@ -250,6 +264,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewService(qry),
 		gontainer.NewService(pdb),
 		gontainer.NewService(hub),
+		gontainer.NewService(valid),
 		gontainer.NewService(route),
 		gontainer.NewService(centralopts),
 		gontainer.NewService(httpcli),
@@ -261,6 +276,10 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewService(transport),
 		gontainer.NewService(wsupgrade),
 		gontainer.NewService(dispatch),
+		gontainer.NewService(mgopts),
+
+		gontainer.NewFactory(agentic.NewBaseToolFactory),
+		gontainer.NewFactory(atoui.NewUI),
 
 		gontainer.NewFactory(apiclient.NewClient),
 		// --------------------[ V1 START]--------------------
@@ -358,10 +377,15 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewEntrypoint(registerV1Routes), // 临时补丁方案
 		// --------------------[ V1 END]--------------------
 
+		gontainer.NewFactory(agtool.NewMongo),
 		gontainer.NewFactory(muxcentral.NewServer),
 		gontainer.NewFactory(service.NewAgentConnectHistory),
 		gontainer.NewFactory(restapi.NewAgentConnectHistory),
 		gontainer.NewFactory(restapi.NewAgentReverseProxy),
+		gontainer.NewFactory(service.NewAIChat),
+		gontainer.NewFactory(restapi.NewAIChat),
+		gontainer.NewFactory(service.NewAIChatModel),
+		gontainer.NewFactory(restapi.NewAIChatModel),
 		gontainer.NewFactory(service.NewBroker),
 		gontainer.NewFactory(restapi.NewBroker),
 		gontainer.NewFactory(service.NewBrokerConnectHistory),
@@ -392,6 +416,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(service.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewReverseProxy),
 		gontainer.NewFactory(restapi.NewSSEEvent),
+		gontainer.NewFactory(service.NewSystemProcess),
 		gontainer.NewFactory(restapi.NewSystemProcess),
 		gontainer.NewFactory(service.NewVictoriaMetrics),
 		gontainer.NewFactory(restapi.NewVictoriaMetrics),
@@ -402,6 +427,9 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewService(restapi.NewWebDAV("/")),
 		gontainer.NewFactory(service.NewZipFile),
 		gontainer.NewFactory(restapi.NewZipFile),
+
+		// TOOL_CALL
+		gontainer.NewFactory(einotool.NewSystemProcess),
 
 		gontainer.NewFactory(victoria.NewMongoDB),
 		gontainer.NewFactory(victoria.NewPsutil),

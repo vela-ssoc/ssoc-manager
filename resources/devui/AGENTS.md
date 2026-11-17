@@ -25,7 +25,10 @@
 - @xterm/xterm + addon-fit + addon-unicode-graphemes（Web 终端）
 - webdav（中心端/中继节点文件管理）
 - qrcode.react（TOTP 绑定二维码）、input-otp（6 位验证码）
+- @a2ui/react + @a2ui/web_core（0.15.0，A2UI v1.0 声明式 Agent UI 渲染）；官方包依赖 zod 3，
+  项目主用 zod 4，因此通过 npm 别名 `zod3` 引入 v3 供自定义 A2UI 组件写 schema
 - 包管理器：`npm`（注意 Windows 下用 `npm.cmd`）
+- AI 助手页按路由懒加载（`React.lazy`），避免 A2UI 依赖进入主包
 
 ## 3. 常用命令
 
@@ -59,6 +62,8 @@ src/
     tooltip-hint.tsx     # 统一悬浮提示
     web-terminal.tsx     # xterm + WebSocket 虚拟终端
   features/              # 按业务域组织
+    ai-chat/             # AI 助手（SSE 对话流、A2UI 渲染、自定义 Chart 组件）
+    ai-chat-model/       # 聊天模型配置（api + types）
     auth/                # 旧版登录 API、咚咚扫码登录
     broker/              # 中继节点（列表、详情各 Tab、配置编辑、WebDAV、接口调试）
     buildinfo/           # 编译信息展示（中心端与中继节点复用）
@@ -77,6 +82,8 @@ src/
     zip-file/            # 归档内部文件（文件树 + 预览 + 编辑 + api + types）
   pages/                 # 路由页面
     login.tsx            # 扫码 / 账密 + TOTP 登录
+    ai-chat.tsx          # AI 助手（实验性，SSE + A2UI）
+    ai-chat-model.tsx    # 聊天模型配置（连接 / 模型列表 / 系统提示词）
     legacy.tsx           # 旧版界面 iframe
     minions.tsx          # 探针节点
     brokers.tsx          # 中继节点列表
@@ -97,7 +104,7 @@ src/
     settings.tsx         # 主题、强调色、Monaco 字体
   providers/             # theme-provider（主题/强调色/字体上下文）
   lib/                   # http / theme / format / toast / fonts / utils / auth-session
-                         # use-picture-in-picture（Document PiP）等基础设施
+                         # use-picture-in-picture（Document PiP）/ experimental-features（实验功能注册与开关）等基础设施
   index.css              # 全局样式 + 主题变量（唯一配色来源）
 ```
 
@@ -111,6 +118,7 @@ src/
 | 路由                        | 页面                           | 说明                                                                              |
 |-----------------------------|--------------------------------|-----------------------------------------------------------------------------------|
 | `/login`                    | `pages/login.tsx`              | 默认扫码登录，可切换账密 + TOTP                                                   |
+| `/ai-chat`                  | `pages/ai-chat.tsx`            | AI 助手（实验功能）：AG-UI + A2UI，需在个人中心开启；路由守卫 + 懒加载              |
 | `/legacy`                   | `pages/legacy.tsx`             | 旧版 `/` iframe，暗色下整体反色；`?path=` 可指定 iframe 初始地址                   |
 | `/minions`                  | `pages/minions.tsx`            | 左侧 CMDB 部门树 + 右侧探针节点卡片（`department` 过滤）+ 分页 + 逻辑删除；点击卡片在卡片内展开「老 UI / 开发 UI」选择 |
 | `/minions/:id`              | `pages/minion-detail.tsx`      | 探针节点详情（开发 UI）：基本信息 / 连接历史 / 活跃子流（在线才可点）；老 UI 仍走 `/legacy?path=/#/node/{id}` |
@@ -121,6 +129,7 @@ src/
 | `/zip-archives/:name`       | `pages/zip-archive-detail.tsx` | 文件树 + Monaco 预览编辑                                                          |
 | `/reverse-proxies`          | `pages/reverse-proxies.tsx`    | 反向代理表格 CRUD                                                                 |
 | `/configs/oauth`            | `pages/oauth-config.tsx`       | 身份验证（OAuth 登录配置）                                                        |
+| `/configs/ai-chat-model`    | `pages/ai-chat-model.tsx`      | 聊天模型配置：服务地址、API Key、可用模型、系统提示词                             |
 | `/configs/cmdb`             | `pages/cmdb-config.tsx`        | CMDB 服务地址与访问凭证                                                           |
 | `/configs/certificate`      | `pages/certificate.tsx`        | TLS 证书列表 + 新建/编辑 + 解析预览                                               |
 | `/configs/cmdb/browse`      | `pages/cmdb-browse.tsx`        | CMDB 数据浏览（左侧部门树 + 右侧资产分页表格）                                    |
@@ -132,10 +141,16 @@ src/
 | `/settings`                 | `pages/settings.tsx`           | 主题 / 强调色 / 字体                                                              |
 
 Sidebar 导航项定义在 `components/layout/app-layout.tsx`：旧版界面、探针节点、中继节点、中心端、
-虚拟文件、反向代理、配置管理（可折叠：身份验证 / TLS 证书）、数据源（可折叠：CMDB / Redis / VictoriaMetrics）、
-大屏展示（可折叠：风险大屏 / 蜜罐大屏）、
-接口文档；底部为用户菜单：触发按钮显示头像 + 昵称 + `公司 · 用户名`，点开后只有「个人中心」和「退出登录」两项
+虚拟文件、反向代理、配置管理（可折叠：身份验证 / TLS 证书 / 聊天模型）、数据源（可折叠：CMDB / Redis / VictoriaMetrics）、
+扩展页面（可折叠：风险大屏 / 蜜罐大屏 / 接口文档）；底部为用户菜单：触发按钮显示头像 + 昵称 + `公司 · 用户名`，点开后只有「个人中心」和「退出登录」两项
 （不再重复展示用户信息，也取消了右上角关闭按钮）。
+**实验功能统一走「个人中心 → 实验功能」开关**（`src/lib/experimental-features.ts`）：
+所有实验功能对所有环境、所有用户**默认关闭**，开启状态存 `localStorage` 的
+`devui.experimental.<id>`（值 `1` / `0`）。开启后不会单独出现在一级导航，而是统一收纳到 Sidebar
+末尾的「实验功能」折叠分组下；没有开启任何实验功能时该分组不显示。`/ai-chat` 路由有守卫，
+未开启时访问会重定向到 `/settings`（个人中心）。新增实验功能时在 `EXPERIMENTAL_FEATURES`
+注册 `id / name / href / icon` 即可，无需改 Sidebar；模块标题后的信息按钮统一提示
+「开发中 / 未完整测试 / 可能存在 BUG」。
 顶栏 Logo 右侧为通知铃铛（未读徽标 + 通知面板，数据来自 SSE 事件历史；面板内可关闭「订阅通知」，关闭后显示静音铃铛）。
 导航项可配置 `external`，hover 时显示「新标签打开」按钮。
 
@@ -297,6 +312,9 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET      | `/system/process/openfiles`   | 进程关联的文件描述符（`pid`）                                                                                                        | `systemProcessApi.openFiles`                       |
 | GET/POST | `/oauth/config`               | OAuth 身份验证配置（`enabled,client_id,client_secret,authorization_endpoint,token_endpoint,userinfo_endpoint,redirect_uris,scopes`） | `oauthConfigApi.get/update`                        |
 | GET      | `/oauth/provider`             | 登录页 OAuth 提供商信息（`origin`，返回 `client_id` / `redirect_uri` / `authorization_endpoint`）                                    | `oauthProviderApi.get`                             |
+| GET/POST | `/ai-chat-model`              | 聊天模型配置（`{enabled,base_url,api_key,models,prompt}`），单例 upsert                                                              | `aiChatModelApi.get/update`                        |
+| GET      | `/ai-chat-model/models`       | 启用状态下返回允许使用的模型列表 `{ records: string[] }`                                                                             | `aiChatModelApi.models`                            |
+| POST     | `/ai-chat-model/models`       | body `{base_url,api_key}`，拉取上游模型列表（OpenAI `/models`，返回 `{ data: [{ id, ... }] }`）                                       | `aiChatModelApi.listModels`                        |
 | GET      | `/sse/event`                  | SSE 事件流订阅（`Accept: text/event-stream`）                                                                                        | `features/server-events/client.ts`                 |
 | POST     | `/oauth/dong`                 | 扫码 code 登录（`code` + `redirect_uri`）                                                                                            | `oauthApi.dong`                                    |
 | GET/POST | `/cmdb-config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`），单例 upsert                                                               | `cmdbConfigApi.get/update`                         |
@@ -368,6 +386,134 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | POST   | `/auth/totp`   | 获取绑定二维码    | `legacyAuthApi.totp`     |
 | POST   | `/auth/submit` | 提交 OTP 完成登录 | `legacyAuthApi.submit`   |
 | DELETE | `/logout`      | 退出登录          | `legacyAuthApi.logout`   |
+
+### AI 助手（AG-UI + A2UI，实验性）
+
+`POST /api/v3/sse/ai-chat/run`（后端 `ssoc-manager/appv3/restapi/ai_chat.go`），前端封装
+`features/ai-chat/api.ts`。协议采用 **AG-UI 1.0 传输 + A2UI 1.0 声明式 UI**：
+
+- 请求头：`Accept: text/event-stream`、`Content-Type: application/json`，token 放 `Authorization`
+  （无 Scheme）。
+- 请求体是 AG-UI 标准 `RunAgentInput`（前端每次发送**完整对话历史**，`threadId` 即会话 ID）：
+
+  ```json
+  {
+    "protocolVersion": "1.0",
+    "threadId": "会话 UUID",
+    "runId": "本次运行 UUID",
+    "model": "deepseek-chat",
+    "messages": [
+      { "id": "...", "role": "user", "content": "统计探针在线/离线分布，用饼图展示" }
+    ],
+    "tools": [],
+    "context": [],
+    "state": {},
+    "forwardedProps": {}
+  }
+  ```
+
+- 响应为 **data-only SSE**（每帧 `data: {JSON}\n\n`，事件通过 JSON 的 `type` 区分）：
+
+  | AG-UI 事件 | 关键字段 | 说明 |
+  |---|---|---|
+  | `RUN_STARTED` | `threadId` / `runId` | 运行开始 |
+  | `TEXT_MESSAGE_START` | `messageId` / `role` | 助手文本开始 |
+  | `TEXT_MESSAGE_CONTENT` | `messageId` / `delta` | 文本增量 |
+  | `TEXT_MESSAGE_END` | `messageId` | 助手文本结束 |
+  | `TOOL_CALL_START` | `toolCallId` / `toolCallName` / `parentMessageId` | 工具调用开始 |
+  | `TOOL_CALL_ARGS` | `toolCallId` / `delta` | 工具参数（JSON 字符串） |
+  | `TOOL_CALL_END` | `toolCallId` | 工具调用结束 |
+  | `TOOL_CALL_RESULT` | `messageId` / `toolCallId` / `content` | 工具结果 |
+  | `ACTIVITY_SNAPSHOT` | `messageId` / `activityType` / `content` / `replace` | A2UI 载体 |
+  | `ACTIVITY_DELTA` | `messageId` / `activityType` / `patch` | A2UI 增量更新（`update_surface` / `delete_surface`） |
+  | `RUN_FINISHED` | `threadId` / `runId` | 运行结束 |
+  | `RUN_ERROR` | `message` / `code?` | 运行错误 |
+
+- **A2UI 的官方 AG-UI 绑定**：`ACTIVITY_SNAPSHOT` + `activityType: "a2ui-surface"`，
+  操作列表放在 `content.a2ui_operations`，`replace: true`。一条 snapshot 可以带多条 A2UI 消息。
+  后端 Go 库（`github.com/tmc/a2ui`）输出的 `version` 是 `v1.0`，前端在进入
+  `MessageProcessor` 前统一归一化为规范要求的 `1.0`；组件树里的动态绑定是 v0.9 风格的
+  `{"path": "/x"}`，前端会归一化为 `{"@path": "/x"}`（`ChildTemplate` 的 `path` 与
+  `updateDataModel.path` 不受影响），否则 List 模板内的相对绑定会退化成对象而不是字段值。
+  `update_surface` 走 `ACTIVITY_DELTA`，`patch` 为
+  `{op:"add", path:"/a2ui_operations/-", value:<A2UI 消息>}`；前端把 value 追加到对应 UI 块并增量处理。
+  同一个 `messageId` 的 snapshot 再次到达且 `replace=true` 时，前端替换该画布的操作并重建渲染器：
+
+  ```json
+  {
+    "type": "ACTIVITY_SNAPSHOT",
+    "messageId": "a2ui-surface-call_1",
+    "activityType": "a2ui-surface",
+    "replace": true,
+    "content": {
+      "a2ui_operations": [
+        { "version": "1.0", "createSurface": { "surfaceId": "chart-call_1", "catalogId": "https://ssoc.local/a2ui/catalog/v1" } },
+        { "version": "1.0", "updateComponents": { "surfaceId": "chart-call_1", "components": [/* Chart */] } }
+      ]
+    }
+  }
+  ```
+
+- **A2UI 目录（catalog）**：前端注册的自定义目录 ID 为
+  `https://ssoc.local/a2ui/catalog/v1`（见 `features/ai-chat/catalog.tsx`），包含官方 v1.0 基础组件
+  （Text / Row / Column / List / Card / Tabs / Modal / Divider / Button / TextField / CheckBox /
+  ChoicePicker / Slider / DateTimeInput / Image / Icon / Video / AudioPlayer）与自定义 `Chart`。
+  `createSurface.catalogId` 必须使用该 ID。
+- 自定义 `Chart` 组件属性（与后端 `RenderChartInput` 对齐）：
+
+  ```json
+  {
+    "id": "root",
+    "component": "Chart",
+    "chart_type": "line | bar | pie | metric_card",
+    "title": "探针在线分布",
+    "x_axis": ["在线", "离线"],
+    "series": [{ "name": "数量", "data": [12, 3] }],
+    "summary": "可选结论"
+  }
+  ```
+
+  `title` / `series[].name` / `series[].data` / `summary` 支持 A2UI 动态绑定（`{"@path": "/xxx"}` 或
+  Go 库输出的 `{"path": "/xxx"}`）。当前后端 `render_chart` 只发 `line/bar/pie`，前端的
+  `metric_card` 保留兼容。
+- **UI 工具与组件**：后端 `agentic/atoui` 提供 `render_chart / render_metrics / render_table /
+  render_detail / render_alerts / render_form / render_confirm / update_surface / delete_surface`。
+  除 `Chart` 是自定义组件外，其余都使用 A2UI 基础组件（Card / Column / Row / List / Text /
+  Divider / Icon / Button / TextField / CheckBox / ChoicePicker / Slider / DateTimeInput），
+  数据通过 `createSurface` 内联的 `components + dataModel` 与动态绑定渲染。
+  `Icon` 在 `features/ai-chat/catalog.tsx` 中被替换为 lucide 实现（info / check / warning /
+  error / close / delete 等），避免依赖 Material Icons 字体，并按项目状态色着色。
+- **表单 / 确认动作**：`render_form` / `render_confirm` 的按钮通过 A2UI `action.event` 触发；
+  前端收到 `ActionPayload` 后新开一轮运行，把 `A2UI user action:\n<JSON>` 作为用户消息发送
+  （`name: "a2ui_action_context"`），同时在对话中显示「已提交表单 / 已确认操作 / 已取消操作」。
+  后端 `agAgentMessages` 会把这条用户消息带入模型上下文，由模型根据 `action_name + context` 继续执行。
+- **滚动**：对话区是页面内唯一的滚动容器（`min-h-0 flex-1 overflow-y-auto`），页面根与
+  `AppLayout` 的 `<main>` 都保留 `min-h-0`，避免 flex 子项按内容撑高、导致滚不到底。
+  新增内容时若用户仍在底部（距底部 < 80px）自动贴底，向上翻阅历史时不打断；A2UI surface 与
+  Markdown 的异步增高由 `ResizeObserver` 兜底补滚，容器设 `overflow-anchor: none` 防止锚定回跳。
+- 前端渲染：`fetch` + `ReadableStream` 解析 SSE，支持「停止生成」（`AbortController`）；助手文本用
+  `react-markdown` 渲染，A2UI surface 由 `@a2ui/react` 的 `A2uiSurface` 渲染；主题变量映射到项目
+  `--card / --foreground / --primary / --border` 等，明暗切换自动生效。
+- **模型选择**：页面进入时调用 `GET /ai-chat-model/models` 获取允许使用的模型（仅配置启用时返回），
+  顶栏右侧下拉可切换；选择结果存 `localStorage` 的 `devui.ai-chat.model`，刷新后保留。
+  后端 `AIChatRunAgentInput.model` 为必填，前端始终随请求体顶层 `model` 发送；模型列表为空时
+  发送按钮禁用，并在顶栏提供「配置模型」入口跳转 `/configs/ai-chat-model`。
+  A2UI 卡片圆角为 `calc(var(--radius) - 2px)`（与项目 `Card` / `Dialog` 的 `rounded-md` 一致），
+  去除组件默认外 margin 与阴影；caption / 链接 / 错误色分别映射到 `--muted-foreground` /
+  `--primary` / `--destructive`；`Chart` 卡片同样使用 `rounded-md` + 边框。
+- **A2UI 观感细节**（全部在 `index.css` 的 `.a2ui-surface` / `.a2ui-alerts` / `.a2ui-detail` 段落，不改后端组件）：
+  - `caption` 变体原生渲染为 `<em>`，已统一去斜体；卡片首个 Text 作为标题（13px/600）。
+  - `render_alerts` 生成的列表按「同一 `createSurface` 内同时出现 `Icon` 与 `List`」识别，
+    渲染器给该块追加 `a2ui-alerts` 类：图标为 28px 淡色圆底、标题与时间同排（时间右对齐、
+    等宽数字）、描述另起一行，条目间 1px 分隔线，摘要上方带一条分隔线。
+  - `render_detail` 按「卡片列下存在嵌套 Column，且该 Column 直接包含 Row」识别，追加
+    `a2ui-detail` 类：标签固定 7rem（caption、灰色）、值 13px，行内 5px 上下内边距 + 行间
+    1px 分隔线，分组标题 11px/600 灰色，分组间 Divider 间距 0.25rem，标题下方与摘要上方
+    各一条分隔线。单分组（无 Divider）同样命中。
+  - `render_table`（卡片列里同时有表头 Row 与 List）用结构选择器加表头下划线、行分隔线与紧凑行高。
+  - `Chart` 柱状图柱子为直角（不加 `rx`），分组宽度 0.62；Y 轴刻度用 `niceScale()` 取整
+    （例如 5,475 对应 0/2,000/4,000/6,000），避免 12.5 这类小数刻度与柱子只占半屏。
+- 兼容：前端同时接受旧式 `CUSTOM`（`name: "a2ui"`，`value` 为单条 A2UI 消息）作为降级通道。
 
 ### 关键字段
 
@@ -479,6 +625,15 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
     - 用于登录页的 OAuth 授权登录；`redirect_uris` 至少 1 个，`scopes` 最多 10 个。
     - 点击编辑时，三个端点为空会自动填充咚咚默认端点（login / token / userinfo）；
       回调地址为空时自动填充 `window.location.origin`；首次配置（尚无已保存配置）进入编辑时，启用开关默认打开。
+- `AIChatModel`（聊天模型配置）：
+  `id / enabled / base_url / api_key / models / prompt / created_at / updated_at`
+    - 单例配置，`GET /ai-chat-model` 未配置时返回 `null`，`POST` 走 upsert。
+    - 页面位于「配置管理 → 聊天模型」；`base_url` 填到版本前缀（例如 `/v1`），`api_key` 必填且只读时掩码。
+    - `models` 最多 1000 个、去重、每项非空；页面要求至少 1 个模型才能保存。
+    - `prompt` 为默认系统提示词，最长 10000 字，留空使用系统内置提示词；首次配置进入编辑时启用开关默认打开。
+      只读状态下使用 `react-markdown` + `remark-gfm` 按 Markdown 渲染（`.markdown-body`，最大高度 24rem 可滚动）。
+    - 「获取上游模型」调用 `POST /ai-chat-model/models`（body `{base_url,api_key}`），前端按 OpenAI `/models` 的
+      `{ data: [{ id, ... }] }` 解析。
 - `CMDBConfig`：`endpoint / enabled / key / secret / created_at / updated_at`
     - 用于管理中心端读取 CMDB 资产数据；`endpoint`、`key`、`secret` 均为必填，`endpoint` 必须是 HTTP/HTTPS 地址。
     - 只读状态下 `secret` 默认掩码显示，可按需切换明文。
@@ -683,6 +838,9 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - 搜索交互不统一：中继节点/反向代理为输入即筛选（前端过滤）；归档走服务端 `q`；探针节点虽把 `q` 传给
   v3 `/minions`，但后端 `service/minion.go` 尚未使用该参数，暂无过滤效果。
 - 删除归档、删除目录两个功能仍依赖后端修复。
+- AI 助手（`/ai-chat`）前端已按 AG-UI 1.0 + A2UI 1.0（`ACTIVITY_SNAPSHOT` / `a2ui-surface`）
+  协议实现；作为实验功能默认关闭，需在个人中心开启后从 Sidebar「实验功能」进入。
+  后端 `ai_chat.go` 仓库内版本仍是写死提问、`agent.Generate`、图表只打印，未对接前页面不会有真实回复。
 
 ---
 

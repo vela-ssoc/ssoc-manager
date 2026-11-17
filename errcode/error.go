@@ -54,6 +54,8 @@ var (
 	ErrRedisDisabled            = ship.ErrBadRequest.Newf("Redis 未启用")
 	ErrCMDBNotConfigured        = ship.ErrBadRequest.Newf("没有配置 CMDB 地址")
 	ErrCMDBDisabled             = ship.ErrBadRequest.Newf("CMDB 未启用")
+	ErrLLModelNotConfigured     = ship.ErrBadRequest.Newf("没有配置大模型地址")
+	ErrLLModelDisabled          = ship.ErrBadRequest.Newf("大模型未启用")
 	ErrForbiddenOAuth           = ship.ErrForbidden.Newf("当前认证方式已暂停使用")
 	ErrAuthFailed               = ship.ErrBadRequest.Newf("认证失败")
 
@@ -72,8 +74,10 @@ func (f formatError) Fmt(a ...any) error {
 }
 
 const (
-	FmtErrNameExist    = formatError("名字 %s 已经存在")
-	FmtErrInetExist    = formatError("inet %s 已经存在")
-	FmtErrTaskBusy     = formatError("任务繁忙：%d")
-	FmtErrGenerateCode = formatError("代码生成时发生错误：%s")
+	FmtErrNameExist         = formatError("名字 %s 已经存在")
+	FmtErrInetExist         = formatError("inet %s 已经存在")
+	FmtErrTaskBusy          = formatError("任务繁忙：%d")
+	FmtErrGenerateCode      = formatError("代码生成时发生错误：%s")
+	FmtForbiddenModel       = formatError("不允许使用 %s 模型")
+	FmtDisallowedCollection = formatError("不允许使用此数据集合：%s")
 )

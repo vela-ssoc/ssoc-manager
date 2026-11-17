@@ -1,12 +1,16 @@
+import { lazy, Suspense, type ReactNode } from "react"
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom"
+import { Loader2 } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { getToken } from "@/lib/http"
+import { useExperimentalFeatures } from "@/lib/experimental-features"
 import { LoginPage } from "@/pages/login"
 import { ZipArchivePage } from "@/pages/zip-archive"
 import { ZipArchiveDetailPage } from "@/pages/zip-archive-detail"
 import { ReverseProxiesPage } from "@/pages/reverse-proxies"
 import { OAuthConfigPage } from "@/pages/oauth-config"
+import { AIChatModelPage } from "@/pages/ai-chat-model"
 import { CMDBConfigPage } from "@/pages/cmdb-config"
 import { CMDMBrowsePage } from "@/pages/cmdb-browse"
 import { CertificatePage } from "@/pages/certificate"
@@ -23,6 +27,33 @@ import { RiskDashboardPage } from "@/pages/risk-dashboard"
 import { Oas3Page } from "@/pages/oas3"
 import { CentralPage } from "@/pages/central"
 
+const AIChatPage = lazy(() =>
+  import("@/pages/ai-chat").then((mod) => ({ default: mod.AIChatPage }))
+)
+
+function PageLoading() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <Loader2 className="text-muted-foreground size-5 animate-spin" />
+    </div>
+  )
+}
+
+function ExperimentalRoute({
+  id,
+  children,
+}: {
+  id: string
+  children: ReactNode
+}) {
+  const features = useExperimentalFeatures()
+  const enabled = features.some((feature) => feature.id === id && feature.enabled)
+  if (!enabled) {
+    return <Navigate to="/settings" replace />
+  }
+  return children
+}
+
 function RequireAuth() {
   const location = useLocation()
   if (!getToken()) {
@@ -38,10 +69,21 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/legacy" replace />} />
+          <Route
+            path="/ai-chat"
+            element={
+              <Suspense fallback={<PageLoading />}>
+                <ExperimentalRoute id="ai-chat">
+                  <AIChatPage />
+                </ExperimentalRoute>
+              </Suspense>
+            }
+          />
           <Route path="/zip-archives" element={<ZipArchivePage />} />
           <Route path="/zip-archives/:name" element={<ZipArchiveDetailPage />} />
           <Route path="/reverse-proxies" element={<ReverseProxiesPage />} />
           <Route path="/configs/oauth" element={<OAuthConfigPage />} />
+          <Route path="/configs/ai-chat-model" element={<AIChatModelPage />} />
           <Route path="/configs/cmdb" element={<CMDBConfigPage />} />
           <Route path="/configs/cmdb/browse" element={<CMDMBrowsePage />} />
           <Route path="/configs/certificate" element={<CertificatePage />} />

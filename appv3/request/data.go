@@ -7,3 +7,5 @@ type Data[T any] struct {
 func NewData[T any](t T) Data[T] {
 	return Data[T]{Data: t}
 }
+
+type Empty struct{}

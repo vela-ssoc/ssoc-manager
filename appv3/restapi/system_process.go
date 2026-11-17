@@ -4,18 +4,19 @@ import (
 	"net/http"
 
 	psprocess "github.com/shirou/gopsutil/v4/process"
-	"github.com/vela-ssoc/ssoc-common-mb/psutil"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/response"
+	"github.com/vela-ssoc/ssoc-manager/appv3/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/shipx"
 	"github.com/xgfone/ship/v5"
 )
 
 type SystemProcess struct {
+	svc *service.SystemProcess
 }
 
-func NewSystemProcess() *SystemProcess {
-	return &SystemProcess{}
+func NewSystemProcess(svc *service.SystemProcess) *SystemProcess {
+	return &SystemProcess{svc: svc}
 }
 
 func (sp *SystemProcess) RegisterHTTP(g shipx.RouteGroup) error {
@@ -29,11 +30,10 @@ func (sp *SystemProcess) RegisterHTTP(g shipx.RouteGroup) error {
 
 func (sp *SystemProcess) list(c *ship.Context) error {
 	ctx := c.Request().Context()
-	infos, err := psutil.ProcessesWithContext(ctx)
+	ret, err := sp.svc.List(ctx)
 	if err != nil {
 		return err
 	}
-	ret := response.NewRecords(infos)
 
 	return c.JSON(http.StatusOK, ret)
 }
@@ -45,11 +45,10 @@ func (sp *SystemProcess) info(c *ship.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	infos, err := psutil.ProcessesWithContext(ctx)
+	ret, err := sp.svc.Info(ctx, param.PID)
 	if err != nil {
 		return err
 	}
-	ret := response.NewRecords(infos)
 
 	return c.JSON(http.StatusOK, ret)
 }

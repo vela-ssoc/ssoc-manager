@@ -28,3 +28,11 @@ func (c Client) Forget() ClientForget {
 		log: c.log,
 	}
 }
+
+func (c Client) AgentTask() ClientAgentTask {
+	return ClientAgentTask{
+		hub: c.hub,
+		cli: c.cli,
+		log: c.log,
+	}
+}

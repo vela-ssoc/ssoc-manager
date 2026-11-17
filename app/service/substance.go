@@ -97,7 +97,6 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 	now := time.Now()
 	name, mid := sc.Name, sc.MinionID
 
-	var bid int64
 	tbl := sst.qry.Substance
 	if mid != 0 {
 		// 检查节点
@@ -120,8 +119,6 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 			Count(); count != 0 || err != nil {
 			return errcode.FmtErrNameExist.Fmt(name)
 		}
-
-		bid = mon.BrokerID
 	} else { // 公有配置检查名字是否重复
 		if count, err := tbl.WithContext(ctx).
 			Where(tbl.Name.Eq(name)).
@@ -129,8 +126,6 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 			return errcode.FmtErrNameExist.Fmt(name)
 		}
 	}
-
-	_ = bid
 
 	// 计算 hash
 	sum := sst.digest.SumMD5(sc.Chunk)
@@ -153,7 +148,7 @@ func (sst *Substance) Create(ctx context.Context, sc *param.SubstanceCreate, use
 	}
 
 	if mid != 0 { // 推送
-		// TODO sst.pusher.TaskSync(ctx, bid, []int64{mid})
+		_ = sst.Resync(ctx, mid)
 	}
 
 	return nil
@@ -188,20 +183,7 @@ func (sst *Substance) Update(ctx context.Context, su *param.SubstanceUpdate, use
 	sub.Priority = su.Priority
 
 	if mid := sub.MinionID; mid != 0 {
-		if _, err = tbl.WithContext(ctx).
-			Where(tbl.ID.Eq(su.ID), tbl.Version.Eq(version)).
-			Updates(sub); err != nil || !change {
-			return 0, err
-		}
-		monTbl := sst.qry.Minion
-		mon, err := monTbl.WithContext(ctx).
-			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
-			Where(monTbl.ID.Eq(mid)).
-			First()
-		if err == nil {
-			_ = mon
-			// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
-		}
+		_ = sst.Resync(ctx, mid)
 		return 0, nil
 	}
 
@@ -259,15 +241,7 @@ func (sst *Substance) Delete(ctx context.Context, id int64) error {
 
 	// 私有配置通知节点
 	if mid != 0 {
-		monTbl := sst.qry.Minion
-		mon, err := monTbl.WithContext(ctx).
-			Select(monTbl.ID, monTbl.BrokerID, monTbl.Inet).
-			Where(monTbl.ID.Eq(mid)).
-			First()
-		if err == nil {
-			_ = mon
-			// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
-		}
+		_ = sst.Resync(ctx, mid)
 	}
 
 	return nil
@@ -302,12 +276,9 @@ func (sst *Substance) Reload(ctx context.Context, mid, sid int64) error {
 	if did := sub.MinionID; did != 0 && did != mid {
 		return errcode.ErrExceedAuthority
 	}
-	// TODO 检查是否排除
+	cli := sst.cli.AgentTask()
 
-	_ = mon
-	// TODO sst.pusher.TaskDiff(ctx, mon.BrokerID, mid, sid, mon.Inet)
-
-	return nil
+	return cli.Reload(ctx, mid, sid)
 }
 
 // Resync 重新同步节点上的配置状态
@@ -331,9 +302,9 @@ func (sst *Substance) Resync(ctx context.Context, mid int64) error {
 		return errcode.ErrNodeStatus
 	}
 
-	// TODO sst.pusher.TaskSync(ctx, mon.BrokerID, []int64{mid})
+	cli := sst.cli.AgentTask()
 
-	return nil
+	return cli.Resync(ctx, mid)
 }
 
 // Command 向指定节点发送指令

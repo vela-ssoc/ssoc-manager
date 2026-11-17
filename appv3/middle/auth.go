@@ -68,6 +68,7 @@ func (ath *auth) handle(h ship.Handler) ship.Handler {
 			Nickname: user.Nickname,
 			Token:    token,
 			IssuedAt: user.Session.IssuedAt,
+			UserV3:   user,
 		}
 		c.Any = ident
 

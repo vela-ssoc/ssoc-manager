@@ -55,6 +55,10 @@ export const minionApi = {
     )
   },
 
+  reconnect(brokerSlug: string, id: string) {
+    return http.delete<unknown>(`/br/${brokerSlug}/api/v3/agent/stream`, { id })
+  },
+
   logicalDelete(filters: MinionFilter[]) {
     return legacyHttp.delete<unknown>("/minion", { filters })
   },

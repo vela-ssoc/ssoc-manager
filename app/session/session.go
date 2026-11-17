@@ -11,15 +11,31 @@ import (
 
 	"github.com/vela-ssoc/ssoc-common-mb/dal/model"
 	"github.com/vela-ssoc/ssoc-common-mb/dal/query"
+	model3 "github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/xgfone/ship/v5"
 )
 
 type Ident struct {
-	ID       int64     `json:"id"`
-	Username string    `json:"username"`
-	Nickname string    `json:"nickname"`
-	Token    string    `json:"token"`
-	IssuedAt time.Time `json:"issued_at"`
+	ID       int64        `json:"id"`
+	Username string       `json:"username"`
+	Nickname string       `json:"nickname"`
+	Token    string       `json:"token"`
+	IssuedAt time.Time    `json:"issued_at"`
+	UserV3   *model3.User `json:"-"`
+}
+
+func (v Ident) Operator() model3.Operator {
+	u := v.UserV3
+	if u == nil {
+		return model3.Operator{}
+	}
+
+	return model3.Operator{
+		ID:       u.ID,
+		Company:  u.Company,
+		Username: u.Username,
+		Nickname: u.Nickname,
+	}
 }
 
 type Session interface {

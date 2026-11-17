@@ -5,12 +5,18 @@ import { ACCENT_OPTIONS, type Theme } from "@/lib/theme"
 import { useTheme } from "@/providers/theme-provider"
 import { FONT_OPTIONS, getFontOption, type FontFamily } from "@/lib/fonts"
 import {
+  setExperimentalEnabled,
+  useExperimentalFeatures,
+} from "@/lib/experimental-features"
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { InfoTooltip } from "@/components/info-tooltip"
 import { TooltipHint } from "@/components/tooltip-hint"
 
 const THEME_OPTIONS: Array<{
@@ -25,6 +31,7 @@ const THEME_OPTIONS: Array<{
 
 export function SettingsPage() {
   const { theme, setTheme, accent, setAccent, font, setFont } = useTheme()
+  const features = useExperimentalFeatures()
 
   return (
     <div className="flex h-full flex-col gap-5 p-4">
@@ -100,6 +107,44 @@ export function SettingsPage() {
             ))}
           </SelectContent>
         </Select>
+      </section>
+
+      <section className="grid gap-3">
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold">实验功能</h2>
+          <InfoTooltip label="实验功能说明">
+            <ul>
+              <li>这些功能仍在开发中，可能尚未经过完整测试。</li>
+              <li>可能存在功能不完善、数据不准确或异常 BUG。</li>
+              <li>开启后入口显示在侧边栏「实验功能」中，可随时关闭。</li>
+            </ul>
+          </InfoTooltip>
+        </div>
+        <div className="grid max-w-xs gap-2">
+          {features.map((feature) => {
+            const Icon = feature.icon
+            return (
+              <div
+                key={feature.id}
+                className="bg-card flex items-center gap-3 rounded-md border p-3"
+              >
+                <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-md">
+                  <Icon className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {feature.name}
+                </span>
+                <Switch
+                  checked={feature.enabled}
+                  label={`${feature.enabled ? "关闭" : "开启"}${feature.name}`}
+                  onCheckedChange={(checked) =>
+                    setExperimentalEnabled(feature.id, checked)
+                  }
+                />
+              </div>
+            )
+          })}
+        </div>
       </section>
     </div>
   )
