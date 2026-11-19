@@ -2,6 +2,7 @@ package agentic
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events"
@@ -69,7 +70,7 @@ func (ae *AGUIEmit) A2UIDelta(ctx context.Context, surfaceID string, msgs []a2ui
 	if len(base) == 0 {
 		// TODO 返回错误
 		// return fmt.Errorf("%w: %s", ErrSurfaceNotFound, surfaceID)
-		return nil
+		return fmt.Errorf("surface 不存在: %s", surfaceID)
 	}
 
 	patch := make([]events.JSONPatchOperation, 0, len(msgs))

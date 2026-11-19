@@ -1,8 +1,13 @@
+export interface VictoriaMetricsTenant {
+  account_id: number
+  project_id: number | null
+}
+
 export interface VictoriaMetricsConfig {
   id: string
   enabled: boolean
   address: string
-  tenant_id: string
+  tenant: VictoriaMetricsTenant | null
   username: string
   password: string
   headers: Record<string, string>
@@ -13,7 +18,17 @@ export interface VictoriaMetricsConfig {
 export interface VictoriaMetricsConfigForm {
   enabled: boolean
   address: string
-  tenant_id: string
+  tenant_account: string
+  tenant_project: string
+  username: string
+  password: string
+  headers: Record<string, string>
+}
+
+export interface VictoriaMetricsConfigPayload {
+  enabled: boolean
+  address: string
+  tenant: VictoriaMetricsTenant | null
   username: string
   password: string
   headers: Record<string, string>

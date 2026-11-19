@@ -27,6 +27,7 @@ import (
 	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/cmdb"
 	"github.com/vela-ssoc/ssoc-common-mb/integration/elastic"
+	"github.com/vela-ssoc/ssoc-common-mb/lifecycle"
 	"github.com/vela-ssoc/ssoc-common-mb/logger"
 	"github.com/vela-ssoc/ssoc-common-mb/muxproto"
 	"github.com/vela-ssoc/ssoc-common-mb/profile"
@@ -41,6 +42,7 @@ import (
 	"github.com/vela-ssoc/ssoc-manager/app/mgtapi"
 	mgtsvc "github.com/vela-ssoc/ssoc-manager/app/service"
 	"github.com/vela-ssoc/ssoc-manager/appv3/einotool"
+	"github.com/vela-ssoc/ssoc-manager/appv3/lifestage"
 	"github.com/vela-ssoc/ssoc-manager/appv3/middle"
 	"github.com/vela-ssoc/ssoc-manager/appv3/restapi"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
@@ -115,6 +117,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		return err
 	}
 	log.Info("全量配置文件加载并校验成功")
+	life := lifecycle.NewManager(log)
 
 	// 替换初始日志
 	var handlers []slog.Handler
@@ -248,6 +251,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		Models: []repository.CollectionInfer{
 			model.Agent{},
 			model.Broker{},
+			model.AgentConnectHistory{},
+			model.BrokerConnectHistory{},
 			model.CMDB{},
 		},
 		Timeout: 10 * time.Second,
@@ -309,6 +314,8 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(mgtapi.NewCert),
 		gontainer.NewFactory(mgtsvc.NewDash),
 		gontainer.NewFactory(mgtapi.NewDash),
+		gontainer.NewFactory(mgtsvc.NewEvent),
+		gontainer.NewFactory(mgtapi.NewEvent),
 		gontainer.NewFactory(mgtsvc.NewMinion),
 		gontainer.NewFactory(mgtapi.NewMinion),
 		gontainer.NewFactory(mgtsvc.NewMinionAccount),
@@ -429,6 +436,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(restapi.NewZipFile),
 
 		// TOOL_CALL
+		gontainer.NewFactory(einotool.NewSystemNetwork),
 		gontainer.NewFactory(einotool.NewSystemProcess),
 
 		gontainer.NewFactory(victoria.NewMongoDB),
@@ -439,6 +447,9 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		gontainer.NewFactory(cronfunc.NewSSOCCMDBSync),
 		gontainer.NewFactory(cronfunc.NewVMetric),
 
+		gontainer.NewFactory(lifestage.NewBrokerStatus),
+
+		gontainer.NewEntrypoint(life.Append),
 		gontainer.NewEntrypoint(crond.AddJobs),
 		gontainer.NewEntrypoint(registerRoutes),
 	}
@@ -448,6 +459,9 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 		return err
 	}
 	log.Info("依赖注入执行完毕")
+	if err = life.OnStart(ctx); err != nil {
+		return err
+	}
 
 	srv := &http.Server{
 		Addr:      cfgsrv.Addr,
@@ -464,6 +478,7 @@ func Exec(ctx context.Context, bootcfg config.Config) error {
 
 	log.Error("程序运行结束", "err", err)
 	_ = srv.Close()
+	_ = life.OnClose(ctx)
 
 	return err
 }

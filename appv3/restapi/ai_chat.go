@@ -1,20 +1,25 @@
 package restapi
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/NVIDIA/gontainer/v2"
 	"github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events"
-	"github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/types"
 	"github.com/cloudwego/eino-ext/components/model/openai"
+	"github.com/cloudwego/eino/adk"
+	"github.com/cloudwego/eino/adk/middlewares/skill"
 	"github.com/cloudwego/eino/compose"
-	"github.com/cloudwego/eino/flow/agent/react"
+	"github.com/cloudwego/eino/schema"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
 	"github.com/vela-ssoc/ssoc-common-mb/eventsource"
 	"github.com/vela-ssoc/ssoc-manager/agentic"
+	"github.com/vela-ssoc/ssoc-manager/agentic/fskill"
 	"github.com/vela-ssoc/ssoc-manager/agentic/middle"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/appv3/service"
@@ -68,7 +73,7 @@ func (ac *AIChat) run(c *ship.Context) error {
 	}
 
 	msgID := events.GenerateMessageID()
-	startEvt := events.NewTextMessageStartEvent(msgID, events.WithRole(string(types.RoleAssistant)))
+	startEvt := events.NewTextMessageStartEvent(msgID)
 	if err := emit.Emit(ctx, startEvt); err != nil {
 		return err
 	}
@@ -78,7 +83,7 @@ func (ac *AIChat) run(c *ship.Context) error {
 		RunID:     runID,
 		Model:     input.Model,
 		MessageID: msgID,
-		Validate:  c.Validator.Validate,
+		Validate:  c.Validator,
 		Emit:      emit,
 	}
 	llm, err := ac.svc.LLM(ctx, input.Model)
@@ -108,54 +113,128 @@ func (ac *AIChat) run(c *ship.Context) error {
 		return err
 	}
 
-	agent, err := react.NewAgent(ctx, &react.AgentConfig{
-		ToolCallingModel: cm,
-		ToolsConfig: compose.ToolsNodeConfig{
-			Tools: tools,
-			ToolCallMiddlewares: []compose.ToolMiddleware{
-				middle.NewToolCallEmit(sess),
+	homeDir, _ := os.UserHomeDir()
+	var skillDir = filepath.Join(homeDir, ".agents/skills")
+	skdir := fskill.Dir(skillDir)
+	skfs, err := skill.NewBackendFromFilesystem(ctx, &skill.BackendFromFilesystemConfig{
+		Backend: skdir,
+		BaseDir: skillDir,
+	})
+	if err != nil {
+		ac.log.Error("加载 SKILL 文件系统出错", "err", err)
+		_ = emit.Error(ctx, msgID, err)
+		return err
+	}
+	skl, err := skill.NewMiddleware(ctx, &skill.Config{Backend: skfs})
+	if err != nil {
+		ac.log.Error("加载 SKILL 中间件", "err", err)
+		_ = emit.Error(ctx, msgID, err)
+		return err
+	}
+
+	agent, err := adk.NewChatModelAgent(ctx, &adk.ChatModelAgentConfig{
+		Name:        "ssoc-ai-chat",
+		Description: "SOC 智能运维助手",
+		Instruction: agentPersonaPrompt,
+		Model:       cm,
+		Handlers:    []adk.ChatModelAgentMiddleware{skl},
+		ToolsConfig: adk.ToolsConfig{
+			ToolsNodeConfig: compose.ToolsNodeConfig{
+				Tools: tools,
+				ToolCallMiddlewares: []compose.ToolMiddleware{
+					middle.NewToolCallEmit(sess),
+				},
 			},
 		},
-		MaxStep: llm.IfMaxStep(20),
+		GenModelInput: func(_ context.Context, instruction string, input *adk.AgentInput) ([]adk.Message, error) {
+			msgs := make([]adk.Message, 0, len(input.Messages)+1)
+			if instruction != "" {
+				msgs = append(msgs, schema.SystemMessage(instruction))
+			}
+
+			return append(msgs, input.Messages...), nil
+		},
+		MaxIterations: llm.IfMaxStep(20),
 	})
 	if err != nil {
 		ac.log.Error("创建 AI Agent 失败", "err", err)
 		_ = emit.Error(ctx, msgID, err)
-		return nil
+		return err
 	}
 
-	messages := input.SchemaMessages(llm.Prompt)
-	stream, err := agent.Stream(ctx, messages)
-	if err != nil {
-		ac.log.Error("AI 推理失败", "err", err)
-		_ = emit.Error(ctx, msgID, err)
-		return nil
-	}
-	defer stream.Close()
+	messages := input.SchemaMessages()
+	runner := adk.NewRunner(ctx, adk.RunnerConfig{
+		Agent:           agent,
+		EnableStreaming: true,
+	})
+	iter := runner.Run(ctx, messages)
 
 	for {
-		chunk, err1 := stream.Recv()
-		if errors.Is(err1, io.EOF) {
+		event, ok := iter.Next()
+		if !ok {
 			break
 		}
-		if err1 != nil {
+		if event.Err != nil {
 			if ctx.Err() == nil {
-				ac.log.Error("读取 AI 流式输出失败", "err", err1)
-				_ = emit.Error(ctx, msgID, err1)
+				ac.log.Error("AI 推理失败", "err", event.Err)
+				_ = emit.Error(ctx, msgID, event.Err)
 			}
 			return nil
 		}
-		if chunk == nil || chunk.Content == "" {
+		if event.Output == nil || event.Output.MessageOutput == nil {
 			continue
 		}
-
-		if err1 = emit.Emit(ctx, events.NewTextMessageContentEvent(msgID, chunk.Content)); err1 != nil {
+		if err = emitAssistantText(ctx, emit, msgID, event.Output.MessageOutput); err != nil {
+			if ctx.Err() == nil {
+				ac.log.Error("读取 AI 流式输出失败", "err", err)
+				_ = emit.Error(ctx, msgID, err)
+			}
 			return nil
 		}
 	}
 
 	_ = emit.Emit(ctx, events.NewTextMessageEndEvent(msgID))
 	_ = emit.Emit(ctx, events.NewRunFinishedEvent(input.ThreadID, input.RunID))
+
+	return nil
+}
+
+// emitAssistantText 把 ADK 的助手消息事件转成 AG-UI 的文本增量事件。
+//
+// ADK 在流式模式下通过 MessageStream 逐块输出；非流式模式下 Message 是完整消息。
+// 工具结果事件会被跳过，但仍然需要关闭其流，避免资源泄漏。
+func emitAssistantText(ctx context.Context, emit *agentic.AGUIEmit, msgID string, out *adk.MessageVariant) error {
+	if out.Role != schema.Assistant {
+		if out.MessageStream != nil {
+			out.MessageStream.Close()
+		}
+		return nil
+	}
+	if out.IsStreaming {
+		if out.MessageStream == nil {
+			return nil
+		}
+		defer out.MessageStream.Close()
+
+		for {
+			chunk, err := out.MessageStream.Recv()
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if chunk == nil || chunk.Content == "" {
+				continue
+			}
+			if err = emit.Emit(ctx, events.NewTextMessageContentEvent(msgID, chunk.Content)); err != nil {
+				return err
+			}
+		}
+	}
+	if out.Message != nil && out.Message.Content != "" {
+		return emit.Emit(ctx, events.NewTextMessageContentEvent(msgID, out.Message.Content))
+	}
 
 	return nil
 }

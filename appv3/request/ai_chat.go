@@ -20,11 +20,8 @@ type AIChatRunAgentInput struct {
 	Resume         []types.ResumeEntry `json:"resume,omitempty"`
 }
 
-func (a AIChatRunAgentInput) SchemaMessages(systemPrompt string) []*schema.Message {
-	msgs := make([]*schema.Message, 0, len(a.Messages)+1)
-	sysp := schema.SystemMessage(systemPrompt)
-	msgs = append(msgs, sysp)
-
+func (a AIChatRunAgentInput) SchemaMessages() []*schema.Message {
+	msgs := make([]*schema.Message, 0, len(a.Messages))
 	for _, msg := range a.Messages {
 		switch msg.Role {
 		case types.RoleUser:

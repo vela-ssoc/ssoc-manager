@@ -42,25 +42,50 @@ interface HeaderRow {
   value: string
 }
 
-const schema = z.object({
-  address: z
+const UINT32_MAX = 4294967295
+
+function uint32Field(label: string) {
+  return z
     .string()
     .trim()
-    .min(1, "地址不能为空")
     .refine(
-      (value) => /^https?:\/\/[^\s]+$/i.test(value),
-      "请输入有效的 HTTP/HTTPS 地址"
-    ),
-  tenant_id: z.string().trim().max(20, "租户 ID 不能超过 20 字"),
-  username: z.string().max(100, "用户名不能超过 100 字"),
-  password: z.string().max(100, "密码不能超过 100 字"),
-})
+      (value) =>
+        value === "" || (/^\d+$/.test(value) && Number(value) <= UINT32_MAX),
+      `${label}必须是 0~4294967295 的整数`
+    )
+}
+
+const schema = z
+  .object({
+    address: z
+      .string()
+      .trim()
+      .min(1, "地址不能为空")
+      .refine(
+        (value) => /^https?:\/\/[^\s]+$/i.test(value),
+        "请输入有效的 HTTP/HTTPS 地址"
+      ),
+    tenant_account: uint32Field("Account ID"),
+    tenant_project: uint32Field("Project ID"),
+    username: z.string().max(100, "用户名不能超过 100 字"),
+    password: z.string().max(100, "密码不能超过 100 字"),
+  })
+  .superRefine((value, ctx) => {
+    if (value.tenant_project !== "" && value.tenant_account === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["tenant_account"],
+        message: "填写 Project ID 前需先填写 Account ID",
+      })
+    }
+  })
 
 function emptyForm(): VictoriaMetricsConfigForm {
   return {
     enabled: false,
     address: "",
-    tenant_id: "",
+    tenant_account: "",
+    tenant_project: "",
     username: "",
     password: "",
     headers: {},
@@ -69,10 +94,15 @@ function emptyForm(): VictoriaMetricsConfigForm {
 
 function toForm(config: VictoriaMetricsConfig | null): VictoriaMetricsConfigForm {
   if (!config) return emptyForm()
+  const tenant = config.tenant
   return {
     enabled: config.enabled ?? false,
     address: config.address ?? "",
-    tenant_id: config.tenant_id ?? "",
+    tenant_account: tenant ? String(tenant.account_id) : "",
+    tenant_project:
+      tenant && tenant.project_id !== null && tenant.project_id !== undefined
+        ? String(tenant.project_id)
+        : "",
     username: config.username ?? "",
     password: config.password ?? "",
     headers: config.headers ?? {},
@@ -83,10 +113,18 @@ function toRows(headers: Record<string, string>): HeaderRow[] {
   return Object.entries(headers).map(([key, value]) => ({ key, value }))
 }
 
-function pushUrl(address: string, tenant: string): string {
+function tenantPath(account: string, project: string) {
+  const acc = account.trim()
+  if (!acc) return ""
+  const pid = project.trim()
+  return pid ? `${acc}:${pid}` : acc
+}
+
+function pushUrl(address: string, account: string, project: string): string {
   const base = address.trim().replace(/\/+$/, "")
   if (!base) return "—"
-  const prefix = tenant.trim() ? `/insert/${tenant.trim()}/prometheus` : ""
+  const tenant = tenantPath(account, project)
+  const prefix = tenant ? `/insert/${tenant}/prometheus` : ""
   return `${base}${prefix}/api/v1/import/prometheus`
 }
 
@@ -164,9 +202,25 @@ export function VictoriaMetricsPage() {
       return
     }
 
+    const account = form.tenant_account.trim()
+    const project = form.tenant_project.trim()
+    const tenant = account
+      ? {
+        account_id: Number(account),
+        project_id: project ? Number(project) : null,
+      }
+      : null
+
     setSaving(true)
     try {
-      await victoriaMetricsApi.update({ ...form, ...parsed.data, headers })
+      await victoriaMetricsApi.update({
+        enabled: form.enabled,
+        address: parsed.data.address,
+        tenant,
+        username: parsed.data.username,
+        password: parsed.data.password,
+        headers,
+      })
       toast.success("配置已保存")
       setShowPassword(false)
       setEditing(false)
@@ -201,7 +255,11 @@ export function VictoriaMetricsPage() {
   const enabled = editing ? form.enabled : Boolean(config?.enabled)
   const status = !config && !editing ? "empty" : enabled ? "enabled" : "disabled"
   const headers = config?.headers ?? {}
-  const pushAddress = pushUrl(form.address, form.tenant_id)
+  const pushAddress = pushUrl(
+    form.address,
+    form.tenant_account,
+    form.tenant_project
+  )
 
   return (
     <div className="h-full overflow-y-auto p-4">
@@ -246,9 +304,13 @@ export function VictoriaMetricsPage() {
                 <span>管理中心端运行指标推送配置</span>
                 <InfoTooltip label="VictoriaMetrics 配置说明">
                   <p>管理中心端会将自身运行指标推送到该 VictoriaMetrics 服务。</p>
-                  <p>不填写租户 ID 时视为单机版，直接使用服务地址推送。</p>
+                  <p>不填写租户 Account ID 时视为单机版，直接使用服务地址推送。</p>
                   <p>
-                    填写租户 ID 时视为集群版，后端会自动拼接
+                    填写 Account ID 时视为集群版，租户标识为
+                    <code className="bg-muted mx-1 rounded px-1 py-0.5 font-mono text-[10px]">
+                      account:project
+                    </code>
+                    （Project ID 可选），后端会自动拼接
                     <code className="bg-muted mx-1 rounded px-1 py-0.5 font-mono text-[10px]">
                       insert/&#123;tenant&#125;/prometheus
                     </code>
@@ -294,8 +356,8 @@ export function VictoriaMetricsPage() {
             <div className="flex min-w-0 flex-col gap-4">
               <ConfigSection icon={Server} title="基础配置">
                 {editing ? (
-                  <div className="grid gap-4 p-4 sm:grid-cols-3">
-                    <div className="grid gap-1.5 sm:col-span-3">
+                  <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-1.5 sm:col-span-2 lg:col-span-4">
                       <Label htmlFor="vm-address">服务地址</Label>
                       <Input
                         id="vm-address"
@@ -310,14 +372,37 @@ export function VictoriaMetricsPage() {
                     </div>
 
                     <div className="grid gap-1.5">
-                      <Label htmlFor="vm-tenant">租户 ID</Label>
+                      <Label htmlFor="vm-tenant-account">Account ID</Label>
                       <Input
-                        id="vm-tenant"
-                        value={form.tenant_id}
-                        placeholder="留空为单机版，集群版填写例如 0"
-                        onChange={(event) => update({ tenant_id: event.target.value })}
+                        id="vm-tenant-account"
+                        inputMode="numeric"
+                        value={form.tenant_account}
+                        placeholder="留空为单机版"
+                        onChange={(event) =>
+                          update({ tenant_account: event.target.value })
+                        }
                       />
-                      <ConfigFieldError message={errors.tenant_id} />
+                      <p className="text-muted-foreground text-[11px]">
+                        集群版租户 Account ID
+                      </p>
+                      <ConfigFieldError message={errors.tenant_account} />
+                    </div>
+
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="vm-tenant-project">Project ID</Label>
+                      <Input
+                        id="vm-tenant-project"
+                        inputMode="numeric"
+                        value={form.tenant_project}
+                        placeholder="可选"
+                        onChange={(event) =>
+                          update({ tenant_project: event.target.value })
+                        }
+                      />
+                      <p className="text-muted-foreground text-[11px]">
+                        Project ID，留空表示仅使用 Account ID
+                      </p>
+                      <ConfigFieldError message={errors.tenant_project} />
                     </div>
 
                     <div className="grid gap-1.5">
@@ -362,7 +447,7 @@ export function VictoriaMetricsPage() {
 
                     <div
                       className={cn(
-                        "flex items-center justify-between gap-3 rounded-md border px-3.5 py-3 transition-colors sm:col-span-3",
+                        "flex items-center justify-between gap-3 rounded-md border px-3.5 py-3 transition-colors sm:col-span-2 lg:col-span-4",
                         form.enabled
                           ? "border-primary/25 bg-primary/5"
                           : "bg-muted/20"
@@ -396,7 +481,23 @@ export function VictoriaMetricsPage() {
                 ) : (
                   <div className="divide-y px-4">
                     <ConfigReadonlyRow label="服务地址" value={config?.address} mono />
-                    <ConfigReadonlyRow label="租户 ID" value={config?.tenant_id} mono />
+                    <ConfigReadonlyRow
+                      label="Account ID"
+                      value={
+                        config?.tenant ? String(config.tenant.account_id) : undefined
+                      }
+                      mono
+                    />
+                    <ConfigReadonlyRow
+                      label="Project ID"
+                      value={
+                        config?.tenant?.project_id !== null &&
+                        config?.tenant?.project_id !== undefined
+                          ? String(config.tenant.project_id)
+                          : undefined
+                      }
+                      mono
+                    />
                     <ConfigReadonlyRow label="用户名" value={config?.username} />
                     <ConfigReadonlyRow
                       label="密码"

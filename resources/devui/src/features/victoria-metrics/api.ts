@@ -2,7 +2,7 @@ import { http } from "@/lib/http"
 
 import type {
   VictoriaMetricsConfig,
-  VictoriaMetricsConfigForm,
+  VictoriaMetricsConfigPayload,
 } from "./types"
 
 export const victoriaMetricsApi = {
@@ -10,7 +10,7 @@ export const victoriaMetricsApi = {
     return http.get<VictoriaMetricsConfig | null>("/victoria-metrics-config")
   },
 
-  update(data: VictoriaMetricsConfigForm) {
+  update(data: VictoriaMetricsConfigPayload) {
     return http.post<unknown>("/victoria-metrics-config", data)
   },
 }

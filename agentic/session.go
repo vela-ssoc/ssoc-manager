@@ -1,17 +1,22 @@
 package agentic
 
+// Validator is used to validate the v is valid or not.
+type Validator interface {
+	Validate(v any) error
+}
+
 type ChatSession struct {
 	ThreadID  string
 	RunID     string
 	Model     string
 	MessageID string
-	Validate  func(any) error
+	Validate  Validator
 	Emit      *AGUIEmit
 }
 
-func (cs ChatSession) Valid(v any) error {
-	if f := cs.Validate; f != nil {
-		return f(v)
+func (cs ChatSession) Valid(arg any) error {
+	if v := cs.Validate; v != nil {
+		return v.Validate(arg)
 	}
 
 	return nil

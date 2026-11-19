@@ -23,6 +23,7 @@ func NewSystemProcess(svc *service.SystemProcess, ftb agentic.BaseToolFactory) *
 func (sp SystemProcess) NewEinoTool(cs agentic.ChatSession) ([]tool.BaseTool, error) {
 	return sp.ftb.Builder().
 		Add("system_process_list", "获取程序自身（管理端节点）所在机器的进程信息", sp.list).
+		Add("system_process_info", "根据 PID 获取管理端节点机器的进程详细信息", sp.info).
 		Build()
 }
 

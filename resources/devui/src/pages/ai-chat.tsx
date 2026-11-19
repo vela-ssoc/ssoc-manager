@@ -535,39 +535,6 @@ export function AIChatPage() {
           <h2 className="text-sm font-semibold">AI 助手</h2>
           <Badge variant="outline">实验性</Badge>
           <span className="min-w-0 flex-1" />
-          {models.length > 0 && (
-            <Select
-              value={model}
-              onValueChange={selectModel}
-              disabled={streaming}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-44 font-mono text-xs"
-                aria-label="选择聊天模型"
-              >
-                <SelectValue placeholder="选择模型" />
-              </SelectTrigger>
-              <SelectContent align="end" className="max-h-72">
-                {models.map((item) => (
-                  <SelectItem
-                    key={item}
-                    value={item}
-                    className="font-mono text-xs"
-                  >
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {modelsLoaded && models.length === 0 && (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/configs/ai-chat-model">
-                <Settings2 /> 配置模型
-              </Link>
-            </Button>
-          )}
           <Button variant="outline" size="sm" onClick={reset}>
             <Plus /> 新会话
           </Button>
@@ -609,7 +576,7 @@ export function AIChatPage() {
 
       <div className="shrink-0 border-t">
         <div className="mx-auto w-full max-w-3xl px-4 py-3">
-          <div className="bg-card focus-within:ring-ring/40 relative rounded-md border shadow-sm transition-shadow focus-within:ring-2">
+          <div className="bg-card focus-within:ring-ring/40 rounded-md border shadow-sm transition-shadow focus-within:ring-2">
             <Textarea
               value={input}
               aria-label="输入问题"
@@ -618,7 +585,7 @@ export function AIChatPage() {
                   ? "请先在「配置管理 → 聊天模型」中配置并启用模型"
                   : "询问探针、中继节点、资产或告警数据…"
               }
-              className="max-h-40 min-h-[64px] resize-none border-0 bg-transparent pr-12 shadow-none focus-visible:ring-0"
+              className="max-h-40 min-h-[64px] resize-none border-0 bg-transparent px-3 pt-2.5 pb-1 shadow-none focus-visible:ring-0"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
                 if (
@@ -631,32 +598,69 @@ export function AIChatPage() {
                 }
               }}
             />
-            {streaming ? (
-              <Button
-                size="icon"
-                variant="outline"
-                className="absolute right-2 bottom-2"
-                aria-label="停止生成"
-                onClick={stop}
-              >
-                <Square />
-              </Button>
-            ) : (
-              <Button
-                size="icon"
-                className="absolute right-2 bottom-2"
-                aria-label="发送"
-                disabled={!input.trim() || !model}
-                onClick={() => void send()}
-              >
-                <ArrowUp />
-              </Button>
-            )}
+            <div className="flex items-center gap-1.5 px-1.5 pb-1.5">
+              {models.length > 0 && (
+                <Select
+                  value={model}
+                  onValueChange={selectModel}
+                  disabled={streaming}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="text-muted-foreground hover:bg-accent/60 data-[size=sm]:h-6 h-6 max-w-[12rem] gap-1 border-0 bg-transparent px-1.5 font-mono text-[11px] shadow-none focus-visible:ring-1 [&_svg]:size-3"
+                    aria-label="选择聊天模型"
+                  >
+                    <SelectValue placeholder="选择模型" />
+                  </SelectTrigger>
+                  <SelectContent side="top" align="start" className="max-h-72">
+                    {models.map((item) => (
+                      <SelectItem
+                        key={item}
+                        value={item}
+                        className="font-mono text-xs"
+                      >
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {modelsLoaded && models.length === 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="text-muted-foreground h-6 px-1.5 text-[11px]"
+                >
+                  <Link to="/configs/ai-chat-model">
+                    <Settings2 /> 配置模型
+                  </Link>
+                </Button>
+              )}
+              <span className="min-w-0 flex-1" />
+              {streaming ? (
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="size-7"
+                  aria-label="停止生成"
+                  onClick={stop}
+                >
+                  <Square />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  className="size-7"
+                  aria-label="发送"
+                  disabled={!input.trim() || !model}
+                  onClick={() => void send()}
+                >
+                  <ArrowUp />
+                </Button>
+              )}
+            </div>
           </div>
-          <p className="text-muted-foreground mt-2 text-center text-[11px]">
-            AI 生成内容可能存在偏差，请结合实际情况判断。Enter 发送，Shift +
-            Enter 换行。
-          </p>
         </div>
       </div>
     </div>

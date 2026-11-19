@@ -48,8 +48,6 @@ type RenderOutput struct {
 	Message   string `json:"message,omitempty"`
 }
 
-const defaultSuccessMessage = "已渲染到前端画布。"
-
 func (ui *uiInstance) surfaceID(existing, prefix string) (string, error) {
 	if existing = strings.TrimSpace(existing); existing != "" {
 		if !identifierPattern.MatchString(existing) {
@@ -66,5 +64,5 @@ func (ui *uiInstance) snapshot(ctx context.Context, surfaceID string, ops []a2ui
 		return nil, err
 	}
 
-	return &RenderOutput{SurfaceID: surfaceID, Message: defaultSuccessMessage}, nil
+	return &RenderOutput{SurfaceID: surfaceID, Message: ""}, nil
 }

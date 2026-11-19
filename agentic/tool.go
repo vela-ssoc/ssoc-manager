@@ -2,6 +2,7 @@ package agentic
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
@@ -26,17 +27,13 @@ func NewEinoTools(cs ChatSession, es []EinoToolNewer) ([]tool.BaseTool, error) {
 	return ts, nil
 }
 
-// Validator is used to validate the v is valid or not.
-type Validator interface {
-	Validate(v any) error
-}
-
 type BaseToolFactory struct {
 	valid Validator
+	log   *slog.Logger
 }
 
-func NewBaseToolFactory(valid Validator) BaseToolFactory {
-	return BaseToolFactory{valid: valid}
+func NewBaseToolFactory(valid Validator, log *slog.Logger) BaseToolFactory {
+	return BaseToolFactory{valid: valid, log: log}
 }
 
 func (btf BaseToolFactory) Builder() BaseToolBuilder {
@@ -45,6 +42,7 @@ func (btf BaseToolFactory) Builder() BaseToolBuilder {
 
 type BaseToolBuilder struct {
 	valid Validator
+	log   *slog.Logger
 	tools []tool.BaseTool
 	err   error // last error
 }
@@ -72,6 +70,7 @@ func (btb BaseToolBuilder) wrapValidFunc[T, D any](f utils.InvokeFunc[T, D]) uti
 	return func(ctx context.Context, in T) (D, error) {
 		if err := btb.valid.Validate(in); err != nil {
 			var zero D
+			btb.log.Warn("参数校验出错", "err", err)
 			return zero, err
 		}
 

@@ -122,6 +122,13 @@ function themeStyle(isDark: boolean): CSSProperties {
   } as CSSProperties
 }
 
+function isFunctionCall(record: Record<string, unknown>) {
+  if (typeof record.call !== "string") return false
+  return Object.keys(record).every(
+    (key) => key === "call" || key === "args" || key === "catalogId"
+  )
+}
+
 function normalizeBindings(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(normalizeBindings)
@@ -134,6 +141,12 @@ function normalizeBindings(value: unknown): unknown {
   const keys = Object.keys(record)
   if (keys.length === 1 && keys[0] === "path" && typeof record.path === "string") {
     return { "@path": record.path }
+  }
+  if (isFunctionCall(record)) {
+    const call: Record<string, unknown> = { "@call": record.call }
+    if ("args" in record) call.args = normalizeBindings(record.args)
+    if ("catalogId" in record) call.catalogId = record.catalogId
+    return call
   }
 
   const next: Record<string, unknown> = {}

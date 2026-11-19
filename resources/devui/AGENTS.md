@@ -320,7 +320,7 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 | GET/POST | `/cmdb-config`                | CMDB 服务地址与访问凭证（`{enabled,endpoint,key,secret}`），单例 upsert                                                               | `cmdbConfigApi.get/update`                         |
 | GET      | `/cmdb/departments`           | CMDB 部门树（`{records: CMDBNode[]}`，树形分层）                                                                                     | `cmdbApi.departments`                              |
 | GET      | `/cmdb/assets`                | CMDB 资产分页（`page/size/q/department/ci_type`，`ci_type` 可重复传多个）                                                            | `cmdbApi.assets`                                   |
-| GET/POST | `/victoria-metrics-config`    | VictoriaMetrics 推送配置（`{enabled,address,tenant_id,username,password,headers}`）                                                  | `victoriaMetricsApi.get/update`                    |
+| GET/POST | `/victoria-metrics-config`    | VictoriaMetrics 推送配置（`{enabled,address,tenant,username,password,headers}`，`tenant` 为 `{account_id,project_id}` 或 `null`） | `victoriaMetricsApi.get/update`                    |
 | GET/POST | `/redis-config`              | Redis 连接配置（`{enabled,addresses,username,password,cluster_mode,master_name,db}`，单例 upsert）                                    | `redisConfigApi.get/upsert`                        |
 | GET      | `/redis/info`                | 实时 `INFO`（`section` 可重复传多个），返回 `{ data: "<INFO 文本>" }`                                                                | `redisConfigApi.info`                              |
 | POST     | `/redis/do`                  | 执行任意 Redis 命令（body `{ args: string[], privilege: bool }`，1~20 个），返回 `{ data: <原样结果> }`                          | `redisConfigApi.do`                                |
@@ -435,6 +435,12 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
   `MessageProcessor` 前统一归一化为规范要求的 `1.0`；组件树里的动态绑定是 v0.9 风格的
   `{"path": "/x"}`，前端会归一化为 `{"@path": "/x"}`（`ChildTemplate` 的 `path` 与
   `updateDataModel.path` 不受影响），否则 List 模板内的相对绑定会退化成对象而不是字段值。
+  同理，Go 库的 `FormatString` / `FormatDate` / `FormatNumber` 输出的是
+  `{"call": "formatString", "args": {...}}`，前端归一化为 v1.0 的 `{"@call": ...}`；
+  不转换会渲染成 `[object Object]`（已用官方 Weather 示例验证）。
+  与官方基本目录兼容：`Card / Column / Row / Text` 加上模板子节点（`children: {path, componentId}`）、
+  `formatString` / `formatDate` 可以渲染官方天气卡片；但业务链路没有天气数据源与对应工具，
+  模型无法自行产出这类画布，需要后端新增工具或通用 `render_*` 白名单。
   `update_surface` 走 `ACTIVITY_DELTA`，`patch` 为
   `{op:"add", path:"/a2ui_operations/-", value:<A2UI 消息>}`；前端把 value 追加到对应 UI 块并增量处理。
   同一个 `messageId` 的 snapshot 再次到达且 `replace=true` 时，前端替换该画布的操作并重建渲染器：
@@ -495,9 +501,10 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
   `react-markdown` 渲染，A2UI surface 由 `@a2ui/react` 的 `A2uiSurface` 渲染；主题变量映射到项目
   `--card / --foreground / --primary / --border` 等，明暗切换自动生效。
 - **模型选择**：页面进入时调用 `GET /ai-chat-model/models` 获取允许使用的模型（仅配置启用时返回），
-  顶栏右侧下拉可切换；选择结果存 `localStorage` 的 `devui.ai-chat.model`，刷新后保留。
+  输入框内左下角的下拉可切换（与主流聊天客户端一致，顶栏不再放模型选择）；选择结果存
+  `localStorage` 的 `devui.ai-chat.model`，刷新后保留。
   后端 `AIChatRunAgentInput.model` 为必填，前端始终随请求体顶层 `model` 发送；模型列表为空时
-  发送按钮禁用，并在顶栏提供「配置模型」入口跳转 `/configs/ai-chat-model`。
+  发送按钮禁用，并在输入框左下角提供「配置模型」入口跳转 `/configs/ai-chat-model`。
   A2UI 卡片圆角为 `calc(var(--radius) - 2px)`（与项目 `Card` / `Dialog` 的 `rounded-md` 一致），
   去除组件默认外 margin 与阴影；caption / 链接 / 错误色分别映射到 `--muted-foreground` /
   `--primary` / `--destructive`；`Chart` 卡片同样使用 `rounded-md` + 边框。
@@ -510,7 +517,9 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
     `a2ui-detail` 类：标签固定 7rem（caption、灰色）、值 13px，行内 5px 上下内边距 + 行间
     1px 分隔线，分组标题 11px/600 灰色，分组间 Divider 间距 0.25rem，标题下方与摘要上方
     各一条分隔线。单分组（无 Divider）同样命中。
-  - `render_table`（卡片列里同时有表头 Row 与 List）用结构选择器加表头下划线、行分隔线与紧凑行高。
+  - `render_table`（卡片列里同时有表头 Row 与 List）用结构选择器做紧凑表格：表头 10.5px/500、
+    正文 11px、行内上下 2px、行间 1px 分隔线、单元格最多两行（`-webkit-line-clamp: 2`）、
+    卡片内边距 0.75rem/0.875rem、列间距 0.5rem，整体高度约为默认排版的一半。
   - `Chart` 柱状图柱子为直角（不加 `rx`），分组宽度 0.62；Y 轴刻度用 `niceScale()` 取整
     （例如 5,475 对应 0/2,000/4,000/6,000），避免 12.5 这类小数刻度与柱子只占半屏。
 - 兼容：前端同时接受旧式 `CUSTOM`（`name: "a2ui"`，`value` 为单条 A2UI 消息）作为降级通道。
@@ -542,9 +551,14 @@ Header 在表单中通过键值对编辑，提交为 JSON map。
 - `ProcessConnection`：`fd / family / type / localaddr{ip,port} / remoteaddr{ip,port} / status / uids / pid`
 - `ProcessOpenFile`：`path / fd`
 - `ReverseProxy`：`location / name / manager / broker / header / upstream / created_at / updated_at`
-- `VictoriaMetricsConfig`：`id / enabled / address / tenant_id / username / password / headers / created_at / updated_at`
+- `VictoriaMetricsConfig`：`id / enabled / address / tenant / username / password / headers / created_at / updated_at`
     - 该配置用于管理中心端向 VictoriaMetrics 推送自身运行指标；`enabled=false` 时不推送。
-    - 集群版 `tenant_id` 非空时，后端自动拼接 `insert/{tenant}/prometheus` 写入路径。
+    - `tenant` 为 `{ account_id, project_id }` 或 `null`；`project_id` 为 `null` 表示只使用 Account ID。
+      `tenant=null` 视为单机版；非空时后端按 `account[:project]` 拼 `insert/{tenant}/prometheus` 写入路径。
+    - 前端表单用两个字符串字段 `tenant_account / tenant_project` 编辑，提交时转成
+      `tenant: { account_id: number, project_id: number|null } | null`（Account 留空即单机版）。
+    - **后端已知 BUG**：`model.VictoriaMetricsTenant.TenantID()` 在 `ProjectID != nil` 时
+      拼的是 `AccountID`（得到 `1:1` 而不是 `1:2`），需要后端修正后前端「写入地址」预览才与实际一致。
 - `RedisConfig`：`id / enabled / addresses / username / password / cluster_mode / master_name / db / created_at / updated_at`
     - 单例配置，`GET /redis-config` 未配置时返回 `null`；`POST` 走 upsert（`$set` + `$setOnInsert.created_at`）。
     - **`cluster_mode` 与 `master_name` 可以共存**：go-redis 的 `NewUniversalClient` 在

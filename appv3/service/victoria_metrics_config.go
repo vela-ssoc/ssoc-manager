@@ -12,6 +12,7 @@ import (
 	"github.com/VictoriaMetrics/metrics"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/model"
 	"github.com/vela-ssoc/ssoc-common-mb/datalayer/polydb"
+	"github.com/vela-ssoc/ssoc-common-mb/httpship"
 	"github.com/vela-ssoc/ssoc-common-mb/memcache"
 	"github.com/vela-ssoc/ssoc-manager/appv3/request"
 	"github.com/vela-ssoc/ssoc-manager/errcode"
@@ -54,7 +55,7 @@ func (vmc *VictoriaMetrics) Upsert(ctx context.Context, param request.VictoriaMe
 	mod := &model.VictoriaMetricsConfig{
 		Enabled:   param.Enabled,
 		Address:   param.Address,
-		TenantID:  param.TenantID,
+		Tenant:    param.Tenant,
 		Username:  param.Username,
 		Password:  param.Password,
 		Headers:   param.Headers.Canonical(),
@@ -89,17 +90,9 @@ func (vmc *VictoriaMetrics) Reverse(ctx context.Context, w http.ResponseWriter, 
 				pr.Out.Header.Set(k, v)
 			}
 		},
-		Transport: vmc.rtp,
-		ModifyResponse: func(r *http.Response) error {
-			if r.StatusCode == http.StatusUnauthorized {
-				r.StatusCode = http.StatusBadRequest
-				vmc.log.Warn("VictoriaMetrics 用户名密码错误")
-			}
-			return nil
-		},
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			vmc.log.Warn("VictoriaMetrics 请求响应错误", "err", err)
-		},
+		Transport:      vmc.rtp,
+		ModifyResponse: httpship.Modify401Response,
+		ErrorHandler:   httpship.ErrorHandle,
 	}
 	pxy.ServeHTTP(w, r)
 
